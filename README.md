@@ -10,9 +10,9 @@
   
   `Time` 商品兑换活动开始时间
   
-  `Address_ID` 送货地址ID，可抓包获取，用逗号 , 分隔
+  `Address_ID` 送货地址ID，可抓包获取
   
-  `Good_ID` 商品ID，可抓包获取
+  `Good_ID` 商品ID列表，可抓包获取，用逗号 , 分隔
   
 **第2⃣️步 运行`main.py`**
 
