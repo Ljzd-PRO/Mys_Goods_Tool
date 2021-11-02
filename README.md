@@ -14,6 +14,6 @@
   
   `Good_ID` 商品ID列表，可抓包获取（用逗号 , 分隔）
   
-**· 第2⃣️步 运行`main.py`**
+**· 第2⃣️步 运行`main.py`或运行[已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)**
 
 **可前往`./logs/mys_goods_tool.log`查看日志**
