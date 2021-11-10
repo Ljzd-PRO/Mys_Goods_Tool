@@ -8,17 +8,15 @@ import platform
 def get_file_path(file_name=""):
     """
     获取文件绝对路径, 防止在某些情况下报错
-    :param file_name: 文件名
-    :return:
+    file_name: 文件名
     """
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
 def to_log(info_type="", title="", info=""):
     """
-    :param info_type: 日志的等级
-    :param title: 日志的标题
-    :param info: 日志的信息
-    :return:
+    info_type: 日志的等级
+    title: 日志的标题
+    info: 日志的信息
     """
     if not os.path.exists(get_file_path("logs")):
         os.mkdir(get_file_path("logs/"))
@@ -28,6 +26,7 @@ def to_log(info_type="", title="", info=""):
         log_a_file_io.write(log + "\n")
     return log
 
+## 商品兑换相关
 class Good:
     def __init__(self, cookie, id, address):
         self.id = id
@@ -72,18 +71,23 @@ class Good:
             self.start()
         print(to_log("兑换商品：\n{0}\n返回结果：\n{1}\n".format(self.id, self.result.text)))
 
+## 检测运行环境（Windows与macOS清屏指令不同）
 system = platform.system().lower()
 
+## 读取配置文件
 conf = configparser.ConfigParser()
 conf.read(get_file_path("config.ini"))
 
 cookie = conf.get("Config", "Cookie")
-good_list = conf.get("Config", "Good_ID")
-good_list = good_list.replace(" ", "")
-good_list = good_list.split(",")
 address = conf.get("Config", "Address_ID")
 time = conf.get("Config", "Time")
 
+## 将配置文件中目标商品ID读入列表
+good_list = conf.get("Config", "Good_ID")
+good_list = good_list.replace(" ", "")
+good_list = good_list.split(",")
+
+## 初始化每个目标商品ID的对象
 num = 0
 for id in good_list:
     num += 1
@@ -94,12 +98,12 @@ while True:
     temp = time_now
     time_now = tm.strftime("%H:%M:%S", tm.localtime())
 
-    if time_now == time:
+    if time_now == time:    # 执行兑换操作
         for i in range(1, num+1):
             locals()["good_" + str(i)].start()
         break
 
-    elif time_now != temp:
+    elif time_now != temp:  # 显示当前时间
         if system == "windows":
             os.system("cls")
         if system == "darwin":
