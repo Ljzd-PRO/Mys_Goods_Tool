@@ -4,6 +4,7 @@ import os
 import sys
 import time as tm
 import platform
+from ping3 import ping
 
 def get_file_path(file_name=""):
     """
@@ -94,7 +95,7 @@ for id in good_list:
     num += 1
     locals()["good_" + str(num)] = Good(id)
 
-## 检查网络连接
+## 检查网络连接和显示剩余时间
 class CheckNetwork:
     global conf
     global time
@@ -106,8 +107,9 @@ class CheckNetwork:
     checkTime = int(checkTime)
     stopCheck = int(stopCheck)
     isCheck = int(isCheck)
-    timeUp = time.split(":")    # 兑换开始时间（不带:）
-    timeUp = int(timeUp[0]) * 3600 + int(timeUp[1]) * 60 + int(timeUp[2])
+
+    timeUp = time.split(":")
+    timeUp = int(timeUp[0]) * 3600 + int(timeUp[1]) * 60 + int(timeUp[2])   # 兑换开始时间（不带:）
     lastCheck = 0   # 上一次检测网络连接情况的时间（不带:）
     lastCheckTime = ""  # 上一次检测网络连接情况的时间
     result = None   # 上一次的检测结果
@@ -115,25 +117,32 @@ class CheckNetwork:
     ip = 'api.mihoyo.com'
 
     def __init__(self, time_now):
-        if CheckNetwork.isTimeUp == False and CheckNetwork.isCheck == True:    # 若配置文件设置为要进行网络检查，才进行检查
+        if (CheckNetwork.isTimeUp == False) and (CheckNetwork.isCheck == True):    # 若配置文件设置为要进行网络检查，才进行检查
             self.time_now = time_now.split(":")
-            self.time_now = int(self.time_now[0]) * 3600 + int(self.time_now[1]) * 60 + int(self.time_now[2])
+            self.time_now = int(self.time_now[0]) * 3600 + int(self.time_now[1]) * 60 + int(self.time_now[2])  # 当前时间
+            self.time_remian = CheckNetwork.timeUp - self.time_now
 
-            if CheckNetwork.timeUp - self.time_now < CheckNetwork.stopCheck:    # 若剩余时间不到30秒，停止之后的网络检查
+            if self.time_remian < CheckNetwork.stopCheck:    # 若剩余时间不到30秒，停止之后的网络检查
                 CheckNetwork.isTimeUp == True
-            elif self.time_now - CheckNetwork.lastCheck >= CheckNetwork.checkTime:  # 每隔10秒检测一次网络连接情况
-                self.result = os.system('ping -c 1 %s'%CheckNetwork.ip)
+
+            else:
+                self.time_H = self.time_remian // 3600
+                self.time_M = (self.time_remian % 3600) // 60
+                self.time_S = (self.time_remian % 3600) % 60
+                print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(self.time_H, self.time_M, self.time_S))
+
+            if (self.time_now - CheckNetwork.lastCheck) >= CheckNetwork.checkTime:  # 每隔10秒检测一次网络连接情况
+                CheckNetwork.result = ping(CheckNetwork.ip)
                 print("\n")
-                if self.result:
+                if CheckNetwork.result == None:
                     print(to_log("ERROR", "检测到网络连接异常！\n"))
                     CheckNetwork.resultTime = self.time_now
                     CheckNetwork.lastCheckTime = time_now
-                    CheckNetwork.result = 0
                 else:
-                    print(to_log("INFO", "检测到当前网络连接正常\n"))
+                    CheckNetwork.result = CheckNetwork.result * 1000
+                    print(to_log("INFO", "网络连接正常，延时 {0} ms\n".format(CheckNetwork.result)))
                     CheckNetwork.lastCheck = self.time_now
                     CheckNetwork.lastCheckTime = time_now
-                    CheckNetwork.result = 1
 
 time_now = None
 while True:
@@ -154,8 +163,8 @@ while True:
         print("当前时间：", time_now, "\n")
         if CheckNetwork.result == None:
             pass
-        elif CheckNetwork.result == 1:
-            print("{0} - 检测到当前网络连接正常\n".format(CheckNetwork.lastCheckTime))
         elif CheckNetwork.result == 0:
             print("{0} - 检测到网络连接异常！\n".format(CheckNetwork.lastCheckTime))
+        else:
+            print("{0} - 网络连接正常，延时 {1} ms\n".format(CheckNetwork.lastCheckTime, round(CheckNetwork.result, 2)))
         CheckNetwork(time_now)
