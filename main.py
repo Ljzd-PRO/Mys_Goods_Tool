@@ -26,12 +26,19 @@ def to_log(info_type="", title="", info=""):
         log_a_file_io.write(log + "\n")
     return log
 
+## 读取配置文件
+conf = configparser.ConfigParser()
+conf.read(get_file_path("config.ini"))
+time = conf.get("Config", "Time")
+
 ## 商品兑换相关
 class Good:
-    def __init__(self, cookie, id, address):
+    global conf
+    cookie = conf.get("Config", "Cookie")
+    address = conf.get("Config", "Address_ID")
+
+    def __init__(self, id):
         self.id = id
-        self.address = address
-        self.cookie = cookie
         self.result = None
         self.req = None
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
@@ -40,7 +47,7 @@ class Good:
         "point_sn": "myb",
         "goods_id": id,
         "exchange_num": 1,
-        "address_id": address
+        "address_id": Good.address
         }
         self.headers = {
         "Accept": "application/json, text/plain, */*",
@@ -49,7 +56,7 @@ class Good:
         "Connection": "keep-alive",
         "Content-Length": "88",
         "Content-Type": "application/json;charset=utf-8",
-        "Cookie": cookie,
+        "Cookie": Good.cookie,
         "Host": "api-takumi.mihoyo.com",
         "Origin": "https://webstatic.mihoyo.com",
         "Referer": "https://webstatic.mihoyo.com/",
@@ -67,20 +74,14 @@ class Good:
         try:
             self.result = self.req.post(self.url, headers=self.headers, json=self.data)
         except:
-            print(to_log("兑换商品：\n{0}\n服务器连接失败，正在重试\n".format(self.id)))
+            print(to_log("INFO", "兑换商品：\n{0}\n服务器连接失败，正在重试\n".format(self.id)))
             self.start()
-        print(to_log("兑换商品：\n{0}\n返回结果：\n{1}\n".format(self.id, self.result.text)))
+        print(to_log("INFO", "兑换商品\n{0}\n返回结果：\n{1}\n".format(self.id, self.result.text)))
+
 
 ## 检测运行环境（Windows与macOS清屏指令不同）
 system = platform.system().lower()
 
-## 读取配置文件
-conf = configparser.ConfigParser()
-conf.read(get_file_path("config.ini"))
-
-cookie = conf.get("Config", "Cookie")
-address = conf.get("Config", "Address_ID")
-time = conf.get("Config", "Time")
 
 ## 将配置文件中目标商品ID读入列表
 good_list = conf.get("Config", "Good_ID")
@@ -91,12 +92,53 @@ good_list = good_list.split(",")
 num = 0
 for id in good_list:
     num += 1
-    locals()["good_" + str(num)] = Good(cookie, id, address)
+    locals()["good_" + str(num)] = Good(id)
+
+## 检查网络连接
+class CheckNetwork:
+    global conf
+    global time
+
+    checkTime = conf.get("Preference", "Check_Time")    # 每隔多久检查一次网络连接情况
+    stopCheck = conf.get("Preference", "Stop_Check")    # 距离开始兑换还剩多久停止检查网络
+    isCheck = conf.get("Preference", "Check_Network")   # 是否自动检测网络连接情况
+
+    checkTime = int(checkTime)
+    stopCheck = int(stopCheck)
+    isCheck = int(isCheck)
+    timeUp = time.split(":")    # 兑换开始时间（不带:）
+    timeUp = int(timeUp[0]) * 3600 + int(timeUp[1]) * 60 + int(timeUp[2])
+    lastCheck = 0   # 上一次检测网络连接情况的时间（不带:）
+    lastCheckTime = ""  # 上一次检测网络连接情况的时间
+    result = None   # 上一次的检测结果
+    isTimeUp = False    # 是否接近兑换时间
+    ip = 'api.mihoyo.com'
+
+    def __init__(self, time_now):
+        if CheckNetwork.isTimeUp == False and CheckNetwork.isCheck == True:    # 若配置文件设置为要进行网络检查，才进行检查
+            self.time_now = time_now.split(":")
+            self.time_now = int(self.time_now[0]) * 3600 + int(self.time_now[1]) * 60 + int(self.time_now[2])
+
+            if CheckNetwork.timeUp - self.time_now < CheckNetwork.stopCheck:    # 若剩余时间不到30秒，停止之后的网络检查
+                CheckNetwork.isTimeUp == True
+            elif self.time_now - CheckNetwork.lastCheck >= CheckNetwork.checkTime:  # 每隔10秒检测一次网络连接情况
+                self.result = os.system('ping -c 1 %s'%CheckNetwork.ip)
+                print("\n")
+                if self.result:
+                    print(to_log("ERROR", "检测到网络连接异常！\n"))
+                    CheckNetwork.resultTime = self.time_now
+                    CheckNetwork.lastCheckTime = time_now
+                    CheckNetwork.result = 0
+                else:
+                    print(to_log("INFO", "检测到当前网络连接正常\n"))
+                    CheckNetwork.lastCheck = self.time_now
+                    CheckNetwork.lastCheckTime = time_now
+                    CheckNetwork.result = 1
 
 time_now = None
 while True:
     temp = time_now
-    time_now = tm.strftime("%H:%M:%S", tm.localtime())
+    time_now = tm.strftime("%H:%M:%S", tm.localtime())  # 获取当前时间
 
     if time_now == time:    # 执行兑换操作
         for i in range(1, num+1):
@@ -106,6 +148,14 @@ while True:
     elif time_now != temp:  # 显示当前时间
         if system == "windows":
             os.system("cls")
-        if system == "darwin":
+        elif system == "darwin":
             os.system("clear")
+
         print("当前时间：", time_now, "\n")
+        if CheckNetwork.result == None:
+            pass
+        elif CheckNetwork.result == 1:
+            print("{0} - 检测到当前网络连接正常\n".format(CheckNetwork.lastCheckTime))
+        elif CheckNetwork.result == 0:
+            print("{0} - 检测到网络连接异常！\n".format(CheckNetwork.lastCheckTime))
+        CheckNetwork(time_now)
