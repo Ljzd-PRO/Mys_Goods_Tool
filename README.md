@@ -6,6 +6,8 @@
 
 **· 第1⃣️步 配置`config.ini`文件，包含以下参数：**
 
+[Config]
+
   `Cookie` 用户Cookies数据，可抓包获取
   
   `Time` 商品兑换活动开始时间（按照24小时制 时:分:秒 格式）
@@ -13,6 +15,14 @@
   `Address_ID` 送货地址ID，可抓包获取
   
   `Good_ID` 商品ID列表，可抓包获取（用逗号 , 分隔）
+
+[Preference]
+
+  `Check_Network` 是否自动检测网络连接情况（是: 填入 1, 否: 填入 0）(ping api.mihoyo.com)
+  
+  `Check_Time` 每隔多久检查一次网络连接情况（单位 秒）
+  
+  `Stop_Check` 距离开始兑换还剩多久停止检查网络（单位 秒）
   
 **· 第2⃣️步 运行`main.py`或运行[已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)**
 
