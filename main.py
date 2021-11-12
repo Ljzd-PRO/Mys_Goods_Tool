@@ -6,6 +6,7 @@ import time as tm
 import platform
 from ping3 import ping
 
+## 获取程序运行目录绝对路径
 def get_file_path(file_name=""):
     """
     获取文件绝对路径, 防止在某些情况下报错
@@ -13,6 +14,7 @@ def get_file_path(file_name=""):
     """
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
+## 储存日志
 def to_log(info_type="", title="", info=""):
     """
     info_type: 日志的等级
