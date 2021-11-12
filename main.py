@@ -29,7 +29,7 @@ def to_log(info_type="", title="", info=""):
 
 ## 读取配置文件
 conf = configparser.ConfigParser()
-conf.read(get_file_path("config.ini"))
+conf.read(get_file_path("config.ini"), encoding = "utf-8")
 time = conf.get("Config", "Time")
 
 ## 商品兑换相关
@@ -140,7 +140,7 @@ class CheckNetwork:
                     CheckNetwork.lastCheckTime = time_now
                 else:
                     CheckNetwork.result = CheckNetwork.result * 1000
-                    print(to_log("INFO", "网络连接正常，延时 {0} ms\n".format(CheckNetwork.result)))
+                    print(to_log("INFO", "网络连接正常，延时 {0} ms\n".format(round(CheckNetwork.result, 2))))
                     CheckNetwork.lastCheck = self.time_now
                     CheckNetwork.lastCheckTime = time_now
 
