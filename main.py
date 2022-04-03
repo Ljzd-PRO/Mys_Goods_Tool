@@ -1,3 +1,4 @@
+import random
 import requests
 import configparser
 import os
@@ -46,30 +47,30 @@ class Good:
         self.req = None
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
         self.data = {
-        "app_id": 1,
-        "point_sn": "myb",
-        "goods_id": id,
-        "exchange_num": 1,
-        "address_id": Good.address
+            "app_id": 1,
+            "point_sn": "myb",
+            "goods_id": id,
+            "exchange_num": 1,
+            "address_id": Good.address
         }
         self.headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "zh-CN,zh-Hans;q=0.9",
-        "Connection": "keep-alive",
-        "Content-Length": "88",
-        "Content-Type": "application/json;charset=utf-8",
-        "Cookie": Good.cookie,
-        "Host": "api-takumi.mihoyo.com",
-        "Origin": "https://webstatic.mihoyo.com",
-        "Referer": "https://webstatic.mihoyo.com/",
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.14.1","x-rpc-app_version": "2.14.1",
-        "x-rpc-channel": "appstore",
-        "x-rpc-client_type": "1",
-        "x-rpc-device_id": "35543DDE-7C18-4584-BF4B-51217D3C8670",
-        "x-rpc-device_model": "iPhone10,2",
-        "x-rpc-device_name": "%E4%B8%A4%E6%B1%9F%E6%80%BB%E7%9D%A3",
-        "x-rpc-sys_version": "15.1"
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Length": "88",
+            "Content-Type": "application/json;charset=utf-8",
+            "Cookie": Good.cookie,
+            "Host": "api-takumi.mihoyo.com",
+            "Origin": "https://webstatic.mihoyo.com",
+            "Referer": "https://webstatic.mihoyo.com/",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.14.1","x-rpc-app_version": "2.14.1",
+            "x-rpc-channel": "appstore",
+            "x-rpc-client_type": "1",
+            "x-rpc-device_id": "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789', 32)).upper(),
+            "x-rpc-device_model": "iPhone10,2",
+            "x-rpc-device_name": "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789', random.randrange(5))).upper(),
+            "x-rpc-sys_version": "15.1"
         }
 
     def start(self):
