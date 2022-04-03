@@ -1,4 +1,6 @@
-# 获取`Address_ID`的方法
+# 手动获取`Address_ID`的方法
+**❕注意：可直接用`tool.py`信息查询工具获取`Address_ID`，免去手动抓包的麻烦。前提是要先配置好`Cookie`**
+
 启动抓包，打开米游社App **我的-设置-通行证账号与安全-管理收货地址** 这个页面，
 
 App会发出一个GET请求，请求URL为`https://api-takumi.mihoyo.com/account/address/list?t=xxxxxxxxxx`，该请求的返回数据中有`id`键，`id`对应的值就是配置文件里的`Address_ID`
