@@ -12,10 +12,10 @@
 
   `Cookie` 用户Cookies数据，可抓包获取  
   `Time` 商品兑换活动开始时间（按照24小时制 时:分:秒 格式）  
-  `Address_ID` 送货地址ID，可抓包获取
-  > [`Address_ID` 获取方法](./Docs/Address_ID.md)
+  `Address_ID` 送货地址ID，可用 `tool.py` 信息查询工具进行查询
+  > 附：[`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)
   
-  `Good_ID` 商品ID列表，可抓包获取（用逗号 , 分隔）
+  `Good_ID` 商品ID列表，可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）
 
 **[Preference]**
 
