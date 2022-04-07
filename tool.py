@@ -104,7 +104,7 @@ def goodTool():
         clear()
 
 def addressTool():
-    conf = configparser.ConfigParser()
+    conf = configparser.RawConfigParser()
     conf.read("config.ini", encoding = "utf-8")
     cookie = conf.get("Config", "Cookie")
     headers = {
