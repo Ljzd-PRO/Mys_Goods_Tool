@@ -31,7 +31,7 @@ def to_log(info_type="", title="", info=""):
     return log
 
 ## 读取配置文件
-conf = configparser.ConfigParser()
+conf = configparser.RawConfigParser()
 conf.read(get_file_path("config.ini"), encoding = "utf-8")
 time = conf.get("Config", "Time")
 
