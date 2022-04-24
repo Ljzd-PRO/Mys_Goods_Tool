@@ -11,6 +11,7 @@ from ping3 import ping
 # 网络请求的超时时间（商品和游戏账户详细信息查询）
 TIME_OUT = 5
 
+
 def clear() -> None:
     """
     清屏
@@ -51,9 +52,11 @@ def to_log(info_type: str = "", title: str = "", info: str = "") -> str:
         log_a_file_io.write(log + "\n")
     return log
 
+
 ## 读取配置文件
 conf = configparser.RawConfigParser()
 conf.read(get_file_path("config.ini"), encoding="utf-8")
+
 
 ## 商品兑换相关
 class Good:
@@ -158,7 +161,6 @@ class Good:
                     self.data.setdefault("region", user["region"])
                     self.data.setdefault("game_biz", game_biz)
 
-
     def start(self) -> None:
         self.req = requests.Session()
         while True:
@@ -189,6 +191,7 @@ queue = []
 for id in good_list:
     queue.append(Good(id))
 
+
 ## 检查网络连接和显示剩余时间
 class CheckNetwork:
     global conf
@@ -211,7 +214,8 @@ class CheckNetwork:
 
     def __init__(self) -> None:
         if CheckNetwork.isTimeUp == False and CheckNetwork.isCheck == True:  # 若配置文件设置为要进行网络检查，才进行检查
-            if CheckNetwork.timeUp - time.time() < CheckNetwork.stopCheck:  # 若剩余时间不到30秒，停止之后的网络检查
+            if CheckNetwork.timeUp - time.time(
+            ) < CheckNetwork.stopCheck:  # 若剩余时间不到30秒，停止之后的网络检查
                 CheckNetwork.isTimeUp = True
 
             if (
@@ -234,6 +238,7 @@ class CheckNetwork:
 # 时间戳转字符串时间（无传入参数则返回当前时间）
 def timeStampToStr(timeStamp: float = None) -> str:
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+
 
 temp_time = 0
 while __name__ == '__main__':
@@ -262,7 +267,7 @@ while __name__ == '__main__':
 
         print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(
             int((CheckNetwork.timeUp - time.time()) / 3600),
-            int((CheckNetwork.timeUp - time.time()) / 60),
+            int((CheckNetwork.timeUp - time.time()) % 3600 / 60),
             int((CheckNetwork.timeUp - time.time()) % 60)))
 
         temp_time = time.time()
