@@ -23,7 +23,7 @@
 **[Preference]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Check_Network | 是否自动检测网络连接情况（是: 填入 1, 否: 填入 0）(ping api-takumi.mihoyo.com) |
+| Check_Network | 是否自动检测网络连接情况（是: 填入 1, 否: 填入 0）(`ping api-takumi.mihoyo.com`) |
 | Check_Time | 每隔多久检查一次网络连接情况（单位 秒） |
 | Stop_Check | 距离开始兑换还剩多久停止检查网络（单位 秒） |
 
