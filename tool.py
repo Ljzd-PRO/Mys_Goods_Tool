@@ -208,7 +208,6 @@ def addressTool() -> None:
 
 def cookieTool() -> None:
     print("> 请输入米游社App的抓包数据文件路径(HAR格式)：")
-    print("-- 可以直接拖动文件到此处，快速填入路径")
     print("\n> ", end="")
     har_path = input()
     try:
@@ -300,17 +299,22 @@ def cookieTool() -> None:
                     conf.write(config_file)
 
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
+                input()
+                clear()
+                return
             except:
                 print("> 配置文件写入失败，检查config.ini是否存在且有权限读写(回车以返回)")
+                input()
+                clear()
+                return
         elif choice != "":
             print("> 输入有误，请重新输入(回车以返回)\n")
             input()
             clear()
             continue
-
-        input()
-        clear()
-        return
+        else:
+            clear()
+            return
 
 
 while __name__ == '__main__':
