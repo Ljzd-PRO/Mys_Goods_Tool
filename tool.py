@@ -11,7 +11,8 @@ COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
     "login_ticket"
 ]
-
+# Headers所需要的 User-Agent
+USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
 
 def clear() -> None:
     """
@@ -92,9 +93,11 @@ def goodTool() -> None:
             print("商品ID(Good_ID)：{0}".format(good["goods_id"]))
             print("商品价格：{0} 米游币".format(good["price"]))
 
-            if good["type"] == 2:
+            if good["type"] != 1 and good["next_time"] == 0:
                 print("兑换时间：任何时间")
-            elif good["type"] == 1:
+            elif good["type"] != 1 and good["next_num"] == 0:
+                print("库存：无限")
+            else:
                 print("兑换时间：{0}".format(
                     time.strftime("%Y-%m-%d %H:%M:%S",
                                   time.localtime(good["next_time"]))))
@@ -142,7 +145,7 @@ def addressTool() -> None:
         "x-rpc-client_type":
         "5",
         "User-Agent":
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1",
+        USER_AGENT,
         "Referer":
         "https://user.mihoyo.com/",
         "Accept-Language":
