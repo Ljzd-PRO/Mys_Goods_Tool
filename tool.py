@@ -123,10 +123,15 @@ def addressTool() -> None:
         conf.read("config.ini", encoding="utf-8")
         cookie = conf.get("Config", "Cookie")
     except:
-        print("> 读取Cookie失败，请检查你的配置文件是否正确配置。(回车以返回)")
-        input()
-        clear()
-        return
+        print("> 读取Cookie失败，请手动输入：(返回上一页请直接回车)")
+        print("> ", end="")
+        cookie_input = input()
+        if cookie_input != "":
+            cookie = cookie_input.strip("\"").strip("'")
+            clear()
+        else:
+            clear()
+            return
 
     headers = {
         "Host":
