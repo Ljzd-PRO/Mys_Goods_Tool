@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: [ ubuntu-latest, windows-latest ]
+    runs-on: [ ubuntu-18.04, windows-2019 ]
 
     steps:
     - uses: actions/checkout@v3
