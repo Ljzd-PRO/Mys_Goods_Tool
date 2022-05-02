@@ -44,7 +44,6 @@ jobs:
       run: |
         del dist
         del *.spec
-        del __pycache__
         del build
         
     - name: Cleaning up build
@@ -69,7 +68,6 @@ jobs:
       run: |
         del dist
         del *.spec
-        del __pycache__
         del build
         
     - name: Cleaning up build
