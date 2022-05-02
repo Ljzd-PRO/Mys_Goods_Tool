@@ -1,4 +1,4 @@
-name: Build
+name: Build and pack
 
 on:
   push:
@@ -35,3 +35,5 @@ jobs:
         path: |
           ./dist/main*
           ./dist/tool*
+          ./config.ini
+          ./logs
