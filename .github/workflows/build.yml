@@ -42,12 +42,12 @@ jobs:
     - name: Cleaning up build(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        del /S dist *.spec __pycache__ build
+        del /S .\dist .\*.spec .\__pycache__ .\build
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
       run: |
-        rm -rf dist/ *.spec __pycache__/ build/
+        rm -rf ./dist/ *.spec __pycache__/ build/
         
     - name: Build tool(Windows)
       if: ${{ runner.os == 'Windows' }}
@@ -64,7 +64,7 @@ jobs:
     - name: Cleaning up build(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        del /S dist *.spec __pycache__ build
+        del /S .\dist .\*.spec .\__pycache__ .\build
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
