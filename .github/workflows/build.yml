@@ -28,13 +28,13 @@ jobs:
         pip install -r requirements.txt
         
     - name: Build main(Windows)
-      if: ${{ runner.os() == 'Windows' }}
+      if: ${{ runner.os == 'Windows' }}
       run: |
         pyinstaller -F ./main.py
         move dist\main.exe .\
     
     - name: Build main
-      if: ${{ runner.os() != 'Windows' }}
+      if: ${{ runner.os != 'Windows' }}
       run: |
         pyinstaller -F ./main.py
         mv ./dist/main ./
