@@ -40,34 +40,34 @@ jobs:
         mv ./dist/main ./
         
     - name: Cleaning up build(Windows)
-      if: ${{ runner.os() == 'Windows' }}
+      if: ${{ runner.os == 'Windows' }}
       run: |
         del /a /f /s /q "dist" "*.spec" "__pycache__" "build"
         
     - name: Cleaning up build
-      if: ${{ runner.os() != 'Windows' }}
+      if: ${{ runner.os != 'Windows' }}
       run: |
         rm -rf dist/ *.spec __pycache__/ build/
         
     - name: Build tool(Windows)
-      if: ${{ runner.os() == 'Windows' }}
+      if: ${{ runner.os == 'Windows' }}
       run: |
         pyinstaller -F ./tool.py
         move dist\tool.exe .\
     
     - name: Build tool
-      if: ${{ runner.os() != 'Windows' }}
+      if: ${{ runner.os != 'Windows' }}
       run: |
         pyinstaller -F ./tool.py
         mv ./dist/main ./
         
     - name: Cleaning up build(Windows)
-      if: ${{ runner.os() == 'Windows' }}
+      if: ${{ runner.os == 'Windows' }}
       run: |
         del /a /f /s /q "dist" "*.spec" "__pycache__" "build"
         
     - name: Cleaning up build
-      if: ${{ runner.os() != 'Windows' }}
+      if: ${{ runner.os != 'Windows' }}
       run: |
         rm -rf dist/ *.spec __pycache__/ build/
         
