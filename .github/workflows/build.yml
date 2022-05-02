@@ -59,7 +59,7 @@ jobs:
       if: ${{ runner.os != 'Windows' }}
       run: |
         pyinstaller -F ./tool.py
-        mv ./dist/main ./
+        mv ./dist/tool ./
         
     - name: Cleaning up build(Windows)
       if: ${{ runner.os == 'Windows' }}
