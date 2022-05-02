@@ -42,9 +42,9 @@ jobs:
     - name: Cleaning up build(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        del ./dist
-        del ./*.spec
-        del ./build
+        del dist
+        del *.spec
+        del "build"
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
@@ -66,9 +66,9 @@ jobs:
     - name: Cleaning up build(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        del ./dist
-        del ./*.spec
-        del ./build
+        del dist
+        del *.spec
+        del "build"
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
