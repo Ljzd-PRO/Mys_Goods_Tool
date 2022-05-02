@@ -63,6 +63,18 @@ jobs:
         pyinstaller -F ./tool.py
         mv ./dist/tool ./
         
+    - name: Cleaning up build(Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        del dist
+        del *.spec
+        move build build_main
+        
+    - name: Cleaning up build
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        rm -rf ./dist/ *.spec __pycache__/ build/
+        
     - name: Upload build
       uses: actions/upload-artifact@v3
       with:
