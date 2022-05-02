@@ -68,7 +68,6 @@ jobs:
       run: |
         del dist
         del *.spec
-        move build build_main
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
