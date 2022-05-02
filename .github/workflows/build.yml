@@ -44,7 +44,7 @@ jobs:
       run: |
         del dist
         del *.spec
-        rmdir build
+        del build /F
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
@@ -68,7 +68,7 @@ jobs:
       run: |
         del dist
         del *.spec
-        rmdir build
+        del build /F
         
     - name: Cleaning up build
       if: ${{ runner.os != 'Windows' }}
