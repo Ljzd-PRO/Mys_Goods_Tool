@@ -2,6 +2,8 @@
 
 **🎉 更新：支持兑换游戏内物品，无需手动查找Cookies，可自动分析抓包数据([🔗v1.2.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.0)) 🎉**
 
+**🎉 iOS iSH 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)里有已经打包好的 🎉**
+
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
 
 建议同时自己也用手机操作去抢，以免脚本出问题。
