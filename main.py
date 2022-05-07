@@ -1,6 +1,7 @@
 import hashlib
 import json
 import random
+import string
 import traceback
 import requests
 import configparser
@@ -8,6 +9,7 @@ import os
 import sys
 import time
 import platform
+import ntplib
 from ping3 import ping
 
 # 网络请求的超时时间（商品和游戏账户详细信息查询）
@@ -24,6 +26,8 @@ X_RPC_APP_VERSION = "2.14.1"
 X_RPC_SYS_VERSION = "15.1"
 # 失败后最多重试次数（不是商品兑换）
 MAX_RETRY_TIMES = 5
+# NTP服务器，用于获取网络时间
+NTP_SERVER = "ntp.aliyun.com"
 
 
 def clear() -> None:
@@ -44,7 +48,7 @@ def clear() -> None:
 def get_file_path(file_name: str = "") -> str:
     """
     获取文件绝对路径, 防止在某些情况下报错
-    >>> file_name: str # 文件名
+    >>> file_name: str #文件名
     """
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
@@ -52,18 +56,47 @@ def get_file_path(file_name: str = "") -> str:
 def to_log(info_type: str = "", title: str = "", info: str = "") -> str:
     """
     储存日志
-    >>> info_type: str # 日志的等级
-    >>> title: str # 日志的标题
-    >>> info: str # 日志的信息
+    >>> info_type: str #日志的等级
+    >>> title: str #日志的标题
+    >>> info: str #日志的信息
     """
     if not os.path.exists(get_file_path("logs")):
         os.mkdir(get_file_path("logs/"))
-    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(NtpTime.time()))
     log = now + "  " + info_type + "  " + title + "  " + info
     with open(get_file_path("logs/mys_goods_tool.log"), "a",
               encoding="utf-8") as log_a_file_io:
         log_a_file_io.write(log + "\n")
     return log
+
+
+class NtpTime():
+    """
+    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    """
+    ntp_error_times = 0
+    time_offset = 0
+    while True:
+        try:
+            time_offset = ntplib.NTPClient().request(
+                NTP_SERVER).tx_time - time.time()
+            break
+        except:
+            ntp_error_times += 1
+            if ntp_error_times == MAX_RETRY_TIMES:
+                print(to_log("WARN", "校对互联网时间失败，改为使用本地时间"))
+                break
+            else:
+                print(to_log("WARN", traceback.format_exc()))
+                print(
+                    to_log("WARN",
+                           "校对互联网时间失败，正在重试({0})".format(ntp_error_times)))
+
+    def time() -> float:
+        """
+        获取校准后的时间（如果校准成功）
+        """
+        return time.time() + NtpTime.time_offset
 
 
 ## 读取配置文件
@@ -107,8 +140,8 @@ class Good:
         ## DS 加密算法:
         # 1. https://github.com/lhllhx/miyoubi/issues/3
         # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-        t = int(time.time())
-        a = "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789', 6))
+        t = int(NtpTime.time())
+        a = "".join(random.sample(string.ascii_lowercase + string.digits, 6))
         re = hashlib.md5(
             f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
                 encoding="utf-8")).hexdigest()
@@ -117,7 +150,7 @@ class Good:
     def __init__(self, id: str) -> None:
         """
         针对每个目标商品进行初始化
-        >>> id: str # 商品ID(Good_ID)
+        >>> id: str #商品ID(Good_ID)
         """
         self.id = id
         self.result = None
@@ -159,13 +192,13 @@ class Good:
             "x-rpc-client_type":
             "1",
             "x-rpc-device_id":
-            "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
+            "".join(random.sample(string.ascii_letters + string.digits,
                                   32)).upper(),
             "x-rpc-device_model":
             X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
             "".join(
-                random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
+                random.sample(string.ascii_letters + string.digits,
                               random.randrange(5))).upper(),
             "x-rpc-sys_version":
             X_RPC_SYS_VERSION
@@ -322,16 +355,16 @@ class CheckNetwork:
 
     def __init__(self) -> None:
         if CheckNetwork.isTimeUp == False and CheckNetwork.isCheck == True:  # 若配置文件设置为要进行网络检查，才进行检查
-            if CheckNetwork.timeUp - time.time(
+            if CheckNetwork.timeUp - NtpTime.time(
             ) < CheckNetwork.stopCheck:  # 若剩余时间不到30秒，停止之后的网络检查
                 CheckNetwork.isTimeUp = True
 
             if (
-                    time.time() - CheckNetwork.lastCheck
+                    NtpTime.time() - CheckNetwork.lastCheck
             ) >= CheckNetwork.checkTime and CheckNetwork.isTimeUp == False:  # 每隔10秒检测一次网络连接情况
                 print("正在检查网络连接...")
                 CheckNetwork.result = ping(CheckNetwork.ip)
-                CheckNetwork.lastCheck = time.time()
+                CheckNetwork.lastCheck = NtpTime.time()
                 print("\n")
                 if CheckNetwork.result == None:
                     print(to_log("WARN", "检测到网络连接异常！\n"))
@@ -343,22 +376,22 @@ class CheckNetwork:
                                 round(CheckNetwork.result, 2))))
 
 
-def timeStampToStr(timeStamp: float = None) -> str:
+def timeStampToStr(timeStamp: float = NtpTime.time()) -> str:
     """
     时间戳转字符串时间（无传入参数则返回当前时间）
-    >>> timeStamp: float # 时间戳
+    >>> timeStamp: float #时间戳
     """
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 
 temp_time = 0
 while __name__ == '__main__':
-    if time.time() >= CheckNetwork.timeUp:  # 执行兑换操作
+    if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
         for task in queue:
             task.start()
         break
 
-    elif int(time.time()) != int(temp_time):  # 每隔一秒刷新一次
+    elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
         clear()
 
         print("当前时间：", timeStampToStr(), "\n")
@@ -377,8 +410,8 @@ while __name__ == '__main__':
                         round(CheckNetwork.result, 2)))
 
         print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(
-            int((CheckNetwork.timeUp - time.time()) / 3600),
-            int((CheckNetwork.timeUp - time.time()) % 3600 / 60),
-            int((CheckNetwork.timeUp - time.time()) % 60)))
+            int((CheckNetwork.timeUp - NtpTime.time()) / 3600),
+            int((CheckNetwork.timeUp - NtpTime.time()) % 3600 / 60),
+            int((CheckNetwork.timeUp - NtpTime.time()) % 60)))
 
-        temp_time = time.time()
+        temp_time = NtpTime.time()
