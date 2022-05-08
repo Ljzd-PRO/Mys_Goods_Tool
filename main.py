@@ -62,7 +62,10 @@ def to_log(info_type: str = "", title: str = "", info: str = "") -> str:
     """
     if not os.path.exists(get_file_path("logs")):
         os.mkdir(get_file_path("logs/"))
-    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(NtpTime.time()))
+    try:
+        now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(NtpTime.time()))
+    except:
+        now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     log = now + "  " + info_type + "  " + title + "  " + info
     with open(get_file_path("logs/mys_goods_tool.log"), "a",
               encoding="utf-8") as log_a_file_io:
