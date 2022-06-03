@@ -14,6 +14,7 @@ COOKIES_NEEDED = [
 # Headers所需要的 User-Agent
 USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
 
+
 def clear() -> None:
     """
     清屏
@@ -76,6 +77,9 @@ def goodTool() -> None:
                 else:
                     good_list += get_list
                 page += 1
+            except KeyboardInterrupt:
+                print("用户强制结束程序...")
+                exit(1)
             except:
                 retry_times += 1
                 clear()
@@ -120,14 +124,20 @@ def goodTool() -> None:
 def addressTool() -> None:
     conf = configparser.RawConfigParser()
     try:
-        conf.read("config.ini", encoding="utf-8")
-        cookie = conf.get("Config", "Cookie")
+        conf.read_file(open("config.ini"))
+        cookie = conf.get(
+            "Config",
+            "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except:
-        print("> 读取Cookie失败，请手动输入：(返回上一页请直接回车)")
+        print("> 读取Cookie失败，请手动输入Cookie信息：(返回上一页请直接回车)")
         print("> ", end="")
         cookie_input = input()
         if cookie_input != "":
-            cookie = cookie_input.strip("\"").strip("'")
+            cookie = cookie_input.strip("'''").strip("'").strip(
+                "\"\"\"").strip("\"")
             clear()
         else:
             clear()
@@ -167,6 +177,9 @@ def addressTool() -> None:
             address_list = json.loads(requests.get(
                 url, headers=headers).text)["data"]["list"]
             break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
         except:
             retry_times += 1
             clear()
@@ -195,6 +208,9 @@ def addressTool() -> None:
             if choice == "":
                 break
             int(choice)
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
         except:
             print("> 输入有误，请重新输入(回车以返回)\n")
             input()
@@ -208,6 +224,9 @@ def addressTool() -> None:
             print("> 配置文件写入成功(回车以返回功能选择界面)")
             input()
             break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
         except:
             print("> 配置文件写入失败(回车以返回)")
             input()
@@ -218,29 +237,40 @@ def cookieTool() -> None:
     print("> 请输入米游社App的抓包数据文件路径(HAR格式)：")
     print("\n> ", end="")
     har_path = input()
+
+    # 去除两边自动添加的无关符号
+    strip_char = ["'", "\"", " "]
+    for char in strip_char:
+        if not os.path.isfile(har_path):
+            har_path = har_path.strip(char)
+        else:
+            break
+    # 替换自动添加的无关符号
+    replace_char = [("\:", ":"), ("\ ", " ")]
+    for chars in replace_char:
+        if not os.path.isfile(har_path):
+            har_path = har_path.replace(chars[0], chars[1])
+        else:
+            break
+
     try:
         har_file = open(har_path, "r")
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except FileNotFoundError:
-        print("> 打开文件失败，尝试去除两边的无关符号(1)")
-        try:
-            har_file = open(har_path.strip("'"), "r")
-        except FileNotFoundError:
-            print("> 打开文件失败，尝试去除两边的无关符号(2)")
-            try:
-                har_file = open(har_path.strip("\""), "r")
-            except FileNotFoundError:
-                print("> 打开文件失败，尝试去除两边的无关符号(3)")
-                try:
-                    har_file = open(har_path.strip(), "r")
-                except FileNotFoundError:
-                    print("> 打开文件失败！请检查权限以及指定路径是否存在文件(回车以返回)。")
-                    input()
-                    clear()
-                    return
+        print("> 打开文件失败！请检查权限以及指定路径是否存在文件(回车以返回)。")
+        input()
+        clear()
+        return
+
     try:
         har_data = json.load(har_file)
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except:
-        print("> 文件错误或损坏，要求HAR文件(回车以返回)")
+        print("> 文件错误或损坏，要求 har/json 文件(回车以返回)")
         input()
         clear()
         return
@@ -258,6 +288,9 @@ def cookieTool() -> None:
                     cookies.setdefault(cookie["name"], cookie["value"])
             if len(cookies) == len(COOKIES_NEEDED):
                 break
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except:
         print("> 文件错误或损坏，要求HAR文件(回车以返回)")
         input()
@@ -310,6 +343,9 @@ def cookieTool() -> None:
                 input()
                 clear()
                 return
+            except KeyboardInterrupt:
+                print("用户强制结束程序...")
+                exit(1)
             except:
                 print("> 配置文件写入失败，检查config.ini是否存在且有权限读写(回车以返回)")
                 input()
@@ -330,7 +366,7 @@ while __name__ == '__main__':
     print("> 选择功能：")
     print("-- 1. 查询商品ID(Good_ID)")
     print("-- 2. 查询送货地址ID(Address_ID)")
-    print("-- 3. 从HAR文件分析获取Cookies(包括stoken)")
+    print("-- 3. 从抓包导出文件 har/json 分析获取Cookies(包括stoken)")
     print("\n-- 0. 退出")
     print("\n> ", end="")
 
