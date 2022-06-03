@@ -1,6 +1,6 @@
 name: Build and upload to release
 
-on: release
+on: push
 
 jobs:
   build:
