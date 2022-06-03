@@ -1,0 +1,93 @@
+name: Build and upload to release
+
+on: release
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macOS-latest ]
+        
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+        
+    - name: Build main(Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        pyinstaller -F ./main.py
+        move dist\main.exe .\
+    
+    - name: Build main
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        pyinstaller -F ./main.py
+        mv ./dist/main ./
+        
+    - name: Cleaning up build(Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        del dist
+        del *.spec
+        del main.py
+        move build build_main
+        
+    - name: Cleaning up main build
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        rm -rf dist/ __pycache__/ build/ *.spec main.py
+        
+    - name: Build tool(Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        pyinstaller -F ./tool.py
+        move dist\tool.exe .\
+    
+    - name: Build tool
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        pyinstaller -F ./tool.py
+        mv ./dist/tool ./
+        
+    - name: Cleaning up tool build(Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        del dist
+        del *.spec
+        del tool.py
+        
+    - name: Cleaning up build
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        rm -rf dist/ __pycache__/ build/ *.spec tool.py
+    
+    - name: Zip the Build
+      run: zip -r ${{ github.ref_name }}-${{ runner.os }}-$RUNNER_ARCH ./main* ./tool* ./config.ini ./logs
+      
+    - name: Upload build
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ github.ref_name }}-${{ runner.os }}-$RUNNER_ARCH
+        path: |
+          ./main*
+          ./tool*
+          ./config.ini
+          ./logs
+          
+    - name: Upload release binaries
+      uses: alexellis/upload-assets@0.3.0
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        asset_paths: '["./${{ github.ref_name }}-${{ runner.os }}-$RUNNER_ARCH"]'
