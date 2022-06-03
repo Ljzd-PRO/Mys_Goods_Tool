@@ -63,7 +63,11 @@ def to_log(info_type: str = "", title: str = "", info: str = "") -> str:
     if not os.path.exists(get_file_path("logs")):
         os.mkdir(get_file_path("logs/"))
     try:
-        now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(NtpTime.time()))
+        now = time.strftime("%Y-%m-%d %H:%M:%S",
+                            time.localtime(NtpTime.time()))
+    except KeyboardInterrupt:
+        print(to_log("ERROR", "用户强制结束程序"))
+        exit(1)
     except:
         now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     log = now + "  " + info_type + "  " + title + "  " + info
@@ -80,10 +84,14 @@ class NtpTime():
     ntp_error_times = 0
     time_offset = 0
     while True:
+        print(to_log("INFO", "正在校对互联网时间"))
         try:
             time_offset = ntplib.NTPClient().request(
                 NTP_SERVER).tx_time - time.time()
             break
+        except KeyboardInterrupt:
+            print(to_log("ERROR", "用户强制结束程序"))
+            exit(1)
         except:
             ntp_error_times += 1
             if ntp_error_times == MAX_RETRY_TIMES:
@@ -124,6 +132,8 @@ class Good:
     elif "stoken" in cookie:
         stoken = cookie.replace("=", "").replace(
             " ", "").split("stoken")[1].split(";")[0]
+    else:
+        stoken = None
 
     bbs_uid = ""
     if "ltuid" in cookie:
@@ -212,88 +222,104 @@ class Good:
                 print(to_log("INFO", "正在检查商品：{0} 的详细信息".format(self.id)))
                 checkGood_data = json.loads(
                     self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
+                if checkGood_data == None:
+                    print(
+                        to_log("ERROR",
+                               "无法找到商品：{0} 的信息，放弃兑换该商品".format(self.id)))
+                    self.result = -1
+                    return
+                elif checkGood_data["type"] == 2:
+                    if "stoken" not in Good.cookie:
+                        print(
+                            to_log(
+                                "ERROR",
+                                "商品：{0} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
+                                    self.id)))
+                        self.result = -1
+                        return
+                # 若商品非游戏内物品，则直接返回，不进行下面的操作
+                else:
+                    self.headers.setdefault("Content-Length", "88")
+                    return
                 break
+            except KeyboardInterrupt:
+                print(to_log("ERROR", "用户强制结束程序"))
+                exit(1)
             except:
                 print(to_log("ERROR", traceback.format_exc()))
                 print(to_log("ERROR", "检查商品：{0} 失败，正在重试".format(self.id)))
                 continue
 
-        if checkGood_data["type"] == 2:
-            if "stoken" not in Good.cookie:
+        error_times = 0
+        while True:
+            try:
+                print(to_log("INFO", "正在获取用户ActionTicket"))
+                getActionTicket_headers = self.headers.copy()
+                getActionTicket_headers[
+                    "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
+                getActionTicket_headers.setdefault("DS", Good.get_DS())
+                getActionTicket_req = self.req.get(
+                    getActionTicket,
+                    headers=getActionTicket_headers,
+                    timeout=TIME_OUT)
+                actionTicket = json.loads(
+                    getActionTicket_req.text)["data"]["ticket"]
+                break
+            except KeyboardInterrupt:
+                print(to_log("ERROR", "用户强制结束程序"))
+                exit(1)
+            except:
+                error_times += 1
+                if error_times == MAX_RETRY_TIMES:
+                    print(
+                        to_log(
+                            "ERROR",
+                            "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
+                            format(self.id)))
+                    self.result = -1
+                    return
+                print(to_log("ERROR", traceback.format_exc()))
+                print(
+                    to_log("ERROR",
+                           "获取用户ActionTicket失败，正在重试({0})".format(error_times)))
+                continue
+
+        game_biz = checkGood_data["game_biz"]
+        error_times = 0
+        while True:
+            try:
+                print(to_log("INFO", "正在检查游戏账户：{0} 的详细信息".format(Good.uid)))
+                user_list = json.loads(
+                    self.req.get(checkGame.format(actionTicket=actionTicket,
+                                                  game_biz=game_biz),
+                                 headers=self.headers,
+                                 timeout=TIME_OUT).text)["data"]["list"]
+                break
+            except KeyboardInterrupt:
+                print(to_log("ERROR", "用户强制结束程序"))
+                exit(1)
+            except:
+                error_times += 1
+                if error_times == MAX_RETRY_TIMES:
+                    print(
+                        to_log(
+                            "ERROR",
+                            "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
+                            format(self.id)))
+                    self.result = -1
+                    return
+                print(to_log("ERROR", traceback.format_exc()))
                 print(
                     to_log(
-                        "ERROR",
-                        "商品：{0} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(self.id)))
-                self.result = -1
-                return
+                        "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
+                            Good.uid, error_times)))
+                continue
 
-            error_times = 0
-            while True:
-                try:
-                    print(to_log("INFO", "正在获取用户ActionTicket"))
-                    getActionTicket_headers = self.headers.copy()
-                    getActionTicket_headers[
-                        "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
-                    getActionTicket_headers.setdefault("DS", Good.get_DS())
-                    getActionTicket_req = self.req.get(
-                        getActionTicket,
-                        headers=getActionTicket_headers,
-                        timeout=TIME_OUT)
-                    actionTicket = json.loads(
-                        getActionTicket_req.text)["data"]["ticket"]
-                    break
-                except:
-                    error_times += 1
-                    if error_times == MAX_RETRY_TIMES:
-                        print(
-                            to_log(
-                                "ERROR",
-                                "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
-                                format(self.id)))
-                        self.result = -1
-                        return
-                    print(to_log("ERROR", traceback.format_exc()))
-                    print(
-                        to_log(
-                            "ERROR", "获取用户ActionTicket失败，正在重试({0})".format(
-                                error_times)))
-                    continue
-
-            game_biz = checkGood_data["game_biz"]
-            error_times = 0
-            while True:
-                try:
-                    print(to_log("INFO",
-                                 "正在检查游戏账户：{0} 的详细信息".format(Good.uid)))
-                    user_list = json.loads(
-                        self.req.get(checkGame.format(
-                            actionTicket=actionTicket, game_biz=game_biz),
-                                     headers=self.headers,
-                                     timeout=TIME_OUT).text)["data"]["list"]
-                    break
-                except:
-                    error_times += 1
-                    if error_times == MAX_RETRY_TIMES:
-                        print(
-                            to_log(
-                                "ERROR",
-                                "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
-                                format(self.id)))
-                        self.result = -1
-                        return
-                    print(to_log("ERROR", traceback.format_exc()))
-                    print(
-                        to_log(
-                            "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
-                                Good.uid, error_times)))
-                    continue
-
-            for user in user_list:
-                if user["game_biz"] == game_biz and user[
-                        "game_uid"] == Good.uid:
-                    self.data.setdefault("uid", Good.uid)
-                    self.data.setdefault("region", user["region"])
-                    self.data.setdefault("game_biz", game_biz)
+        for user in user_list:
+            if user["game_biz"] == game_biz and user["game_uid"] == Good.uid:
+                self.data.setdefault("uid", Good.uid)
+                self.data.setdefault("region", user["region"])
+                self.data.setdefault("game_biz", game_biz)
 
         self.headers.setdefault("Content-Length", "88")
 
@@ -303,12 +329,16 @@ class Good:
         """
         if self.result == -1:
             print(to_log("WARN", "商品：{0} 未初始化完成，放弃兑换".format(self.id)))
+            return
         self.req = requests.Session()
         while True:
             try:
                 self.result = self.req.post(self.url,
                                             headers=self.headers,
                                             json=self.data)
+            except KeyboardInterrupt:
+                print(to_log("ERROR", "用户强制结束程序"))
+                exit(1)
             except:
                 print(to_log("ERROR", traceback.format_exc()))
                 print(to_log("ERROR", "兑换商品：{0} 失败，正在重试".format(self.id)))
