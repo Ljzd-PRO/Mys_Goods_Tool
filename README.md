@@ -2,7 +2,7 @@
 
 **🎉 更新：互联网时间、支持兑换游戏内物品、无需手动查找Cookies，可自动分析抓包数据([🔗v1.2.1](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.1)) 🎉**
 
-**🎉 iOS iSH 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的 🎉**
+**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的 🎉**
 
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
 
