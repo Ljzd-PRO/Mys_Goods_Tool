@@ -33,18 +33,24 @@ NTP_SERVER = "ntp.aliyun.com"
 
 
 def clear() -> None:
-    """
-    清屏
-    """
-    plat = platform.system()
-    if plat == "Darwin":
-        os.system("clear")
-    elif plat == "Windows":
-        os.system("cls")
-    elif plat == "Linux":
-        os.system("clear")
-    else:
-        pass
+    try:
+        """
+        清屏
+        """
+        plat = platform.system()
+        if plat == "Darwin":
+            os.system("clear")
+        elif plat == "Windows":
+            os.system("cls")
+        elif plat == "Linux":
+            os.system("clear")
+        else:
+            pass
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        to_log("WARN", "执行清屏命令失败")
 
 
 def get_file_path(file_name: str = "") -> str:
@@ -55,28 +61,34 @@ def get_file_path(file_name: str = "") -> str:
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
 
-def to_log(info_type: str = "", title: str = "", info: str = "") -> str:
+def to_log(info_type: str = "", info: str = "") -> str:
     """
     储存日志
     >>> info_type: str #日志的等级
-    >>> title: str #日志的标题
     >>> info: str #日志的信息
     """
-    if not os.path.exists(get_file_path("logs")):
-        os.mkdir(get_file_path("logs/"))
     try:
-        now = time.strftime("%Y-%m-%d %H:%M:%S",
-                            time.localtime(NtpTime.time()))
+        if not os.path.exists(get_file_path("logs")):
+            os.mkdir(get_file_path("logs/"))
+        try:
+            now = time.strftime("%Y-%m-%d %H:%M:%S",
+                                time.localtime(NtpTime.time()))
+        except KeyboardInterrupt:
+            print(to_log("WARN", "用户强制结束程序"))
+            exit(1)
+        except:
+            now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        log = now + "  " + info_type + "  " + info
+        with open(get_file_path("logs/mys_goods_tool.log"), "a",
+                  encoding="utf-8") as log_a_file_io:
+            log_a_file_io.write(log + "\n")
+        return log
     except KeyboardInterrupt:
-        print(to_log("ERROR", "用户强制结束程序"))
+        print(to_log("WARN", "用户强制结束程序"))
         exit(1)
     except:
-        now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    log = now + "  " + info_type + "  " + title + "  " + info
-    with open(get_file_path("logs/mys_goods_tool.log"), "a",
-              encoding="utf-8") as log_a_file_io:
-        log_a_file_io.write(log + "\n")
-    return log
+        print("日志输出失败")
+        traceback.print_exc()
 
 
 class NtpTime():
@@ -92,18 +104,19 @@ class NtpTime():
                 NTP_SERVER).tx_time - time.time()
             break
         except KeyboardInterrupt:
-            print(to_log("ERROR", "用户强制结束程序"))
+            print(to_log("WARN", "用户强制结束程序"))
             exit(1)
         except:
             ntp_error_times += 1
             if ntp_error_times == MAX_RETRY_TIMES:
                 print(to_log("WARN", "校对互联网时间失败，改为使用本地时间"))
+                to_log("WARN", traceback.format_exc())
                 break
             else:
-                print(to_log("WARN", traceback.format_exc()))
                 print(
                     to_log("WARN",
                            "校对互联网时间失败，正在重试({0})".format(ntp_error_times)))
+                to_log("WARN", traceback.format_exc())
 
     def time() -> float:
         """
@@ -112,9 +125,17 @@ class NtpTime():
         return time.time() + NtpTime.time_offset
 
 
-## 读取配置文件
-conf = configparser.RawConfigParser()
-conf.read(get_file_path("config.ini"), encoding="utf-8")
+# 读取配置文件
+try:
+    conf = configparser.RawConfigParser()
+    conf.read(get_file_path("config.ini"), encoding="utf-8")
+except KeyboardInterrupt:
+    print(to_log("WARN", "用户强制结束程序"))
+    exit(1)
+except:
+    print(to_log("ERROR", "读取配置文件失败"))
+    to_log("ERROR", traceback.format_exc())
+    exit(1)
 
 
 class Good:
@@ -122,45 +143,75 @@ class Good:
     商品兑换相关
     """
     global conf
-    cookie = conf.get("Config", "Cookie").strip("\"").strip("'")
-    stoken = conf.get("Config", "stoken").replace(" ", "")
-    address = conf.get("Config", "Address_ID")
-    uid = conf.get("Config", "UID")
+    try:
+        cookie = conf.get("Config", "Cookie").strip("\"").strip("'")
+        address = conf.get("Config", "Address_ID")
+        try:
+            stoken = conf.get("Config", "stoken").replace(" ", "")
+        except configparser.NoOptionError:
+            stoken = ""
+        try:
+            uid = conf.get("Config", "UID")
+        except configparser.NoOptionError:
+            uid = ""
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "从配置文件中读取[Config]失败，可能是没有正确配置"))
+        to_log("ERROR", traceback.format_exc())
+        exit(1)
 
-    # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-    if stoken != "..." and stoken != "" and "stoken" not in cookie:
-        cookie += ("stoken=" + stoken + ";")
-    # 若 Cookie 中存在stoken，获取其中的stoken信息
-    elif "stoken" in cookie:
-        stoken = cookie.replace("=", "").replace(
-            " ", "").split("stoken")[1].split(";")[0]
-    else:
-        stoken = None
+    try:
+        # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
+        if stoken != "..." and stoken != "" and "stoken" not in cookie:
+            cookie += ("stoken=" + stoken + ";")
+        # 若 Cookie 中存在stoken，获取其中的stoken信息
+        elif "stoken" in cookie:
+            stoken = cookie.replace("=", "").replace(
+                " ", "").split("stoken")[1].split(";")[0]
+        else:
+            stoken = None
 
-    bbs_uid = ""
-    if "ltuid" in cookie:
-        bbs_uid = cookie.replace("=", "").replace(
-            " ", "").split("ltuid")[1].split(";")[0]
-    elif "account_id" in cookie:
-        bbs_uid = cookie.replace("=", "").replace(
-            " ", "").split("account_id")[1].split(";")[0]
-    elif "stuid" in cookie:
-        bbs_uid = cookie.replace("=", "").replace(
-            " ", "").split("stuid")[1].split(";")[0]
+        bbs_uid = ""
+        if "ltuid" in cookie:
+            bbs_uid = cookie.replace("=", "").replace(
+                " ", "").split("ltuid")[1].split(";")[0]
+        elif "account_id" in cookie:
+            bbs_uid = cookie.replace("=", "").replace(
+                " ", "").split("account_id")[1].split(";")[0]
+        elif "stuid" in cookie:
+            bbs_uid = cookie.replace("=", "").replace(
+                " ", "").split("stuid")[1].split(";")[0]
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "处理配置信息失败"))
+        to_log("ERROR", traceback.format_exc())
+        exit(1)
 
     def get_DS():
-        """
-        获取Headers中所需DS
-        """
-        ## DS 加密算法:
-        # 1. https://github.com/lhllhx/miyoubi/issues/3
-        # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-        t = int(NtpTime.time())
-        a = "".join(random.sample(string.ascii_lowercase + string.digits, 6))
-        re = hashlib.md5(
-            f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
-                encoding="utf-8")).hexdigest()
-        return f"{t},{a},{re}"
+        try:
+            """
+            获取Headers中所需DS
+            """
+            ## DS 加密算法:
+            # 1. https://github.com/lhllhx/miyoubi/issues/3
+            # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
+            t = int(NtpTime.time())
+            a = "".join(random.sample(string.ascii_lowercase + string.digits, 6))
+            re = hashlib.md5(
+                f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
+                    encoding="utf-8")).hexdigest()
+            return f"{t},{a},{re}"
+        except KeyboardInterrupt:
+            print(to_log("WARN", "用户强制结束程序"))
+            exit(1)
+        except:
+            print(to_log("ERROR", "生成Headers所需DS失败"))
+            to_log("ERROR", traceback.format_exc())
+            raise
 
     def __init__(self, id: str) -> None:
         """
@@ -245,11 +296,11 @@ class Good:
                     return
                 break
             except KeyboardInterrupt:
-                print(to_log("ERROR", "用户强制结束程序"))
+                print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
-                print(to_log("ERROR", traceback.format_exc()))
                 print(to_log("ERROR", "检查商品：{0} 失败，正在重试".format(self.id)))
+                to_log("ERROR", traceback.format_exc())
                 continue
 
         error_times = 0
@@ -259,7 +310,13 @@ class Good:
                 getActionTicket_headers = self.headers.copy()
                 getActionTicket_headers[
                     "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
-                getActionTicket_headers.setdefault("DS", Good.get_DS())
+                try:
+                    getActionTicket_headers.setdefault("DS", Good.get_DS())
+                except:
+                    print(to_log("ERROR", "初始化商品兑换任务失败，放弃兑换"))
+                    to_log("ERROR", traceback.format_exc())
+                    self.result = -1
+                    return
                 getActionTicket_req = self.req.get(
                     getActionTicket,
                     headers=getActionTicket_headers,
@@ -268,7 +325,7 @@ class Good:
                     getActionTicket_req.text)["data"]["ticket"]
                 break
             except KeyboardInterrupt:
-                print(to_log("ERROR", "用户强制结束程序"))
+                print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
                 error_times += 1
@@ -280,10 +337,10 @@ class Good:
                             format(self.id)))
                     self.result = -1
                     return
-                print(to_log("ERROR", traceback.format_exc()))
                 print(
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({0})".format(error_times)))
+                to_log("ERROR", traceback.format_exc())
                 continue
 
         game_biz = checkGood_data["game_biz"]
@@ -298,7 +355,7 @@ class Good:
                                  timeout=TIME_OUT).text)["data"]["list"]
                 break
             except KeyboardInterrupt:
-                print(to_log("ERROR", "用户强制结束程序"))
+                print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
                 error_times += 1
@@ -310,11 +367,11 @@ class Good:
                             format(self.id)))
                     self.result = -1
                     return
-                print(to_log("ERROR", traceback.format_exc()))
                 print(
                     to_log(
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
+                to_log("ERROR", traceback.format_exc())
                 continue
 
         for user in user_list:
@@ -335,15 +392,16 @@ class Good:
         self.req = requests.Session()
         while True:
             try:
+                print(to_log("INFO", "发送兑换请求..."))
                 self.result = self.req.post(self.url,
                                             headers=self.headers,
                                             json=self.data)
             except KeyboardInterrupt:
-                print(to_log("ERROR", "用户强制结束程序"))
+                print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
-                print(to_log("ERROR", traceback.format_exc()))
                 print(to_log("ERROR", "兑换商品：{0} 失败，正在重试".format(self.id)))
+                to_log("ERROR", traceback.format_exc())
                 continue
             print(
                 to_log(
@@ -352,15 +410,30 @@ class Good:
             break
 
 
-## 检测运行环境（Windows与macOS清屏指令不同）
+# 检测运行环境（Windows与macOS清屏指令不同）
 system = platform.system()
 
-## 将配置文件中目标商品ID读入列表
-good_list = conf.get("Config", "Good_ID")
-good_list = good_list.replace(" ", "")
-good_list = good_list.split(",")
-
-## 初始化每个目标商品ID的对象
+# 将配置文件中目标商品ID读入列表
+try:
+    good_list = conf.get("Config", "Good_ID")
+except KeyboardInterrupt:
+    print(to_log("WARN", "用户强制结束程序"))
+    exit(1)
+except:
+    print(to_log("ERROR", "从配置文件中读取商品ID失败，可能是没有正确配置"))
+    to_log("ERROR", traceback.format_exc())
+    exit(1)
+try:
+    good_list = good_list.replace(" ", "")
+    good_list = good_list.split(",")
+except KeyboardInterrupt:
+    print(to_log("WARN", "用户强制结束程序"))
+    exit(1)
+except:
+    print(to_log("ERROR", "处理配置信息失败"))
+    to_log("ERROR", traceback.format_exc())
+    exit(1)
+# 初始化每个目标商品ID的对象
 queue = []
 for id in good_list:
     queue.append(Good(id))
@@ -371,44 +444,75 @@ class CheckNetwork:
     检查网络连接和显示剩余时间
     """
     global conf
+    try:
+        try:
+            timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
+        except KeyboardInterrupt:
+            print(to_log("WARN", "用户强制结束程序"))
+            exit(1)
+        except:
+            print(to_log("ERROR", "读取配置文件中兑换时间失败，可能是没有正确配置"))
+            to_log("ERROR", traceback.format_exc())
+            exit(1)
+        checkTime = conf.get("Preference", "Check_Time")  # 每隔多久检查一次网络连接情况
+        stopCheck = conf.get("Preference", "Stop_Check")  # 距离开始兑换还剩多久停止检查网络
+        isCheck = conf.get("Preference", "Check_Network")  # 是否自动检测网络连接情况
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "从配置文件中读取[Preference]失败，可能是没有正确配置"))
+        to_log("ERROR", traceback.format_exc())
+        checkTime = 0
+        stopCheck = 0
+        isCheck = 0
 
-    timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
-    checkTime = conf.get("Preference", "Check_Time")  # 每隔多久检查一次网络连接情况
-    stopCheck = conf.get("Preference", "Stop_Check")  # 距离开始兑换还剩多久停止检查网络
-    isCheck = conf.get("Preference", "Check_Network")  # 是否自动检测网络连接情况
-
-    checkTime = int(checkTime)
-    stopCheck = int(stopCheck)
     isCheck = int(isCheck)
+    if isCheck:
+        try:
+            checkTime = int(checkTime)
+            stopCheck = int(stopCheck)
 
-    timeUp = time.mktime(time.strptime(timeUp_Str, "%Y-%m-%d %H:%M:%S"))
+            timeUp = time.mktime(time.strptime(timeUp_Str, "%Y-%m-%d %H:%M:%S"))
 
-    lastCheck = 0  # 上一次检测网络连接情况的时间
-    result = -1  # 上一次的检测结果
-    isTimeUp = False  # 是否接近兑换时间
-    ip = 'api-takumi.mihoyo.com'
+            lastCheck = 0  # 上一次检测网络连接情况的时间
+            result = -1  # 上一次的检测结果
+            isTimeUp = False  # 是否接近兑换时间
+            ip = 'api-takumi.mihoyo.com'
+        except KeyboardInterrupt:
+            print(to_log("WARN", "用户强制结束程序"))
+            exit(1)
+        except:
+            print(to_log("WARN", "无法进行网络检查"))
+            isCheck = 0
 
     def __init__(self) -> None:
-        if CheckNetwork.isTimeUp == False and CheckNetwork.isCheck == True:  # 若配置文件设置为要进行网络检查，才进行检查
-            if CheckNetwork.timeUp - NtpTime.time(
-            ) < CheckNetwork.stopCheck:  # 若剩余时间不到30秒，停止之后的网络检查
-                CheckNetwork.isTimeUp = True
+        try:
+            if not CheckNetwork.isTimeUp and CheckNetwork.isCheck:  # 若配置文件设置为要进行网络检查，才进行检查
+                if CheckNetwork.timeUp - NtpTime.time(
+                ) < CheckNetwork.stopCheck:  # 若剩余时间不到30秒，停止之后的网络检查
+                    CheckNetwork.isTimeUp = True
 
-            if (
-                    NtpTime.time() - CheckNetwork.lastCheck
-            ) >= CheckNetwork.checkTime and CheckNetwork.isTimeUp == False:  # 每隔10秒检测一次网络连接情况
-                print("正在检查网络连接...")
-                CheckNetwork.result = ping(CheckNetwork.ip)
-                CheckNetwork.lastCheck = NtpTime.time()
-                print("\n")
-                if CheckNetwork.result == None:
-                    print(to_log("WARN", "检测到网络连接异常！\n"))
-                else:
-                    CheckNetwork.result = CheckNetwork.result * 1000
-                    print(
-                        to_log(
-                            "INFO", "网络连接正常，延时 {0} ms\n".format(
-                                round(CheckNetwork.result, 2))))
+                if (
+                        NtpTime.time() - CheckNetwork.lastCheck
+                ) >= CheckNetwork.checkTime and not CheckNetwork.isTimeUp:  # 每隔10秒检测一次网络连接情况
+                    print("正在检查网络连接...")
+                    CheckNetwork.result = ping(CheckNetwork.ip)
+                    CheckNetwork.lastCheck = NtpTime.time()
+                    print("\n")
+                    if CheckNetwork.result == None:
+                        print(to_log("WARN", "检测到网络连接异常！\n"))
+                    else:
+                        CheckNetwork.result = CheckNetwork.result * 1000
+                        print(
+                            to_log(
+                                "INFO", "网络连接正常，延时 {0} ms\n".format(
+                                    round(CheckNetwork.result, 2))))
+        except KeyboardInterrupt:
+            print(to_log("WARN", "用户强制结束程序"))
+            exit(1)
+        except:
+            print(to_log("WARN", "执行网络检查失败"))
 
 
 def timeStampToStr(timeStamp: float = NtpTime.time()) -> str:
@@ -421,32 +525,38 @@ def timeStampToStr(timeStamp: float = NtpTime.time()) -> str:
 
 temp_time = 0
 while __name__ == '__main__':
-    if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
-        for task in queue:
-            task.start()
-        break
+    try:
+        if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
+            for task in queue:
+                task.start()
+            break
 
-    elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
-        clear()
-
-        print("当前时间：", timeStampToStr(), "\n")
-        if CheckNetwork.isCheck == True:
-            CheckNetwork()
+        elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
             clear()
+
             print("当前时间：", timeStampToStr(), "\n")
+            if CheckNetwork.isCheck:
+                CheckNetwork()
+                clear()
+                print("当前时间：", timeStampToStr(), "\n")
 
-            if CheckNetwork.result != -1:  # 排除初始化值
-                if CheckNetwork.result == None or CheckNetwork.result == 0:
-                    print("{0} - 检测到网络连接异常！\n".format(
-                        timeStampToStr(CheckNetwork.lastCheck)))
-                else:
-                    print("{0} - 网络连接正常，延时 {1} ms\n".format(
-                        timeStampToStr(CheckNetwork.lastCheck),
-                        round(CheckNetwork.result, 2)))
+                if CheckNetwork.result != -1:  # 排除初始化值
+                    if CheckNetwork.result == None or CheckNetwork.result == 0:
+                        print("{0} - 检测到网络连接异常！\n".format(
+                            timeStampToStr(CheckNetwork.lastCheck)))
+                    else:
+                        print("{0} - 网络连接正常，延时 {1} ms\n".format(
+                            timeStampToStr(CheckNetwork.lastCheck),
+                            round(CheckNetwork.result, 2)))
 
-        print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(
-            int((CheckNetwork.timeUp - NtpTime.time()) / 3600),
-            int((CheckNetwork.timeUp - NtpTime.time()) % 3600 / 60),
-            int((CheckNetwork.timeUp - NtpTime.time()) % 60)))
+            print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(
+                int((CheckNetwork.timeUp - NtpTime.time()) / 3600),
+                int((CheckNetwork.timeUp - NtpTime.time()) % 3600 / 60),
+                int((CheckNetwork.timeUp - NtpTime.time()) % 60)))
 
-        temp_time = NtpTime.time()
+            temp_time = NtpTime.time()
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "主程序出现错误"))
