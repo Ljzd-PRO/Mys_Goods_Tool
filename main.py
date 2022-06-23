@@ -341,6 +341,7 @@ class Good:
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({0})".format(error_times)))
                 to_log("ERROR", traceback.format_exc())
+                to_log("DEBUG", "getActionTicket_headers: {0}".format(getActionTicket_headers))
                 continue
 
         game_biz = checkGood_data["game_biz"]
