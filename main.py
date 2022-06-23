@@ -363,7 +363,7 @@ class Good:
                     print(
                         to_log(
                             "ERROR",
-                            "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
+                            "商品：{0} 为游戏内物品，由于检查游戏账户失败，放弃兑换该商品".
                             format(self.id)))
                     self.result = -1
                     return
