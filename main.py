@@ -164,23 +164,24 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and "stoken" not in cookie:
+        if stoken != "..." and stoken != "" and cookie.find("stoken") != -1:
             cookie += ("stoken=" + stoken + ";")
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif "stoken" in cookie:
+        elif cookie.find("stoken") != -1:
             stoken = cookie.replace("=", "").replace(
                 " ", "").split("stoken")[1].split(";")[0]
         else:
             stoken = None
 
+        # 从 Cookie 中获取游戏UID
         bbs_uid = ""
-        if "ltuid" in cookie:
+        if cookie.find("ltuid") != -1:
             bbs_uid = cookie.replace("=", "").replace(
                 " ", "").split("ltuid")[1].split(";")[0]
-        elif "account_id" in cookie:
+        elif cookie.find("account_id") != -1:
             bbs_uid = cookie.replace("=", "").replace(
                 " ", "").split("account_id")[1].split(";")[0]
-        elif "stuid" in cookie:
+        elif cookie.find("stuid") != -1:
             bbs_uid = cookie.replace("=", "").replace(
                 " ", "").split("stuid")[1].split(";")[0]
     except KeyboardInterrupt:
