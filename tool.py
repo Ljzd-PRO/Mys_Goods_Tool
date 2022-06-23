@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from genericpath import isfile
 import os
 import random
 import time
@@ -8,6 +9,9 @@ import json
 import platform
 import configparser
 
+
+# 当前版本
+VERSION = "v1.2.2"
 # 所需要的Cookie
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -236,65 +240,126 @@ def addressTool() -> None:
 
 
 def cookieTool() -> None:
-    print("> 请输入米游社App的抓包数据文件路径(HAR格式)：")
-    print("\n> ", end="")
-    har_path = input()
-
-    # 去除两边自动添加的无关符号
     strip_char = ["'", "\"", " "]
-    for char in strip_char:
-        if not os.path.isfile(har_path):
-            har_path = har_path.strip(char)
-        else:
-            break
-    # 替换自动添加的无关符号
-    replace_char = [("\:", ":"), ("\ ", " ")]
-    for chars in replace_char:
-        if not os.path.isfile(har_path):
-            har_path = har_path.replace(chars[0], chars[1])
-        else:
-            break
+    replace_char = [("\:", ":"), ("\ ", " "), ("\~", "~")]
 
-    try:
-        har_file = open(har_path, "r")
-    except KeyboardInterrupt:
-        print("用户强制结束程序...")
-        exit(1)
-    except FileNotFoundError:
-        print("> 打开文件失败！请检查权限以及指定路径是否存在文件(回车以返回)。")
-        input()
-        clear()
-        return
-
-    try:
-        har_data = json.load(har_file)
-    except KeyboardInterrupt:
-        print("用户强制结束程序...")
-        exit(1)
-    except:
-        print("> 文件错误或损坏，要求 har/json 文件(回车以返回)")
-        input()
-        clear()
-        return
-    har_file.close()
-
-    print("> 开始分析抓包数据")
+    # 查找结果
     cookies = {}
-    try:
-        har_data = har_data["log"]["entries"]
-        for data in har_data:
-            for cookie in data["request"]["cookies"]:
+
+    print("> 请选择抓包导出文件类型：")
+    print("- (1) 使用 HttpCanary 导出的文件夹")
+    print("- (2) .har 文件")
+    print("\n> ", end="")
+    choice = input()
+    clear()
+    if choice == "1":
+        print("> 请输入 HttpCanary 导出文件夹路径：")
+        print("\n> ", end="")
+        file_path = input()
+        clear()
+
+        # 去除两边自动添加的无关符号
+        for char in strip_char:
+            if not os.path.isdir(file_path):
+                file_path = file_path.strip(char)
+            else:
+                break
+        # 替换自动添加的无关符号
+        for chars in replace_char:
+            if not os.path.isdir(file_path):
+                file_path = file_path.replace(chars[0], chars[1])
+            else:
+                break
+
+        try:
+            req_dirs = os.listdir(file_path)
+            for req_dir in req_dirs:
+                if isfile(req_dir):
+                    continue
+                file_data = json.load(
+                    open(os.path.join(file_path, req_dir, "request.json"), "r"))
+                print("> 开始分析抓包数据")
+                try:
+                    file_cookies = file_data["headers"]["Cookie"]
+                except KeyError:
+                    try:
+                        file_cookies = file_data["headers"]["cookie"]
+                    except KeyError:
+                        continue
+                for cookie_needed in COOKIES_NEEDED:
+                    if file_cookies.find(cookie_needed) != -1:
+                        cookies.setdefault(cookie_needed, file_cookies.replace("=", "").replace(
+                            " ", "").split(cookie_needed)[1].split(";")[0])
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except FileNotFoundError:
+            print("> 打开文件失败！请检查权限以及指定路径是否存在文件(回车以返回)。")
+            input()
+            clear()
+            return
+        except:
+            print("> 文件错误或损坏(回车以返回)")
+            input()
+            clear()
+            return
+
+    elif choice == "2":
+        print("> 请输入 .har 文件路径：")
+        print("\n> ", end="")
+        file_path = input()
+
+        # 去除两边自动添加的无关符号
+        for char in strip_char:
+            if not os.path.isfile(file_path):
+                file_path = file_path.strip(char)
+            else:
+                break
+        # 替换自动添加的无关符号
+        for chars in replace_char:
+            if not os.path.isfile(file_path):
+                file_path = file_path.replace(chars[0], chars[1])
+            else:
+                break
+
+        try:
+            file_data = json.load(open(file_path, "r"))
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except FileNotFoundError:
+            print("> 打开文件失败！请检查权限以及指定路径是否存在文件(回车以返回)。")
+            input()
+            clear()
+            return
+        except:
+            print("> 文件错误或损坏，要求 .har 文件(回车以返回)")
+            input()
+            clear()
+            return
+
+        print("> 开始分析抓包数据")
+        try:
+            file_data = file_data["log"]["entries"]
+            for data in file_data:
                 if len(cookies) == len(COOKIES_NEEDED):
                     break
-                if cookie["name"] in COOKIES_NEEDED:
-                    cookies.setdefault(cookie["name"], cookie["value"])
-            if len(cookies) == len(COOKIES_NEEDED):
-                break
-    except KeyboardInterrupt:
-        print("用户强制结束程序...")
-        exit(1)
-    except:
-        print("> 文件错误或损坏，要求HAR文件(回车以返回)")
+                for cookie in data["request"]["cookies"]:
+                    if len(cookies) == len(COOKIES_NEEDED):
+                        break
+                    if cookie["name"] in COOKIES_NEEDED:
+                        cookies.setdefault(cookie["name"], cookie["value"])
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 文件错误或损坏，要求 .har 文件(回车以返回)")
+            input()
+            clear()
+            return
+
+    else:
+        print("> 输入有误(回车以返回)\n")
         input()
         clear()
         return
@@ -363,12 +428,32 @@ def cookieTool() -> None:
             return
 
 
+def checkUpdate() -> None:
+    try:
+        latest_url = requests.get(
+            "https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/latest", allow_redirects=False).headers["Location"]
+        latest_tag = os.path.basename(latest_url)
+        if VERSION != latest_tag:
+            print("-- 有新版本可用\n")
+        else:
+            print("-- 已经是最新版本\n")
+        print("- 当前版本: {}".format(VERSION))
+        print("- 最新版本: {}".format(latest_tag))
+        print("- 链接: {}".format(latest_url))
+        print("\n> 回车以返回\n")
+        input()
+    except:
+        print("\n> 检查更新失败，回车以返回\n")
+        input()
+
+
 while __name__ == '__main__':
     clear()
     print("> 选择功能：")
     print("-- 1. 查询商品ID(Good_ID)")
     print("-- 2. 查询送货地址ID(Address_ID)")
-    print("-- 3. 从抓包导出文件 har/json 分析获取Cookies(包括stoken)")
+    print("-- 3. 从抓包导出文件分析获取Cookies(包括stoken)")
+    print("-- 4. 检查更新")
     print("\n-- 0. 退出")
     print("\n> ", end="")
 
@@ -380,6 +465,8 @@ while __name__ == '__main__':
         addressTool()
     elif choice == "3":
         cookieTool()
+    elif choice == "4":
+        checkUpdate()
     elif choice == "0":
         break
     else:
