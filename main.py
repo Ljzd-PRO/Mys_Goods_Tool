@@ -197,12 +197,11 @@ class Good:
             """
             获取Headers中所需DS
             """
-            # DS 加密算法:
+            ## DS 加密算法:
             # 1. https://github.com/lhllhx/miyoubi/issues/3
             # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
             t = int(NtpTime.time())
-            a = "".join(random.sample(
-                string.ascii_lowercase + string.digits, 6))
+            a = "".join(random.sample(string.ascii_lowercase + string.digits, 6))
             re = hashlib.md5(
                 f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
                     encoding="utf-8")).hexdigest()
@@ -343,8 +342,7 @@ class Good:
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({0})".format(error_times)))
                 to_log("ERROR", traceback.format_exc())
-                to_log("DEBUG", "getActionTicket_headers: {0}".format(
-                    getActionTicket_headers))
+                to_log("DEBUG", "getActionTicket_headers: {0}".format(getActionTicket_headers))
                 continue
 
         game_biz = checkGood_data["game_biz"]
@@ -477,8 +475,7 @@ class CheckNetwork:
             checkTime = int(checkTime)
             stopCheck = int(stopCheck)
 
-            timeUp = time.mktime(time.strptime(
-                timeUp_Str, "%Y-%m-%d %H:%M:%S"))
+            timeUp = time.mktime(time.strptime(timeUp_Str, "%Y-%m-%d %H:%M:%S"))
 
             lastCheck = 0  # 上一次检测网络连接情况的时间
             result = -1  # 上一次的检测结果
@@ -501,16 +498,18 @@ class CheckNetwork:
                 if (
                         NtpTime.time() - CheckNetwork.lastCheck
                 ) >= CheckNetwork.checkTime and not CheckNetwork.isTimeUp:  # 每隔10秒检测一次网络连接情况
-                    print("正在检查网络连接...", end="")
+                    print("正在检查网络连接...")
                     CheckNetwork.result = ping(CheckNetwork.ip)
                     CheckNetwork.lastCheck = NtpTime.time()
+                    print("\n")
                     if CheckNetwork.result == None:
-                        to_log("WARN", "检测到网络连接异常！")
+                        print(to_log("WARN", "检测到网络连接异常！\n"))
                     else:
                         CheckNetwork.result = CheckNetwork.result * 1000
-                        to_log(
-                            "INFO", "网络连接正常，延时 {0} ms".format(
-                                    round(CheckNetwork.result, 2)))
+                        print(
+                            to_log(
+                                "INFO", "网络连接正常，延时 {0} ms\n".format(
+                                    round(CheckNetwork.result, 2))))
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
@@ -518,13 +517,11 @@ class CheckNetwork:
             print(to_log("WARN", "执行网络检查失败"))
 
 
-def timeStampToStr(timeStamp: float = None) -> str:
+def timeStampToStr(timeStamp: float = NtpTime.time()) -> str:
     """
     时间戳转字符串时间（无传入参数则返回当前时间）
     >>> timeStamp: float #时间戳
     """
-    if timeStamp == None:
-        timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 
@@ -542,13 +539,15 @@ while __name__ == '__main__':
             print("当前时间：", timeStampToStr(), "\n")
             if CheckNetwork.isCheck:
                 CheckNetwork()
-                if CheckNetwork.result != -1:  # 排除初始化值
+                clear()
+                print("当前时间：", timeStampToStr(), "\n")
 
+                if CheckNetwork.result != -1:  # 排除初始化值
                     if CheckNetwork.result == None or CheckNetwork.result == 0:
-                        print("\r{0} - 检测到网络连接异常！\n".format(
+                        print("{0} - 检测到网络连接异常！\n".format(
                             timeStampToStr(CheckNetwork.lastCheck)))
                     else:
-                        print("\r{0} - 网络连接正常，延时 {1} ms\n".format(
+                        print("{0} - 网络连接正常，延时 {1} ms\n".format(
                             timeStampToStr(CheckNetwork.lastCheck),
                             round(CheckNetwork.result, 2)))
 
