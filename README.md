@@ -1,6 +1,6 @@
 # 米游社商品抢兑工具
 
-**🎉 更新：互联网时间、支持兑换游戏内物品、无需手动查找Cookies，可自动分析抓包数据([🔗v1.2.1](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.1)) 🎉**
+**🎉 更新：增加支持自动分析 HttpCanary 的抓包数据([🔗v1.2.2](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.2)) 🎉**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的 🎉**
 
