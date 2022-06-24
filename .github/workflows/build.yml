@@ -2,9 +2,13 @@ name: Build and pack
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+    - stable
+    - dev
   pull_request:
-    branches: [ main, dev ]
+    branches:
+    - stable
+    - dev
 
 jobs:
   build:
