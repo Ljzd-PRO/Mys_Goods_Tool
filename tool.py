@@ -1,6 +1,5 @@
 # coding=utf-8
 
-from genericpath import isfile
 import os
 import random
 import time
@@ -274,7 +273,7 @@ def cookieTool() -> None:
         try:
             req_dirs = os.listdir(file_path)
             for req_dir in req_dirs:
-                if isfile(req_dir):
+                if os.path.isfile(req_dir):
                     continue
                 file_data = json.load(
                     open(os.path.join(file_path, req_dir, "request.json"), "r"))
