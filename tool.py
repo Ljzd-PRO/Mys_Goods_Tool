@@ -9,31 +9,33 @@ import platform
 import configparser
 
 
-# 当前版本
 VERSION = "v1.2.2"
-# 所需要的Cookie
+'''程序当前版本'''
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
     "login_ticket"
 ]
-# Headers所需要的 User-Agent
+'''需要获取的Cookies'''
 USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
+'''Headers所用的 User-Agent'''
 
+# 清屏指令
+PLATFORM = platform.system()
+if PLATFORM == "Darwin":
+    CLEAR_COMMAND = "clear"
+elif PLATFORM == "Windows":
+    CLEAR_COMMAND = "cls"
+elif PLATFORM == "Linux":
+    CLEAR_COMMAND = "clear"
+else:
+    CLEAR_COMMAND = None
 
 def clear() -> None:
     """
     清屏
     """
-    plat = platform.system()
-    if plat == "Darwin":
-        os.system("clear")
-    elif plat == "Windows":
-        os.system("cls")
-    elif plat == "Linux":
-        os.system("clear")
-    else:
-        pass
-
+    if CLEAR_COMMAND != None:
+        os.system(CLEAR_COMMAND)
 
 def goodTool() -> None:
     while True:
