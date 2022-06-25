@@ -14,22 +14,24 @@ import platform
 import ntplib
 from ping3 import ping
 
-# 网络请求的超时时间（商品和游戏账户详细信息查询）
+VERSION = "v1.2.3-beta"
+"""程序当前版本"""
 TIME_OUT = 5
-# 兑换商品时 Headers 所用的 User-Agent
+"""网络请求的超时时间（商品和游戏账户详细信息查询）"""
 USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.14.1"
-# 获取用户 ActionTicket 时Headers所用的 User-Agent
+"""兑换商品时 Headers 所用的 User-Agent"""
 USER_AGENT_GET_ACTION_TICKET = "Hyperion/177 CFNetwork/1331.0.7 Darwin/21.4.0"
-# Headers所用的 x-rpc-device_model
+"""获取用户 ActionTicket 时Headers所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
-# Headers所用的 x-rpc-app_version
+"""Headers所用的 x-rpc-device_model"""
 X_RPC_APP_VERSION = "2.14.1"
-# Headers所用的 x-rpc-sys_version
+"""Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
-# 失败后最多重试次数（不是商品兑换）
+"""Headers所用的 x-rpc-sys_version"""
 MAX_RETRY_TIMES = 5
-# NTP服务器，用于获取网络时间
+"""失败后最多重试次数（不是商品兑换）"""
 NTP_SERVER = "ntp.aliyun.com"
+"""NTP服务器，用于获取网络时间"""
 
 
 def clear() -> None:
@@ -90,6 +92,7 @@ def to_log(info_type: str = "", info: str = "") -> str:
         print("日志输出失败")
         traceback.print_exc()
 
+print(to_log("程序当前版本: {}".format(VERSION)))
 
 class NtpTime():
     """
@@ -115,7 +118,7 @@ class NtpTime():
             else:
                 print(
                     to_log("WARN",
-                           "校对互联网时间失败，正在重试({0})".format(ntp_error_times)))
+                           "校对互联网时间失败，正在重试({})".format(ntp_error_times)))
                 to_log("WARN", traceback.format_exc())
 
     def time() -> float:
@@ -227,7 +230,7 @@ class Good:
         getActionTicket = "https://api-takumi.mihoyo.com/auth/api/getActionTicketBySToken?action_type=game_role&stoken={stoken}&uid={bbs_uid}".format(
             stoken=Good.stoken, bbs_uid=Good.bbs_uid)
         checkGame = "https://api-takumi.mihoyo.com/binding/api/getUserGameRoles?point_sn=myb&action_ticket={actionTicket}&game_biz={game_biz}"
-        checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={0}".format(
+        checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
             self.id)
         self.data = {
             "app_id": 1,
@@ -274,13 +277,13 @@ class Good:
 
         while True:
             try:
-                print(to_log("INFO", "正在检查商品：{0} 的详细信息".format(self.id)))
+                print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
                 checkGood_data = json.loads(
                     self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
                 if checkGood_data == None:
                     print(
                         to_log("ERROR",
-                               "无法找到商品：{0} 的信息，放弃兑换该商品".format(self.id)))
+                               "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
                     self.result = -1
                     return
                 elif checkGood_data["type"] == 2:
@@ -288,7 +291,7 @@ class Good:
                         print(
                             to_log(
                                 "ERROR",
-                                "商品：{0} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
+                                "商品：{} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
                                     self.id)))
                         self.result = -1
                         return
@@ -301,7 +304,7 @@ class Good:
                 print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
-                print(to_log("ERROR", "检查商品：{0} 失败，正在重试".format(self.id)))
+                print(to_log("ERROR", "检查商品：{} 失败，正在重试".format(self.id)))
                 to_log("ERROR", traceback.format_exc())
                 continue
 
@@ -335,15 +338,15 @@ class Good:
                     print(
                         to_log(
                             "ERROR",
-                            "商品：{0} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
+                            "商品：{} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
                             format(self.id)))
                     self.result = -1
                     return
                 print(
                     to_log("ERROR",
-                           "获取用户ActionTicket失败，正在重试({0})".format(error_times)))
+                           "获取用户ActionTicket失败，正在重试({})".format(error_times)))
                 to_log("ERROR", traceback.format_exc())
-                to_log("DEBUG", "getActionTicket_headers: {0}".format(
+                to_log("DEBUG", "getActionTicket_headers: {}".format(
                     getActionTicket_headers))
                 continue
 
@@ -351,7 +354,7 @@ class Good:
         error_times = 0
         while True:
             try:
-                print(to_log("INFO", "正在检查游戏账户：{0} 的详细信息".format(Good.uid)))
+                print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
                 user_list = json.loads(
                     self.req.get(checkGame.format(actionTicket=actionTicket,
                                                   game_biz=game_biz),
@@ -367,13 +370,13 @@ class Good:
                     print(
                         to_log(
                             "ERROR",
-                            "商品：{0} 为游戏内物品，由于检查游戏账户失败，放弃兑换该商品".
+                            "商品：{} 为游戏内物品，由于检查游戏账户失败，放弃兑换该商品".
                             format(self.id)))
                     self.result = -1
                     return
                 print(
                     to_log(
-                        "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
+                        "ERROR", "检查游戏账户：{} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
                 to_log("ERROR", traceback.format_exc())
                 continue
@@ -391,7 +394,7 @@ class Good:
         执行兑换操作
         """
         if self.result == -1:
-            print(to_log("WARN", "商品：{0} 未初始化完成，放弃兑换".format(self.id)))
+            print(to_log("WARN", "商品：{} 未初始化完成，放弃兑换".format(self.id)))
             return
         self.req = requests.Session()
         while True:
@@ -404,13 +407,13 @@ class Good:
                 print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
             except:
-                print(to_log("ERROR", "兑换商品：{0} 失败，正在重试".format(self.id)))
+                print(to_log("ERROR", "兑换商品：{} 失败，正在重试".format(self.id)))
                 to_log("ERROR", traceback.format_exc())
                 continue
             print(
                 to_log(
                     "INFO",
-                    "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
+                    "兑换商品：{} 返回结果：\n{1}\n".format(self.id, self.result.text)))
             break
 
 
@@ -509,7 +512,7 @@ class CheckNetwork:
                     else:
                         CheckNetwork.result = CheckNetwork.result * 1000
                         to_log(
-                            "INFO", "网络连接正常，延时 {0} ms".format(
+                            "INFO", "网络连接正常，延时 {} ms".format(
                                     round(CheckNetwork.result, 2)))
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
@@ -545,7 +548,7 @@ while __name__ == '__main__':
                 if CheckNetwork.result != -1:  # 排除初始化值
 
                     if CheckNetwork.result == None or CheckNetwork.result == 0:
-                        print("\r{0} - 检测到网络连接异常！\n".format(
+                        print("\r{} - 检测到网络连接异常！\n".format(
                             timeStampToStr(CheckNetwork.lastCheck)))
                     else:
                         print("\r{0} - 网络连接正常，延时 {1} ms\n".format(
