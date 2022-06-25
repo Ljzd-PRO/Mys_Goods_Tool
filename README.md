@@ -1,4 +1,5 @@
 # 米游社商品抢兑工具
+[![CodeFactor](https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge)](https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool)
 
 **🎉 更新：增加支持自动分析 HttpCanary 的抓包数据([🔗v1.2.2](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.2)) 🎉**
 
