@@ -2,13 +2,17 @@ name: Build and pack
 
 on:
   push:
-    branches:
-    - stable
-    - dev
+    branches-ignore:    
+      - 'stable/**-README.md'
+      - 'stable/**-LICENSE'
+      - 'dev/**-README.md'
+      - 'dev/**-LICENSE'
   pull_request:
-    branches:
-    - stable
-    - dev
+    branches-ignore:    
+      - 'stable/**-README.md'
+      - 'stable/**-LICENSE'
+      - 'dev/**-README.md'
+      - 'dev/**-LICENSE'
 
 jobs:
   build:
