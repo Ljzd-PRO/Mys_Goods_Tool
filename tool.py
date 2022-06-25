@@ -1,6 +1,5 @@
 # coding=utf-8
 
-from genericpath import isfile
 import os
 import random
 import time
@@ -10,31 +9,33 @@ import platform
 import configparser
 
 
-# 当前版本
-VERSION = "v1.2.2"
-# 所需要的Cookie
+VERSION = "v1.2.3-beta"
+"""程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
     "login_ticket"
 ]
-# Headers所需要的 User-Agent
+"""需要获取的Cookies"""
 USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
+"""Headers所用的 User-Agent"""
 
+# 清屏指令
+PLATFORM = platform.system()
+if PLATFORM == "Darwin":
+    CLEAR_COMMAND = "clear"
+elif PLATFORM == "Windows":
+    CLEAR_COMMAND = "cls"
+elif PLATFORM == "Linux":
+    CLEAR_COMMAND = "clear"
+else:
+    CLEAR_COMMAND = None
 
 def clear() -> None:
     """
     清屏
     """
-    plat = platform.system()
-    if plat == "Darwin":
-        os.system("clear")
-    elif plat == "Windows":
-        os.system("cls")
-    elif plat == "Linux":
-        os.system("clear")
-    else:
-        pass
-
+    if CLEAR_COMMAND != None:
+        os.system(CLEAR_COMMAND)
 
 def goodTool() -> None:
     while True:
@@ -99,19 +100,19 @@ def goodTool() -> None:
                 continue
 
             print("----------")
-            print("商品名称：{0}".format(good["goods_name"]))
-            print("商品ID(Good_ID)：{0}".format(good["goods_id"]))
-            print("商品价格：{0} 米游币".format(good["price"]))
+            print("商品名称：{}".format(good["goods_name"]))
+            print("商品ID(Good_ID)：{}".format(good["goods_id"]))
+            print("商品价格：{} 米游币".format(good["price"]))
 
             if good["type"] != 1 and good["next_time"] == 0:
                 print("兑换时间：任何时间")
             elif good["type"] != 1 and good["next_num"] == 0:
                 print("库存：无限")
             else:
-                print("兑换时间：{0}".format(
+                print("兑换时间：{}".format(
                     time.strftime("%Y-%m-%d %H:%M:%S",
                                   time.localtime(good["next_time"]))))
-                print("库存：{0} 件".format(good["next_num"]))
+                print("库存：{} 件".format(good["next_num"]))
 
             if good["account_cycle_type"] == "forever":
                 print("限购：每人限购 {0}/{1}".format(good["account_exchange_num"],
@@ -120,7 +121,7 @@ def goodTool() -> None:
                 print("限购：本月限购 {0}/{1}".format(good["account_exchange_num"],
                                                good["account_cycle_limit"]))
 
-            print("预览图：{0}".format(good["icon"]))
+            print("预览图：{}".format(good["icon"]))
 
         print("\n> 请按回车返回上一页")
         input()
@@ -195,14 +196,14 @@ def addressTool() -> None:
         print("\n> 查询结果：")
         for address in address_list:
             print("----------")
-            print("省：{0}".format(address["province_name"]))
-            print("市：{0}".format(address["city_name"]))
-            print("区/县：{0}".format(address["county_name"]))
-            print("详细地址：{0}".format(address["addr_ext"]))
-            print("联系电话：{0}".format(address["connect_areacode"] + " " +
+            print("省：{}".format(address["province_name"]))
+            print("市：{}".format(address["city_name"]))
+            print("区/县：{}".format(address["county_name"]))
+            print("详细地址：{}".format(address["addr_ext"]))
+            print("联系电话：{}".format(address["connect_areacode"] + " " +
                                     address["connect_mobile"]))
-            print("联系人：{0}".format(address["connect_name"]))
-            print("地址ID(Address_ID)：{0}".format(address["id"]))
+            print("联系人：{}".format(address["connect_name"]))
+            print("地址ID(Address_ID)：{}".format(address["id"]))
 
         print("\n> 请输入你要选择的地址ID(Address_ID)：")
         print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
@@ -274,7 +275,7 @@ def cookieTool() -> None:
         try:
             req_dirs = os.listdir(file_path)
             for req_dir in req_dirs:
-                if isfile(req_dir):
+                if os.path.isfile(req_dir):
                     continue
                 file_data = json.load(
                     open(os.path.join(file_path, req_dir, "request.json"), "r"))
