@@ -1,9 +1,17 @@
 # 米游社商品兑换工具
 <div align="left">
-  <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool">
-  <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/Ljzd-PRO/Mys_Goods_Tool?logo=python&style=for-the-badge">
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
-  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/Ljzd-PRO/Mys_Goods_Tool/CodeQL?logo=github&style=for-the-badge">
+  <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
+    <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/latest" target="_blank">
+    <img alt="最新发行版" src="https://img.shields.io/github/v/release/Ljzd-PRO/Mys_Goods_Tool?logo=python&style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
+    <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/codeql-analysis.yml" target="_blank">
+    <img alt="GitHub CodeQL 代码检查" src="https://img.shields.io/github/workflow/status/Ljzd-PRO/Mys_Goods_Tool/CodeQL?logo=github&style=for-the-badge">
+  </a>
 </div>
 
 **🎉 更新：增加支持自动分析 HttpCanary 的抓包数据([🔗v1.2.2](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.2))**
