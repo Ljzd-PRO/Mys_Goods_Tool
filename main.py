@@ -329,8 +329,9 @@ class Good:
                     getActionTicket,
                     headers=getActionTicket_headers,
                     timeout=TIME_OUT)
-                actionTicket = json.loads(
-                    getActionTicket_req.text)["data"]["ticket"]
+                getActionTicket_res = json.loads(
+                    getActionTicket_req.text)
+                actionTicket = getActionTicket_res["data"]["ticket"]
                 break
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
@@ -351,6 +352,11 @@ class Good:
                 to_log("ERROR", traceback.format_exc())
                 to_log("DEBUG", "getActionTicket_headers: {}".format(
                     getActionTicket_headers))
+                try:
+                    to_log("DEBUG", "getActionTicket_response: {}".format(
+                        getActionTicket_res))
+                except:
+                    pass
                 continue
 
         game_biz = checkGood_data["game_biz"]
