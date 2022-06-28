@@ -131,7 +131,10 @@ class NtpTime():
 # 读取配置文件
 try:
     conf = configparser.RawConfigParser()
-    conf.read(get_file_path("config.ini"), encoding="utf-8-sig")
+    try:
+        conf.read(get_file_path("config.ini"), encoding="utf-8")
+    except:
+        conf.read(get_file_path("config.ini"), encoding="utf-8-sig")
 except KeyboardInterrupt:
     print(to_log("WARN", "用户强制结束程序"))
     exit(1)
