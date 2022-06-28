@@ -379,7 +379,7 @@ class Good:
                     return
                 print(
                     to_log(
-                        "ERROR", "检查游戏账户：{} 失败，正在重试({1})".format(
+                        "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
                 to_log("ERROR", traceback.format_exc())
                 continue
@@ -416,7 +416,7 @@ class Good:
             print(
                 to_log(
                     "INFO",
-                    "兑换商品：{} 返回结果：\n{1}\n".format(self.id, self.result.text)))
+                    "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
             break
 
 
@@ -569,3 +569,4 @@ while __name__ == '__main__':
         exit(1)
     except:
         print(to_log("ERROR", "主程序出现错误"))
+        to_log("ERROR", traceback.format_exc())
