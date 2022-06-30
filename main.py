@@ -12,6 +12,8 @@ import sys
 import time
 import platform
 import ntplib
+import copy
+import threading
 from ping3 import ping
 
 VERSION = "v1.2.3-beta"
@@ -32,6 +34,9 @@ MAX_RETRY_TIMES = 5
 """失败后最多重试次数（不是商品兑换）"""
 NTP_SERVER = "ntp.aliyun.com"
 """NTP服务器，用于获取网络时间"""
+
+if __name__ != "__main__":
+    exit(0)
 
 
 def clear() -> None:
@@ -92,7 +97,9 @@ def to_log(info_type: str = "", info: str = "") -> str:
         print("日志输出失败")
         traceback.print_exc()
 
+
 print(to_log("程序当前版本: {}".format(VERSION)))
+
 
 class NtpTime():
     """
@@ -423,6 +430,7 @@ class Good:
                 to_log(
                     "INFO",
                     "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
+            self.result = 1
             break
 
 
@@ -540,12 +548,35 @@ def timeStampToStr(timeStamp: float = None) -> str:
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
 
+# 为每个兑换任务增加两个线程
+tasks = []
+queue_copy = []
+for task in queue:
+    task_copy1 = copy.deepcopy(task)
+    task_copy2 = copy.deepcopy(task)
+    queue_copy.append(task_copy1)
+    queue_copy.append(task_copy2)
+    tasks.append(threading.Thread(target=task.start))
+    tasks.append(threading.Thread(target=task_copy1.start))
+    tasks.append(threading.Thread(target=task_copy2.start))
+
 temp_time = 0
-while __name__ == '__main__':
+while True:
     try:
         if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
-            for task in queue:
+            for task in tasks:
                 task.start()
+            finished = False
+            while not finished:
+                finished = True
+                for task in queue:
+                    if task.result == -1:
+                        finished = False
+                        break
+                for task in queue_copy:
+                    if task.result == -1:
+                        finished = False
+                        break
             break
 
         elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
