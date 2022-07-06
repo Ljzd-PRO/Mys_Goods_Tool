@@ -177,7 +177,7 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and cookie.find("stoken") != -1:
+        if stoken != "..." and stoken != "" and cookie.find("stoken") == -1:
             cookie += ("stoken=" + stoken + ";")
         # 若 Cookie 中存在stoken，获取其中的stoken信息
         elif cookie.find("stoken") != -1:
