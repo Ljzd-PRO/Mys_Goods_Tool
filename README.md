@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.3))**
+**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.4](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.3))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
