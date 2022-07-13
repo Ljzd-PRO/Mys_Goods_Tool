@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：每个兑换任务拥有3个线程同时进行、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.3))**
+**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.4](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.4))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
@@ -42,6 +42,7 @@
 | Check_Network | 是否自动检测网络连接情况（是: 填入 1, 否: 填入 0）(`ping api-takumi.mihoyo.com`) |
 | Check_Time | 每隔多久检查一次网络连接情况（单位 秒） |
 | Stop_Check | 距离开始兑换还剩多久停止检查网络（单位 秒） |
+| Thread | 每个商品使用多少线程进行兑换（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
 
 **示例**
 ```ini
@@ -57,6 +58,7 @@ uid = 987654321
 check_network = 1
 check_time = 10
 stop_check = 30
+thread = 3
 ```
 
 ### 第2⃣️步 运行`main.py`或运行[🔗已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)

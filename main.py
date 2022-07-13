@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.2.3"
+VERSION = "v1.2.4"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -177,7 +177,7 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and cookie.find("stoken") != -1:
+        if stoken != "..." and stoken != "" and cookie.find("stoken") == -1:
             cookie += ("stoken=" + stoken + ";")
         # 若 Cookie 中存在stoken，获取其中的stoken信息
         elif cookie.find("stoken") != -1:
@@ -415,7 +415,7 @@ class Good:
         self.req = requests.Session()
         while True:
             try:
-                print(to_log("INFO", "发送兑换请求..."))
+                print(to_log("INFO", "开始发送商品 {} 的兑换请求...".format(self.id)))
                 self.result = self.req.post(self.url,
                                             headers=self.headers,
                                             json=self.data)
@@ -430,6 +430,16 @@ class Good:
                 to_log(
                     "INFO",
                     "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
+            try:
+                if json.loads(self.result.text)["message"] == "OK":
+                    print(to_log("INFO", "商品 {} 兑换成功！可以自行确认。".format(self.id)))
+                else:
+                    print(to_log("INFO", "商品 {} 兑换失败，可以自行确认。".format(self.id)))
+            except KeyboardInterrupt:
+                print(to_log("WARN", "用户强制结束程序"))
+                exit(1)
+            except:
+                pass
             self.result = 1
             break
 
@@ -547,18 +557,22 @@ def timeStampToStr(timeStamp: float = None) -> str:
         timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
+# 读取线程数
+try:
+    thread_num = int(conf.get("Preference", "Thread"))
+except:
+    print(to_log("WARN", "读取配置文件中的[Preference]-Thread 线程数失败"))
+    thread_num = 3
 
-# 为每个兑换任务增加两个线程
+# 为每个兑换任务增加多个线程
 tasks = []
 queue_copy = []
 for task in queue:
-    task_copy1 = copy.deepcopy(task)
-    task_copy2 = copy.deepcopy(task)
-    queue_copy.append(task_copy1)
-    queue_copy.append(task_copy2)
     tasks.append(threading.Thread(target=task.start))
-    tasks.append(threading.Thread(target=task_copy1.start))
-    tasks.append(threading.Thread(target=task_copy2.start))
+    for num in range(0, thread_num - 1):
+        task_copy = copy.deepcopy(task)
+        queue_copy.append(task_copy)
+        tasks.append(threading.Thread(target=task_copy.start))
 
 temp_time = 0
 while True:
