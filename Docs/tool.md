@@ -1,5 +1,5 @@
 # `tool` 工具 使用说明
-**❕注意：`tool`工具即[`tool.py`](tool.py)，或`tool.exe`**
+**❕注意：`tool`工具即[`tool.py`](/tool.py)，或`tool.exe`**
 
 ## 功能 - 查询商品ID
 可查询可兑换商品的 `Good_ID` ，把想兑换的商品的`Good_ID`填入 `config.ini` 中。
