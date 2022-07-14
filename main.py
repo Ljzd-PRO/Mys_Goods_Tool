@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.2.4"
+VERSION = "v1.3.0"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -26,7 +26,7 @@ USER_AGENT_GET_ACTION_TICKET = "Hyperion/177 CFNetwork/1331.0.7 Darwin/21.4.0"
 """获取用户 ActionTicket 时Headers所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
-X_RPC_APP_VERSION = "2.14.1"
+X_RPC_APP_VERSION = "2.23.1"
 """Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
 """Headers所用的 x-rpc-sys_version"""
@@ -155,12 +155,27 @@ class Good:
     """
     商品兑换相关
     """
+    def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
+        """
+        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
+        >>> target: str #查找目标
+        >>> cookiesStr: str #Raw Cookies 字符串
+        >>> location: int #目标Cookie字符串所在位置，若为None则自动查找
+        >>> return str #返回目标Cookie对应的值
+        """
+        if location == None:
+            location = cookiesStr.find(target)
+        return cookiesStr[cookiesStr.find(
+            "=", location) + 1: cookiesStr.find(";", location)]
+
     global conf
     try:
-        cookie = conf.get("Config", "Cookie").strip("\"").strip("'")
+        cookie = conf.get("Config", "Cookie").replace(
+            " ", "").strip("\"").strip("'")
         address = conf.get("Config", "Address_ID")
         try:
-            stoken = conf.get("Config", "stoken").replace(" ", "")
+            stoken = conf.get("Config", "stoken").replace(
+                " ", "").strip("\"").strip("'")
         except configparser.NoOptionError:
             stoken = ""
         try:
@@ -177,26 +192,21 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and cookie.find("stoken") == -1:
+        location = cookie.find("stoken")
+        if stoken != "..." and stoken != "" and location == -1:
             cookie += ("stoken=" + stoken + ";")
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif cookie.find("stoken") != -1:
-            stoken = cookie.replace("=", "").replace(
-                " ", "").split("stoken")[1].split(";")[0]
+        elif location != -1:
+            stoken = findCookieInStr("stoken", cookie, location)
         else:
             stoken = None
 
         # 从 Cookie 中获取游戏UID
-        bbs_uid = ""
-        if cookie.find("ltuid") != -1:
-            bbs_uid = cookie.replace("=", "").replace(
-                " ", "").split("ltuid")[1].split(";")[0]
-        elif cookie.find("account_id") != -1:
-            bbs_uid = cookie.replace("=", "").replace(
-                " ", "").split("account_id")[1].split(";")[0]
-        elif cookie.find("stuid") != -1:
-            bbs_uid = cookie.replace("=", "").replace(
-                " ", "").split("stuid")[1].split(";")[0]
+        bbs_uid = findCookieInStr("ltuid", cookie)
+        for target in ("ltuid", "account_id", "stuid"):
+            bbs_uid = findCookieInStr(target, cookie)
+            if bbs_uid != "":
+                break
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
         exit(1)
@@ -297,11 +307,19 @@ class Good:
                     self.result = -1
                     return
                 elif checkGood_data["type"] == 2:
-                    if "stoken" not in Good.cookie:
+                    if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
                                 "ERROR",
                                 "商品：{} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
+                                    self.id)))
+                        self.result = -1
+                        return
+                    elif Good.cookie.find("mid") == -1:
+                        print(
+                            to_log(
+                                "ERROR",
+                                "商品：{} 为游戏内物品，由于未配置 mid，放弃兑换该商品".format(
                                     self.id)))
                         self.result = -1
                         return
@@ -356,7 +374,14 @@ class Good:
                 print(
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({})".format(error_times)))
+                try:
+                    print("获取ActionTicket返回: {}".format(
+                        getActionTicket_res["message"]))
+                except:
+                    pass
                 to_log("ERROR", traceback.format_exc())
+                to_log("DEBUG", "getActionTicket_url: {}".format(
+                    getActionTicket))
                 to_log("DEBUG", "getActionTicket_headers: {}".format(
                     getActionTicket_headers))
                 try:
@@ -556,6 +581,7 @@ def timeStampToStr(timeStamp: float = None) -> str:
     if timeStamp == None:
         timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+
 
 # 读取线程数
 try:

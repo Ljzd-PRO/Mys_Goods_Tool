@@ -1,5 +1,6 @@
 # 手动获取`Address_ID`的方法
-**❕注意：可直接用`tool.py`信息查询工具获取`Address_ID`，免去手动抓包的麻烦。前提是要先配置好`Cookie`**
+**❕注意：可直接用`tool.py`信息查询工具获取`Address_ID`，免去手动抓包的麻烦。前提是要先配置好`Cookie`**  
+*（附：[🔗`tool` 工具使用说明](./tool.md)）*
 
 启动抓包，打开米游社App **我的-设置-通行证账号与安全-管理收货地址** 这个页面，
 
@@ -8,7 +9,7 @@ App会发出一个GET请求，请求URL为`https://api-takumi.mihoyo.com/account
 > 示例
 
 这是打开页面后App发出的GET请求：
-```
+```json
 {
   "retcode": 0,
   "message": "OK",
@@ -20,9 +21,9 @@ App会发出一个GET请求，请求URL为`https://api-takumi.mihoyo.com/account
         "connect_areacode": "+86",
         "connect_mobile": "189****9999",
         "country": 1,
-        "province": xxxxxx,
-        "city": xxxxx,
-        "county": xxxxxx,
+        "province": "xxxxxx",
+        "city": "xxxxx",
+        "county": "xxxxxx",
         "province_name": "某省",
         "city_name": "某市",
         "county_name": "某区",
@@ -36,9 +37,9 @@ App会发出一个GET请求，请求URL为`https://api-takumi.mihoyo.com/account
         "connect_areacode": "+86",
         "connect_mobile": "189****9999",
         "country": 1,
-        "province": xxxxxx,
-        "city": xxxxx,
-        "county": xxxxxx,
+        "province": "xxxxxx",
+        "city": "xxxxx",
+        "county": "xxxxxx",
         "province_name": "某某省",
         "city_name": "某某市",
         "county_name": "某某区",
