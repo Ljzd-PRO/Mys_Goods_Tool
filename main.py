@@ -356,6 +356,10 @@ class Good:
                 print(
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({})".format(error_times)))
+                try:
+                    print("获取ActionTicket返回: {}".format(getActionTicket_res["message"]))
+                except:
+                    pass
                 to_log("ERROR", traceback.format_exc())
                 to_log("DEBUG", "getActionTicket_headers: {}".format(
                     getActionTicket_headers))
