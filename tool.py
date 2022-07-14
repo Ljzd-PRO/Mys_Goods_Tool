@@ -9,7 +9,7 @@ import platform
 import configparser
 
 
-VERSION = "v1.2.5"
+VERSION = "v1.3.0"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
