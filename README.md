@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.5](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.5))**
+**🎉 更新：程序跟进米游社API、可自定义兑换任务的线程数([🔗v1.2.5](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.5))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
@@ -29,26 +29,24 @@
 **[Config]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Cookie | 用户Cookies数据。`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无） |
-| stoken | Cookies中的`stoken`项。可选，如果要兑换游戏内物品则需要该信息 |
-| Time | 商品兑换活动开始时间（按照 `2022-1-1 00:00:00` 格式） |
-| Address_ID | 送货地址ID。可用 `tool.py` 信息查询工具进行查询（附：[🔗`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)） |
-| Good_ID | 要兑换的商品ID列表，所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔） |
-| UID | 游戏UID。可选，如果要兑换游戏内物品则需要填写，只能填写一个UID。 |
+| Cookie | **用户Cookies数据**<br>`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 以及 `mid` 为必需项**<br>（附：[🔗`tool` 工具使用说明](./Docs/tool.md)） |
+| Time | **商品兑换活动开始时间**<br>（按照 `2022-1-1 00:00:00` 格式） |
+| Address_ID | **送货地址ID**<br>可用 `tool.py` 信息查询工具进行查询<br>（附：[🔗`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)） |
+| Good_ID | **要兑换的商品ID列表**<br>所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）<br>（附：[🔗`tool` 工具使用说明](./Docs/tool.md)） |
+| UID | **游戏UID**<br>可选，如果要兑换游戏内物品则需要填写，只能填写一个UID。 |
 
 **[Preference]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Check_Network | 是否自动检测网络连接情况（是: 填入 1, 否: 填入 0）(`ping api-takumi.mihoyo.com`) |
-| Check_Time | 每隔多久检查一次网络连接情况（单位 秒） |
-| Stop_Check | 距离开始兑换还剩多久停止检查网络（单位 秒） |
-| Thread | 每个商品使用多少线程进行兑换（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
+| Check_Network | 是否自动检测网络连接情况<br>（是: 填入 1, 否: 填入 0）(`ping api-takumi.mihoyo.com`) |
+| Check_Time | 每隔多久检查一次网络连接情况<br>（单位 秒） |
+| Stop_Check | 距离开始兑换还剩多久停止检查网络<br>（单位 秒） |
+| Thread | 每个商品使用多少线程进行兑换<br>（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
 
 **示例**
 ```ini
 [Config]
-cookie = "ltuid=123456789; login_ticket=abcDEFijkLMN; account_id=123456789; ltoken=DEFijkLMNabc; cookie_token=ijkLMNabcDEF; stoken=LMNabcDEFijk;"
-stoken = LMNabcDEFijk
+cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;mid=LMNabc;"
 time = 2022-6-8 19:00:00
 address_id = 13911
 good_id = 2022053111713, 2022053111397
