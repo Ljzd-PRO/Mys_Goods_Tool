@@ -133,7 +133,10 @@ def goodTool() -> None:
 def addressTool() -> None:
     conf = configparser.RawConfigParser()
     try:
-        conf.read_file(open("config.ini", encoding="utf-8"))
+        try:
+            conf.read_file(open("config.ini", encoding="utf-8"))
+        except:
+            conf.read_file(open("config.ini", encoding="utf-8-sig"))
         cookie = conf.get(
             "Config",
             "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
@@ -414,10 +417,12 @@ def cookieTool() -> None:
                     current_cookies += (key + "=" + cookies[key] + ";")
                 conf.set("Config", "Cookie", current_cookies)
 
-                if "stoken" in cookies:
-                    conf.set("Config", "stoken", cookies["stoken"])
-                with open("config.ini", "w", encoding="utf-8") as config_file:
-                    conf.write(config_file)
+                try:
+                    with open("config.ini", "w", encoding="utf-8") as config_file:
+                        conf.write(config_file)
+                except:
+                    with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                        conf.write(config_file)
 
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
                 input()
