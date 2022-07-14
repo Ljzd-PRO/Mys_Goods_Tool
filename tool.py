@@ -390,23 +390,17 @@ def cookieTool() -> None:
             try:
                 conf = configparser.RawConfigParser()
                 conf.read("config.ini", encoding="utf-8")
-                current_cookies = conf.get("Config", "Cookie").replace(
-                    " ", "").strip("\"").strip("'")
 
+                current_cookies = ""
                 for key in cookies:
-                    if key + "=...;" in current_cookies:
-                        current_cookies = current_cookies.replace(
-                            key + "=...;", key + "=" + cookies[key] + ";")
-                    if key + "=" not in current_cookies:
-                        current_cookies += (key + "=" + cookies[key] + ";")
+                    current_cookies += (key + "=" + cookies[key] + ";")
+                conf.set("Config", "Cookie", current_cookies)
 
-                conf.set("Config", "Cookie", "\"" + current_cookies + "\"")
-                if "stoken" in cookies and conf.get("Config",
-                                                    "stoken") != None:
+                if "stoken" in cookies:
                     conf.set("Config", "stoken", cookies["stoken"])
                 with open("config.ini", "w", encoding="utf-8") as config_file:
                     conf.write(config_file)
-
+                    
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
                 input()
                 clear()
