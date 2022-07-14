@@ -13,7 +13,7 @@ VERSION = "v1.2.4-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
-    "login_ticket"
+    "login_ticket", "mid"
 ]
 """需要获取的Cookies"""
 USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
