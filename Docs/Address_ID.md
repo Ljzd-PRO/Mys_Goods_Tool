@@ -8,7 +8,7 @@ App会发出一个GET请求，请求URL为`https://api-takumi.mihoyo.com/account
 > 示例
 
 这是打开页面后App发出的GET请求：
-```
+```json
 {
   "retcode": 0,
   "message": "OK",
