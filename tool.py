@@ -9,7 +9,7 @@ import platform
 import configparser
 
 
-VERSION = "v1.2.4"
+VERSION = "v1.2.4-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -30,12 +30,14 @@ elif PLATFORM == "Linux":
 else:
     CLEAR_COMMAND = None
 
+
 def clear() -> None:
     """
     清屏
     """
     if CLEAR_COMMAND != None:
         os.system(CLEAR_COMMAND)
+
 
 def goodTool() -> None:
     while True:
@@ -201,7 +203,7 @@ def addressTool() -> None:
             print("区/县：{}".format(address["county_name"]))
             print("详细地址：{}".format(address["addr_ext"]))
             print("联系电话：{}".format(address["connect_areacode"] + " " +
-                                    address["connect_mobile"]))
+                                   address["connect_mobile"]))
             print("联系人：{}".format(address["connect_name"]))
             print("地址ID(Address_ID)：{}".format(address["id"]))
 
@@ -247,6 +249,20 @@ def cookieTool() -> None:
     # 查找结果
     cookies = {}
 
+    def findCookiesInStr(cookiesStr: str, save: dict = cookies) -> None:
+        """
+        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
+        >>> cookiesStr: str #Raw Cookies 字符串
+        >>> save: str #结果保存到的字典
+        """
+        for cookie_needed in COOKIES_NEEDED:
+            if len(save) == len(COOKIES_NEEDED):
+                return
+            location = cookiesStr.find(cookie_needed)
+            if location != -1:
+                save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
+                    "=", location) + 1: cookiesStr.find(";", location)])
+
     print("> 请选择抓包导出文件类型：")
     print("- (1) 使用 HttpCanary 导出的文件夹")
     print("- (2) .har 文件")
@@ -287,10 +303,7 @@ def cookieTool() -> None:
                         file_cookies = file_data["headers"]["cookie"]
                     except KeyError:
                         continue
-                for cookie_needed in COOKIES_NEEDED:
-                    if file_cookies.find(cookie_needed) != -1:
-                        cookies.setdefault(cookie_needed, file_cookies.replace("=", "").replace(
-                            " ", "").split(cookie_needed)[1].split(";")[0])
+                findCookiesInStr(file_cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -350,6 +363,11 @@ def cookieTool() -> None:
                         break
                     if cookie["name"] in COOKIES_NEEDED:
                         cookies.setdefault(cookie["name"], cookie["value"])
+                for header in data["request"]["headers"]:
+                    if len(cookies) == len(COOKIES_NEEDED):
+                        break
+                    if header["name"] == "Cookie" or header["name"] == "cookie":
+                        findCookiesInStr(header["value"])
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -380,7 +398,7 @@ def cookieTool() -> None:
         print("\n> 是否将分析得到的Cookies数据(包括stoken)写入配置文件？")
         print("-- 输入 y 并回车以确认")
         print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
-        print("-- 注意：只会增加配置文件中Cookies没有的项，已有的项不会被覆盖更新")
+        print("-- 注意：将覆盖现有Cookies数据")
         print("-- 按回车键跳过并返回功能选择界面")
         print("\n> ", end="")
         choice = input()
@@ -400,7 +418,7 @@ def cookieTool() -> None:
                     conf.set("Config", "stoken", cookies["stoken"])
                 with open("config.ini", "w", encoding="utf-8") as config_file:
                     conf.write(config_file)
-                    
+
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
                 input()
                 clear()
