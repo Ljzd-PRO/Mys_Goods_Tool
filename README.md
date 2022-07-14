@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.4](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.4))**
+**🎉 更新：可自定义兑换任务的线程数、增加支持分析 HttpCanary 的抓包数据([🔗v1.2.5](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.2.5))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
@@ -29,7 +29,7 @@
 **[Config]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Cookie | 用户Cookies数据。`tool.py`工具可以从抓包数据中筛选出Cookies信息 |
+| Cookie | 用户Cookies数据。`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无） |
 | stoken | Cookies中的`stoken`项。可选，如果要兑换游戏内物品则需要该信息 |
 | Time | 商品兑换活动开始时间（按照 `2022-1-1 00:00:00` 格式） |
 | Address_ID | 送货地址ID。可用 `tool.py` 信息查询工具进行查询（附：[🔗`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)） |
