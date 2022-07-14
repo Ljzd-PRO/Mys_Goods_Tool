@@ -29,10 +29,10 @@
 **[Config]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Cookie | **用户Cookies数据**<br>`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 以及 `mid` 为必需项**<br>（附：[🔗`tool` 工具使用说明](./Docs/tool.md)） |
+| Cookie | **用户Cookies数据**<br>`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 以及 `mid` 为必需项**<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
 | Time | **商品兑换活动开始时间**<br>（按照 `2022-1-1 00:00:00` 格式） |
-| Address_ID | **送货地址ID**<br>可用 `tool.py` 信息查询工具进行查询<br>（附：[🔗`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)） |
-| Good_ID | **要兑换的商品ID列表**<br>所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）<br>（附：[🔗`tool` 工具使用说明](./Docs/tool.md)） |
+| Address_ID | **送货地址ID**<br>可用 `tool.py` 信息查询工具进行查询<br>*（附：[🔗`Address_ID` 手动抓包获取方法](./Docs/Address_ID.md)）* |
+| Good_ID | **要兑换的商品ID列表**<br>所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
 | UID | **游戏UID**<br>可选，如果要兑换游戏内物品则需要填写，只能填写一个UID。 |
 
 **[Preference]**
