@@ -26,7 +26,7 @@ USER_AGENT_GET_ACTION_TICKET = "Hyperion/177 CFNetwork/1331.0.7 Darwin/21.4.0"
 """获取用户 ActionTicket 时Headers所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
-X_RPC_APP_VERSION = "2.14.1"
+X_RPC_APP_VERSION = "2.23.1"
 """Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
 """Headers所用的 x-rpc-sys_version"""
@@ -155,7 +155,7 @@ class Good:
     """
     商品兑换相关
     """
-    def findCookieInStr(target:str, cookiesStr: str, location:int=None) -> str:
+    def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
         """
         在Raw原始模式下的Cookies字符串中查找所需要的Cookie
         >>> target: str #查找目标
@@ -166,14 +166,16 @@ class Good:
         if location == None:
             location = cookiesStr.find(target)
         return cookiesStr[cookiesStr.find(
-                    "=", location) + 1: cookiesStr.find(";", location)]
+            "=", location) + 1: cookiesStr.find(";", location)]
 
     global conf
     try:
-        cookie = conf.get("Config", "Cookie").replace(" ", "").strip("\"").strip("'")
+        cookie = conf.get("Config", "Cookie").replace(
+            " ", "").strip("\"").strip("'")
         address = conf.get("Config", "Address_ID")
         try:
-            stoken = conf.get("Config", "stoken").replace(" ", "").strip("\"").strip("'")
+            stoken = conf.get("Config", "stoken").replace(
+                " ", "").strip("\"").strip("'")
         except configparser.NoOptionError:
             stoken = ""
         try:
@@ -305,11 +307,19 @@ class Good:
                     self.result = -1
                     return
                 elif checkGood_data["type"] == 2:
-                    if "stoken" not in Good.cookie:
+                    if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
                                 "ERROR",
                                 "商品：{} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
+                                    self.id)))
+                        self.result = -1
+                        return
+                    elif Good.cookie.find("mid") == -1:
+                        print(
+                            to_log(
+                                "ERROR",
+                                "商品：{} 为游戏内物品，由于未配置 mid，放弃兑换该商品".format(
                                     self.id)))
                         self.result = -1
                         return
@@ -365,7 +375,8 @@ class Good:
                     to_log("ERROR",
                            "获取用户ActionTicket失败，正在重试({})".format(error_times)))
                 try:
-                    print("获取ActionTicket返回: {}".format(getActionTicket_res["message"]))
+                    print("获取ActionTicket返回: {}".format(
+                        getActionTicket_res["message"]))
                 except:
                     pass
                 to_log("ERROR", traceback.format_exc())
@@ -570,6 +581,7 @@ def timeStampToStr(timeStamp: float = None) -> str:
     if timeStamp == None:
         timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+
 
 # 读取线程数
 try:
