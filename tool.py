@@ -297,7 +297,7 @@ def cookieTool() -> None:
                 if os.path.isfile(req_dir):
                     continue
                 file_data = json.load(
-                    open(os.path.join(file_path, req_dir, "request.json"), "r"))
+                    open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8"))
                 print("> 开始分析抓包数据")
                 try:
                     file_cookies = file_data["headers"]["Cookie"]
@@ -340,7 +340,7 @@ def cookieTool() -> None:
                 break
 
         try:
-            file_data = json.load(open(file_path, "r"))
+            file_data = json.load(open(file_path, "r", encoding="utf-8"))
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
