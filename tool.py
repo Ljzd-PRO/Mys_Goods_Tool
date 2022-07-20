@@ -45,15 +45,30 @@ def readConfig():
     conf = configparser.RawConfigParser()
     try:
         try:
-            conf.read_file(open("config.ini", mode=mode, encoding="utf-8"))
+            conf.read_file(open("config.ini", encoding="utf-8"))
         except:
-            conf.read_file(open("config.ini", mode=mode, encoding="utf-8-sig"))
+            conf.read_file(open("config.ini", encoding="utf-8-sig"))
         return conf
     except KeyboardInterrupt:
         print("用户强制结束程序...")
         exit(1)
     except:
         return
+
+
+def findCookiesInStr(cookiesStr: str, save: dict) -> None:
+    """
+    在Raw原始模式下的Cookies字符串中查找所需要的Cookie
+    >>> cookiesStr: str #Raw Cookies 字符串
+    >>> save: str #结果保存到的字典
+    """
+    for cookie_needed in COOKIES_NEEDED:
+        if len(save) == len(COOKIES_NEEDED):
+            return
+        location = cookiesStr.find(cookie_needed)
+        if location != -1:
+            save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
+                "=", location) + 1: cookiesStr.find(";", location)])
 
 
 def goodTool() -> None:
@@ -270,20 +285,6 @@ def cookieTool() -> None:
     # 查找结果
     cookies = {}
 
-    def findCookiesInStr(cookiesStr: str, save: dict = cookies) -> None:
-        """
-        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
-        >>> cookiesStr: str #Raw Cookies 字符串
-        >>> save: str #结果保存到的字典
-        """
-        for cookie_needed in COOKIES_NEEDED:
-            if len(save) == len(COOKIES_NEEDED):
-                return
-            location = cookiesStr.find(cookie_needed)
-            if location != -1:
-                save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
-                    "=", location) + 1: cookiesStr.find(";", location)])
-
     print("> 请选择抓包导出文件类型：")
     print("- (1) 使用 HttpCanary 导出的文件夹")
     print("- (2) .har 文件")
@@ -328,7 +329,7 @@ def cookieTool() -> None:
                         file_cookies = file_data["headers"]["cookie"]
                     except KeyError:
                         continue
-                findCookiesInStr(file_cookies)
+                findCookiesInStr(file_cookies, cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -365,7 +366,8 @@ def cookieTool() -> None:
             try:
                 file_data = json.load(open(file_path, "r", encoding="utf-8"))
             except:
-                file_data = json.load(open(file_path, "r", encoding="utf-8-sig"))
+                file_data = json.load(
+                    open(file_path, "r", encoding="utf-8-sig"))
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -395,7 +397,7 @@ def cookieTool() -> None:
                     if len(cookies) == len(COOKIES_NEEDED):
                         break
                     if header["name"] == "Cookie" or header["name"] == "cookie":
-                        findCookiesInStr(header["value"])
+                        findCookiesInStr(header["value"], cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -488,13 +490,150 @@ def checkUpdate() -> None:
         input()
 
 
+def completeCookie() -> None:
+    while True:
+        print("将自动补上Cookie中兑换游戏内物品所需的stoken\n> 进行选择：")
+        print("-- 1. 从浏览器获取的网页版米游社Cookie中补全")
+        print("-- 2. 从配置文件中读取Cookie值进行补全")
+        print("\n-- 0. 返回功能选择界面")
+        print("\n> ", end="")
+        choice = input()
+        clear()
+        conf = readConfig()
+
+        if choice == "1":
+            print("请进行以下操作：")
+            print("> 1. 登录: https://user.mihoyo.com/")
+            print("> 2. 在浏览器中打开开发者模式，进入控制台，复制粘贴下面的语句并回车\n")
+            print(
+                "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
+            print("\n> 3. 粘贴查找到的Cookie:")
+            origin_cookie = input("> ")
+            clear()
+        elif choice == "2":
+            try:
+                if conf == None:
+                    raise
+                origin_cookie = conf.get(
+                    "Config",
+                    "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
+            except KeyboardInterrupt:
+                print("用户强制结束程序...")
+                exit(1)
+            except:
+                print("> 读取Cookie失败，请手动输入Cookie信息：(返回上一页请直接回车)")
+                print("> ", end="")
+                cookie_input = input()
+                clear()
+                if cookie_input != "":
+                    origin_cookie = cookie_input.strip("'''").strip("'").strip(
+                        "\"\"\"").strip("\"")
+                else:
+                    continue
+        elif choice == "0":
+            break
+        else:
+            print("> 输入有误，请重新输入(回车以返回)\n")
+            input()
+            clear()
+            continue
+
+        cookies = {}
+        findCookiesInStr(origin_cookie, cookies)
+
+        # 开头为"v2__"的stoken还需要搭配"mid"才行
+        if "stoken" in cookies:
+            if cookies["stoken"].find("v2__") == 0:
+                cookies.pop("stoken")
+            else:
+                print("Cookie是完整的，无需补全，回车以返回\n")
+                input()
+                clear()
+                continue
+
+        if "mid" in cookies:
+            cookies.pop("mid")
+
+        if "login_ticket" not in cookies:
+            print("> 由于缺少login_ticket，无法补全，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        bbs_uid = None
+        for cookie in ("stuid", "ltuid", "account_id"):
+            if cookie in cookies:
+                bbs_uid = cookies[cookie]
+        if bbs_uid == None:
+            print("> 由于缺少stuid, ltuid 或 account_id，无法补全，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("正在获取stoken...")
+        try:
+            get_stoken_req = requests.get(
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(cookies["login_ticket"], bbs_uid))
+            stoken = list(filter(
+                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]
+        except:
+            clear()
+            print("> 获取stoken失败，一种可能是登录失效，回车以返回)\n")
+            input()
+            clear()
+            continue
+
+        origin_cookie += ("stoken=" + stoken + ";")
+        print("> 补全后: {}".format(origin_cookie))
+        print("\n-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
+        print("-- 按回车键跳过并返回功能选择界面")
+        try:
+            print("> ", end="")
+            choice = input()
+            clear()
+            if choice == "":
+                break
+            int(choice)
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 输入有误，请重新输入(回车以返回)\n")
+            input()
+            clear()
+            continue
+
+        try:
+            if conf == None:
+                raise
+            conf.set("Config", "Cookie", origin_cookie)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
+            print("> 配置文件写入成功(回车以返回功能选择界面)")
+            input()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 配置文件写入失败(回车以返回)")
+            input()
+            clear()
+
+
 while __name__ == '__main__':
     clear()
     print("> 选择功能：")
     print("-- 1. 查询商品ID(Good_ID)")
-    print("-- 2. 查询送货地址ID(Address_ID)")
-    print("-- 3. 从抓包导出文件分析获取Cookies(包括stoken)")
-    print("-- 4. 检查更新")
+    print("-- 2. 登录并自动获取Cookie(推荐)")
+    print("-- 3. 从抓包导出文件分析获取Cookie")
+    print("-- 4. 补全Cookie(从网页版或从配置文件中补全)")
+    print("-- 5. 查询送货地址ID(Address_ID)")
+    print("-- 6. 检查更新")
     print("\n-- 0. 退出")
     print("\n> ", end="")
 
@@ -503,10 +642,14 @@ while __name__ == '__main__':
     if choice == "1":
         goodTool()
     elif choice == "2":
-        addressTool()
+        ...
     elif choice == "3":
         cookieTool()
     elif choice == "4":
+        completeCookie()
+    elif choice == "5":
+        addressTool()
+    elif choice == "6":
         checkUpdate()
     elif choice == "0":
         break
