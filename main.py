@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.3.0"
+VERSION = "v1.3.1-beta"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -312,14 +312,6 @@ class Good:
                             to_log(
                                 "ERROR",
                                 "商品：{} 为游戏内物品，由于未配置 stoken，放弃兑换该商品".format(
-                                    self.id)))
-                        self.result = -1
-                        return
-                    elif Good.cookie.find("mid") == -1:
-                        print(
-                            to_log(
-                                "ERROR",
-                                "商品：{} 为游戏内物品，由于未配置 mid，放弃兑换该商品".format(
                                     self.id)))
                         self.result = -1
                         return
