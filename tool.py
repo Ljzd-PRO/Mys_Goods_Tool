@@ -7,6 +7,7 @@ import requests
 import json
 import platform
 import configparser
+import string
 
 VERSION = "v1.3.1-beta"
 """程序当前版本"""
@@ -15,8 +16,8 @@ COOKIES_NEEDED = [
     "login_ticket", "mid", "login_uid"
 ]
 """需要获取的Cookies"""
-USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
-"""Headers所用的 User-Agent"""
+USER_AGENT_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
+"""移动端 User-Agent"""
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -69,6 +70,18 @@ def findCookiesInStr(cookiesStr: str, save: dict) -> None:
         if location != -1:
             save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
                 "=", location) + 1: cookiesStr.find(";", location)])
+
+
+def generateDeviceID() -> str:
+    """
+    生成随机的x-rpc-device_id
+    """
+    return "".join(random.sample(string.ascii_letters + string.digits,
+                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                                                                         12)).lower()
 
 
 def goodTool() -> None:
@@ -195,13 +208,11 @@ def addressTool() -> None:
             cookie,
         "Connection":
             "keep-alive",
-        "x-rpc-device_id":
-            "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
-                                  32)).upper(),
+        "x-rpc-device_id": generateDeviceID(),
         "x-rpc-client_type":
             "5",
         "User-Agent":
-            USER_AGENT,
+            USER_AGENT_MOBILE,
         "Referer":
             "https://user.mihoyo.com/",
         "Accept-Language":
@@ -579,8 +590,9 @@ def completeCookie() -> None:
         for cookie in ("login_uid", "stuid", "ltuid", "account_id"):
             if cookie in cookies:
                 bbs_uid = cookies[cookie]
+                break
         if bbs_uid == None:
-            print("> 由于缺少stuid, ltuid 或 account_id，无法补全，回车以返回\n")
+            print("> 由于Cookie缺少uid，无法补全，回车以返回\n")
             input()
             clear()
             continue
@@ -603,23 +615,13 @@ def completeCookie() -> None:
 
         origin_cookie += ("stoken=" + stoken + ";")
         print("> 补全后: {}".format(origin_cookie))
-        print("\n-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
+        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
+        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
         print("-- 按回车键跳过并返回功能选择界面")
-        try:
-            print("> ", end="")
-            choice = input()
-            clear()
-            if choice == "":
-                break
-            int(choice)
-        except KeyboardInterrupt:
-            print("用户强制结束程序...")
-            exit(1)
-        except:
-            print("> 输入有误，请重新输入(回车以返回)\n")
-            input()
-            clear()
-            continue
+        choice = input("> ")
+        clear()
+        if choice != "y":
+            break
 
         try:
             if conf == None:
