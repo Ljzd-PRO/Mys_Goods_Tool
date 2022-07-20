@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：程序跟进米游社API、可自定义兑换任务的线程数([🔗v1.3.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.3.0))**
+**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.0))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
