@@ -12,7 +12,7 @@ VERSION = "v1.3.1-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
-    "login_ticket", "mid"
+    "login_ticket", "mid", "login_uid"
 ]
 """需要获取的Cookies"""
 USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
@@ -504,7 +504,7 @@ def completeCookie() -> None:
         if choice == "1":
             print("请进行以下操作：")
             print("> 1. 登录: https://user.mihoyo.com/")
-            print("> 2. 在浏览器中打开开发者模式，进入控制台，复制粘贴下面的语句并回车\n")
+            print("> 2. 在浏览器中打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
             print(
                 "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
             print("\n> 3. 粘贴查找到的Cookie:")
@@ -539,6 +539,8 @@ def completeCookie() -> None:
             continue
 
         cookies = {}
+        if origin_cookie.split()[-1] != ";":
+            origin_cookie += ";"
         findCookiesInStr(origin_cookie, cookies)
 
         # 开头为"v2__"的stoken还需要搭配"mid"才行
@@ -561,7 +563,7 @@ def completeCookie() -> None:
             continue
 
         bbs_uid = None
-        for cookie in ("stuid", "ltuid", "account_id"):
+        for cookie in ("login_uid", "stuid", "ltuid", "account_id"):
             if cookie in cookies:
                 bbs_uid = cookies[cookie]
         if bbs_uid == None:
@@ -575,10 +577,10 @@ def completeCookie() -> None:
             get_stoken_req = requests.get(
                 "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(cookies["login_ticket"], bbs_uid))
             stoken = list(filter(
-                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]
+                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
         except:
             clear()
-            print("> 获取stoken失败，一种可能是登录失效，回车以返回)\n")
+            print("> 获取stoken失败，一种可能是登录失效，回车以返回\n")
             input()
             clear()
             continue
