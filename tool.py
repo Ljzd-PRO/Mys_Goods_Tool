@@ -8,6 +8,7 @@ import json
 import platform
 import configparser
 import string
+import requests.utils
 
 VERSION = "v1.3.1-beta"
 """程序当前版本"""
@@ -18,6 +19,14 @@ COOKIES_NEEDED = [
 """需要获取的Cookies"""
 USER_AGENT_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
 """移动端 User-Agent"""
+USER_AGENT_PC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
+"""桌面端 User-Agent"""
+X_RPC_DEVICE_MODEL = "OS X 10.15.7"
+"""Headers所用的 x-rpc-device_model"""
+X_RPC_DEVICE_NAME = "Microsoft Edge 103.0.1264.62"
+"""Headers所用的 x-rpc-device_name"""
+UA = "\".Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"103\", \"Chromium\";v=\"103\""
+"""Headers所用的 sec-ch-ua"""
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -645,11 +654,174 @@ def completeCookie() -> None:
             clear()
 
 
+def onekeyCookie() -> None:
+    login_1_headers = {
+        "Host": "webapi.account.mihoyo.com",
+        "Connection": "keep-alive",
+        "Content-Length": "79",
+        "sec-ch-ua": UA,
+        "DNT": "1",
+        "x-rpc-device_model": X_RPC_DEVICE_MODEL,
+        "sec-ch-ua-mobile": "?0",
+        "User-Agent": USER_AGENT_PC,
+        "x-rpc-device_id": generateDeviceID(),
+        "Accept": "application/json, text/plain, */*",
+        "x-rpc-device_name": X_RPC_DEVICE_NAME,
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-rpc-client_type": "4",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Origin": "https://user.mihoyo.com",
+        "Sec-Fetch-Site": "same-site",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Referer": "https://user.mihoyo.com/",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6"
+    }
+    login_2_headers = {
+        "Host": "api-takumi.mihoyo.com",
+        "Content-Type": "application/json;charset=utf-8",
+        "Origin": "https://bbs.mihoyo.com",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": USER_AGENT_PC,
+        "Referer": "https://bbs.mihoyo.com/",
+        "Content-Length": "95",
+        "Accept-Language": "zh-CN,zh-Hans;q=0.9"
+    }
+
+    while True:
+        print("请进行以下操作：")
+        print("> 1. 进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
+        print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):")
+        phone = input("> ")
+        print("\n> 4. 在此输入验证码 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):")
+        captcha = input("> ")
+
+        print("正在登录...")
+        try:
+            login_1_req = requests.post(
+                "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha", headers=login_1_headers, data="mobile={0}&mobile_captcha={1}&source=user.mihoyo.com".format(phone, captcha))
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 登录失败，回车以返回\n")
+            input()
+            clear()
+            continue
+        login_1_cookie = requests.utils.dict_from_cookiejar(
+            login_1_req.cookies)
+
+        if "login_ticket" not in login_1_cookie:
+            print("> 由于Cookie缺少login_ticket，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        for cookie in ("login_uid", "stuid", "ltuid", "account_id"):
+            if cookie in login_1_cookie:
+                bbs_uid = login_1_cookie[cookie]
+                break
+        if bbs_uid == None:
+            print("> 由于Cookie缺少uid，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("正在获取stoken...")
+        try:
+            get_stoken_req = requests.get(
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(login_1_cookie["login_ticket"], bbs_uid))
+            stoken = list(filter(
+                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            clear()
+            print("> 获取stoken失败，一种可能是登录失效，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("> 5. 刷新页面，再次进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
+        print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
+        captcha = input("> ")
+
+        print("正在登录...")
+        try:
+            login_2_req = requests.post(
+                "https://api-takumi.mihoyo.com/account/auth/api/webLoginByMobile", headers=login_2_headers, json={
+                    "is_bh2": False,
+                    "mobile": phone,
+                    "captcha": captcha,
+                    "action_type": "login",
+                    "token_type": 6
+                })
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 登录失败，回车以返回\n")
+            input()
+            clear()
+            continue
+        login_2_cookie = requests.utils.dict_from_cookiejar(
+            login_2_req.cookies)
+
+        if "cookie_token" not in login_2_cookie:
+            print("> 由于Cookie缺少cookie_token，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        result_cookie = ""
+        for cookie in login_2_cookie:
+            result_cookie += (cookie + "=" + login_2_cookie[cookie] + ";")
+        result_cookie += ("login_ticket=" + login_1_cookie["login_ticket"] + ";")
+        result_cookie += ("stoken=" + stoken + ";")
+
+        print("> 成功获取Cookie:\n" + result_cookie)
+        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
+        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
+        print("-- 按回车键跳过并返回功能选择界面")
+        choice = input("> ")
+        clear()
+        if choice != "y":
+            break
+
+        try:
+            conf = readConfig()
+            if conf == None:
+                raise
+            conf.set("Config", "Cookie", result_cookie)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
+            print("> 配置文件写入成功(回车以返回功能选择界面)")
+            input()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 配置文件写入失败(回车以返回)")
+            input()
+            clear()
+
+
 while __name__ == '__main__':
     clear()
     print("> 选择功能：")
     print("-- 1. 查询商品ID(Good_ID)")
-    print("-- 2. 登录并自动获取Cookie(推荐)")
+    print("-- 2. 登录并一键获取Cookie(推荐)")
     print("-- 3. 从抓包导出文件分析获取Cookie")
     print("-- 4. 补全Cookie(从网页版或从配置文件中补全)")
     print("-- 5. 查询送货地址ID(Address_ID)")
@@ -662,7 +834,7 @@ while __name__ == '__main__':
     if choice == "1":
         goodTool()
     elif choice == "2":
-        ...
+        onekeyCookie()
     elif choice == "3":
         cookieTool()
     elif choice == "4":
