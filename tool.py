@@ -215,8 +215,8 @@ def addressTool() -> None:
 
     while True:
         try:
-            address_list = json.loads(requests.get(
-                url, headers=headers).text)["data"]["list"]
+            address_list_req = requests.get(url, headers=headers)
+            address_list = address_list_req.json()["data"]["list"]
             break
         except KeyboardInterrupt:
             print("用户强制结束程序...")
@@ -225,6 +225,10 @@ def addressTool() -> None:
             retry_times += 1
             clear()
             print("> 请求失败，正在重试({times})...".format(times=retry_times))
+            try:
+                print("服务器返回: " + address_list_req.json())
+            except:
+                pass
 
     while True:
         print("\n> 查询结果：")
@@ -485,6 +489,9 @@ def checkUpdate() -> None:
         print("- 链接: {}".format(latest_url))
         print("\n> 回车以返回\n")
         input()
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except:
         print("\n> 检查更新失败，回车以返回\n")
         input()
@@ -503,13 +510,19 @@ def completeCookie() -> None:
 
         if choice == "1":
             print("请进行以下操作：")
-            print("> 1. 登录: https://user.mihoyo.com/")
-            print("> 2. 在浏览器中打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
+            print("> 1. 登录: https://user.mihoyo.com/ 和 https://bbs.mihoyo.com/dby/")
+            print("> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
             print(
                 "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
-            print("\n> 3. 粘贴查找到的Cookie:")
+            print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
+            if origin_cookie.split()[-1] != ";":
+                origin_cookie += ";"
+            print("\n> 4. 粘贴第二次查找到的Cookie:")
+            origin_cookie += input("> ")
             clear()
+            if origin_cookie.split()[-1] != ";":
+                origin_cookie += ";"
         elif choice == "2":
             try:
                 if conf == None:
@@ -578,6 +591,9 @@ def completeCookie() -> None:
                 "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(cookies["login_ticket"], bbs_uid))
             stoken = list(filter(
                 lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
         except:
             clear()
             print("> 获取stoken失败，一种可能是登录失效，回车以返回\n")
