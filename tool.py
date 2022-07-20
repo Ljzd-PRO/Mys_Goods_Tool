@@ -8,8 +8,7 @@ import json
 import platform
 import configparser
 
-
-VERSION = "v1.3.0"
+VERSION = "v1.3.1-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -37,6 +36,24 @@ def clear() -> None:
     """
     if CLEAR_COMMAND != None:
         os.system(CLEAR_COMMAND)
+
+
+def readConfig():
+    """
+    读取配置文件
+    """
+    conf = configparser.RawConfigParser()
+    try:
+        try:
+            conf.read_file(open("config.ini", mode=mode, encoding="utf-8"))
+        except:
+            conf.read_file(open("config.ini", mode=mode, encoding="utf-8-sig"))
+        return conf
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
+    except:
+        return
 
 
 def goodTool() -> None:
@@ -131,12 +148,10 @@ def goodTool() -> None:
 
 
 def addressTool() -> None:
-    conf = configparser.RawConfigParser()
+    conf = readConfig()
     try:
-        try:
-            conf.read_file(open("config.ini", encoding="utf-8"))
-        except:
-            conf.read_file(open("config.ini", encoding="utf-8-sig"))
+        if conf == None:
+            raise
         cookie = conf.get(
             "Config",
             "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
@@ -147,38 +162,37 @@ def addressTool() -> None:
         print("> 读取Cookie失败，请手动输入Cookie信息：(返回上一页请直接回车)")
         print("> ", end="")
         cookie_input = input()
+        clear()
         if cookie_input != "":
             cookie = cookie_input.strip("'''").strip("'").strip(
                 "\"\"\"").strip("\"")
-            clear()
         else:
-            clear()
             return
 
     headers = {
         "Host":
-        "api-takumi.mihoyo.com",
+            "api-takumi.mihoyo.com",
         "Accept":
-        "application/json, text/plain, */*",
+            "application/json, text/plain, */*",
         "Origin":
-        "https://user.mihoyo.com",
+            "https://user.mihoyo.com",
         "Cookie":
-        cookie,
+            cookie,
         "Connection":
-        "keep-alive",
+            "keep-alive",
         "x-rpc-device_id":
-        "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
-                              32)).upper(),
+            "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
+                                  32)).upper(),
         "x-rpc-client_type":
-        "5",
+            "5",
         "User-Agent":
-        USER_AGENT,
+            USER_AGENT,
         "Referer":
-        "https://user.mihoyo.com/",
+            "https://user.mihoyo.com/",
         "Accept-Language":
-        "zh-CN,zh-Hans;q=0.9",
+            "zh-CN,zh-Hans;q=0.9",
         "Accept-Encoding":
-        "gzip, deflate, br"
+            "gzip, deflate, br"
     }
     url = "https://api-takumi.mihoyo.com/account/address/list?t={time_now}".format(
         time_now=round(time.time() * 1000))
@@ -231,8 +245,12 @@ def addressTool() -> None:
 
         try:
             conf.set("Config", "Address_ID", choice)
-            with open("config.ini", "w", encoding="utf-8") as config_file:
-                conf.write(config_file)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
             print("> 配置文件写入成功(回车以返回功能选择界面)")
             input()
             break
@@ -296,8 +314,12 @@ def cookieTool() -> None:
             for req_dir in req_dirs:
                 if os.path.isfile(req_dir):
                     continue
-                file_data = json.load(
-                    open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8"))
+                try:
+                    file_data = json.load(
+                        open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8"))
+                except:
+                    file_data = json.load(
+                        open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8-sig"))
                 print("> 开始分析抓包数据")
                 try:
                     file_cookies = file_data["headers"]["Cookie"]
@@ -340,7 +362,10 @@ def cookieTool() -> None:
                 break
 
         try:
-            file_data = json.load(open(file_path, "r", encoding="utf-8"))
+            try:
+                file_data = json.load(open(file_path, "r", encoding="utf-8"))
+            except:
+                file_data = json.load(open(file_path, "r", encoding="utf-8-sig"))
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -409,9 +434,7 @@ def cookieTool() -> None:
 
         if choice == "y":
             try:
-                conf = configparser.RawConfigParser()
-                conf.read("config.ini", encoding="utf-8")
-
+                conf = readConfig()
                 current_cookies = ""
                 for key in cookies:
                     current_cookies += (key + "=" + cookies[key] + ";")
