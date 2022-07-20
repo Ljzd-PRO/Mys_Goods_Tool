@@ -10,7 +10,7 @@ import configparser
 import string
 import requests.utils
 
-VERSION = "v1.3.1-beta"
+VERSION = "v1.4.0-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
