@@ -98,6 +98,18 @@ def to_log(info_type: str = "", info: str = "") -> str:
         traceback.print_exc()
 
 
+def generateDeviceID() -> str:
+    """
+    生成随机的x-rpc-device_id
+    """
+    return "".join(random.sample(string.ascii_letters + string.digits,
+                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                                                                         12)).lower()
+
+
 print(to_log("程序当前版本: {}".format(VERSION)))
 
 
@@ -282,9 +294,7 @@ class Good:
             "appstore",
             "x-rpc-client_type":
             "1",
-            "x-rpc-device_id":
-            "".join(random.sample(string.ascii_letters + string.digits,
-                                  32)).upper(),
+            "x-rpc-device_id": generateDeviceID(),
             "x-rpc-device_model":
             X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
