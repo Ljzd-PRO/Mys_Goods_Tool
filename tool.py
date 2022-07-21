@@ -32,6 +32,8 @@ NTP_SERVER = "ntp.aliyun.com"
 """NTP服务器，用于获取网络时间"""
 MAX_RETRY_TIMES = 5
 """网络时间校对失败后最多重试次数"""
+SLEEP_TIME = 3
+"""网络时间校对后的等待时间(目的是预留时间查看日志)"""
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -75,6 +77,10 @@ class NtpTime():
                 break
             else:
                 print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
+    print("互联网时间校对完成")
+    for second in range(0, SLEEP_TIME):
+        print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
+        time.sleep(1)
 
     def time() -> float:
         """
