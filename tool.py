@@ -11,7 +11,7 @@ import string
 import requests.utils
 import ntplib
 
-VERSION = "v1.4.0-beta"
+VERSION = "v1.4.0"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
