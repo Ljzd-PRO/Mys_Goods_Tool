@@ -9,6 +9,7 @@ import platform
 import configparser
 import string
 import requests.utils
+import ntplib
 
 VERSION = "v1.4.0-beta"
 """程序当前版本"""
@@ -27,6 +28,10 @@ X_RPC_DEVICE_NAME = "Microsoft Edge 103.0.1264.62"
 """Headers所用的 x-rpc-device_name"""
 UA = "\".Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"103\", \"Chromium\";v=\"103\""
 """Headers所用的 sec-ch-ua"""
+NTP_SERVER = "ntp.aliyun.com"
+"""NTP服务器，用于获取网络时间"""
+MAX_RETRY_TIMES = 5
+"""网络时间校对失败后最多重试次数"""
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -46,6 +51,36 @@ def clear() -> None:
     """
     if CLEAR_COMMAND != None:
         os.system(CLEAR_COMMAND)
+
+
+class NtpTime():
+    """
+    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    """
+    ntp_error_times = 0
+    time_offset = 0
+    while True:
+        print("正在校对互联网时间...")
+        try:
+            time_offset = ntplib.NTPClient().request(
+                NTP_SERVER).tx_time - time.time()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            ntp_error_times += 1
+            if ntp_error_times == MAX_RETRY_TIMES:
+                print("校对互联网时间失败，改为使用本地时间")
+                break
+            else:
+                print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
+
+    def time() -> float:
+        """
+        获取校准后的时间（如果校准成功）
+        """
+        return time.time() + NtpTime.time_offset
 
 
 def readConfig():
@@ -230,7 +265,7 @@ def addressTool() -> None:
             "gzip, deflate, br"
     }
     url = "https://api-takumi.mihoyo.com/account/address/list?t={time_now}".format(
-        time_now=round(time.time() * 1000))
+        time_now=round(NtpTime.time() * 1000))
     retry_times = 0
 
     while True:
