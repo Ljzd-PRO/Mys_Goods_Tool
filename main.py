@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.3.0"
+VERSION = "v1.4.0"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -98,6 +98,18 @@ def to_log(info_type: str = "", info: str = "") -> str:
         traceback.print_exc()
 
 
+def generateDeviceID() -> str:
+    """
+    生成随机的x-rpc-device_id
+    """
+    return "".join(random.sample(string.ascii_letters + string.digits,
+                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                                                                         12)).lower()
+
+
 print(to_log("程序当前版本: {}".format(VERSION)))
 
 
@@ -155,6 +167,9 @@ class Good:
     """
     商品兑换相关
     """
+    # 记录已成功兑换的商品
+    success_task = []
+
     def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
         """
         在Raw原始模式下的Cookies字符串中查找所需要的Cookie
@@ -282,9 +297,7 @@ class Good:
             "appstore",
             "x-rpc-client_type":
             "1",
-            "x-rpc-device_id":
-            "".join(random.sample(string.ascii_letters + string.digits,
-                                  32)).upper(),
+            "x-rpc-device_id": generateDeviceID(),
             "x-rpc-device_model":
             X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
@@ -315,11 +328,11 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    elif Good.cookie.find("mid") == -1:
+                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
                         print(
                             to_log(
                                 "ERROR",
-                                "商品：{} 为游戏内物品，由于未配置 mid，放弃兑换该商品".format(
+                                "商品：{} 为游戏内物品，由于stoken为\"v2\"类型，且未配置mid，放弃兑换该商品".format(
                                     self.id)))
                         self.result = -1
                         return
@@ -456,8 +469,10 @@ class Good:
                     "INFO",
                     "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
             try:
-                if json.loads(self.result.text)["message"] == "OK":
+                if json.loads(self.result.text)["message"] == "OK" or self.id in Good.success_task:
                     print(to_log("INFO", "商品 {} 兑换成功！可以自行确认。".format(self.id)))
+                    if self.id not in Good.success_task:
+                        Good.success_task.append(self.id)
                 else:
                     print(to_log("INFO", "商品 {} 兑换失败，可以自行确认。".format(self.id)))
             except KeyboardInterrupt:

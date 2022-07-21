@@ -7,17 +7,33 @@ import requests
 import json
 import platform
 import configparser
+import string
+import requests.utils
+import ntplib
 
-
-VERSION = "v1.3.0"
+VERSION = "v1.4.0"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
-    "login_ticket", "mid"
+    "login_ticket", "mid", "login_uid"
 ]
 """需要获取的Cookies"""
-USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
-"""Headers所用的 User-Agent"""
+USER_AGENT_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.25.1"
+"""移动端 User-Agent"""
+USER_AGENT_PC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
+"""桌面端 User-Agent"""
+X_RPC_DEVICE_MODEL = "OS X 10.15.7"
+"""Headers所用的 x-rpc-device_model"""
+X_RPC_DEVICE_NAME = "Microsoft Edge 103.0.1264.62"
+"""Headers所用的 x-rpc-device_name"""
+UA = "\".Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"103\", \"Chromium\";v=\"103\""
+"""Headers所用的 sec-ch-ua"""
+NTP_SERVER = "ntp.aliyun.com"
+"""NTP服务器，用于获取网络时间"""
+MAX_RETRY_TIMES = 5
+"""网络时间校对失败后最多重试次数"""
+SLEEP_TIME = 3
+"""网络时间校对后的等待时间(目的是预留时间查看日志)"""
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -37,6 +53,85 @@ def clear() -> None:
     """
     if CLEAR_COMMAND != None:
         os.system(CLEAR_COMMAND)
+
+
+class NtpTime():
+    """
+    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    """
+    ntp_error_times = 0
+    time_offset = 0
+    while True:
+        print("正在校对互联网时间...")
+        try:
+            time_offset = ntplib.NTPClient().request(
+                NTP_SERVER).tx_time - time.time()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            ntp_error_times += 1
+            if ntp_error_times == MAX_RETRY_TIMES:
+                print("校对互联网时间失败，改为使用本地时间")
+                break
+            else:
+                print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
+    print("互联网时间校对完成")
+    for second in range(0, SLEEP_TIME):
+            print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
+            time.sleep(1)
+
+    def time() -> float:
+        """
+        获取校准后的时间（如果校准成功）
+        """
+        return time.time() + NtpTime.time_offset
+
+
+def readConfig():
+    """
+    读取配置文件
+    """
+    conf = configparser.RawConfigParser()
+    try:
+        try:
+            conf.read_file(open("config.ini", encoding="utf-8"))
+        except:
+            conf.read_file(open("config.ini", encoding="utf-8-sig"))
+        return conf
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
+    except:
+        return
+
+
+def findCookiesInStr(cookiesStr: str, save: dict) -> None:
+    """
+    在Raw原始模式下的Cookies字符串中查找所需要的Cookie
+    >>> cookiesStr: str #Raw Cookies 字符串
+    >>> save: str #结果保存到的字典
+    """
+    for cookie_needed in COOKIES_NEEDED:
+        if len(save) == len(COOKIES_NEEDED):
+            return
+        location = cookiesStr.find(cookie_needed)
+        if location != -1:
+            save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
+                "=", location) + 1: cookiesStr.find(";", location)])
+
+
+def generateDeviceID() -> str:
+    """
+    生成随机的x-rpc-device_id
+    """
+    return "".join(random.sample(string.ascii_letters + string.digits,
+                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
+                                                                                                                                                                                                         12)).lower()
 
 
 def goodTool() -> None:
@@ -131,12 +226,10 @@ def goodTool() -> None:
 
 
 def addressTool() -> None:
-    conf = configparser.RawConfigParser()
+    conf = readConfig()
     try:
-        try:
-            conf.read_file(open("config.ini", encoding="utf-8"))
-        except:
-            conf.read_file(open("config.ini", encoding="utf-8-sig"))
+        if conf == None:
+            raise
         cookie = conf.get(
             "Config",
             "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
@@ -147,55 +240,53 @@ def addressTool() -> None:
         print("> 读取Cookie失败，请手动输入Cookie信息：(返回上一页请直接回车)")
         print("> ", end="")
         cookie_input = input()
+        clear()
         if cookie_input != "":
             cookie = cookie_input.strip("'''").strip("'").strip(
                 "\"\"\"").strip("\"")
-            clear()
         else:
-            clear()
             return
 
     headers = {
         "Host":
-        "api-takumi.mihoyo.com",
+            "api-takumi.mihoyo.com",
         "Accept":
-        "application/json, text/plain, */*",
+            "application/json, text/plain, */*",
         "Origin":
-        "https://user.mihoyo.com",
+            "https://user.mihoyo.com",
         "Cookie":
-        cookie,
+            cookie,
         "Connection":
-        "keep-alive",
-        "x-rpc-device_id":
-        "".join(random.sample('abcdefghijklmnopqrstuvwxyz0123456789',
-                              32)).upper(),
+            "keep-alive",
+        "x-rpc-device_id": generateDeviceID(),
         "x-rpc-client_type":
-        "5",
+            "5",
         "User-Agent":
-        USER_AGENT,
+            USER_AGENT_MOBILE,
         "Referer":
-        "https://user.mihoyo.com/",
+            "https://user.mihoyo.com/",
         "Accept-Language":
-        "zh-CN,zh-Hans;q=0.9",
+            "zh-CN,zh-Hans;q=0.9",
         "Accept-Encoding":
-        "gzip, deflate, br"
+            "gzip, deflate, br"
     }
     url = "https://api-takumi.mihoyo.com/account/address/list?t={time_now}".format(
-        time_now=round(time.time() * 1000))
-    retry_times = 0
+        time_now=round(NtpTime.time() * 1000))
 
-    while True:
+    try:
+        address_list_req = requests.get(url, headers=headers)
+        address_list = address_list_req.json()["data"]["list"]
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
+    except:
+        print("获取地址信息失败（回车以返回）")
         try:
-            address_list = json.loads(requests.get(
-                url, headers=headers).text)["data"]["list"]
-            break
-        except KeyboardInterrupt:
-            print("用户强制结束程序...")
-            exit(1)
+            print("服务器返回: " + address_list_req.json())
         except:
-            retry_times += 1
-            clear()
-            print("> 请求失败，正在重试({times})...".format(times=retry_times))
+            pass
+        input()
+        return
 
     while True:
         print("\n> 查询结果：")
@@ -231,8 +322,12 @@ def addressTool() -> None:
 
         try:
             conf.set("Config", "Address_ID", choice)
-            with open("config.ini", "w", encoding="utf-8") as config_file:
-                conf.write(config_file)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
             print("> 配置文件写入成功(回车以返回功能选择界面)")
             input()
             break
@@ -252,23 +347,10 @@ def cookieTool() -> None:
     # 查找结果
     cookies = {}
 
-    def findCookiesInStr(cookiesStr: str, save: dict = cookies) -> None:
-        """
-        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
-        >>> cookiesStr: str #Raw Cookies 字符串
-        >>> save: str #结果保存到的字典
-        """
-        for cookie_needed in COOKIES_NEEDED:
-            if len(save) == len(COOKIES_NEEDED):
-                return
-            location = cookiesStr.find(cookie_needed)
-            if location != -1:
-                save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
-                    "=", location) + 1: cookiesStr.find(";", location)])
-
     print("> 请选择抓包导出文件类型：")
-    print("- (1) 使用 HttpCanary 导出的文件夹")
-    print("- (2) .har 文件")
+    print("-- 1. 使用 HttpCanary 导出的文件夹")
+    print("-- 2. .har 文件")
+    print("\n-- 0. 返回主菜单")
     print("\n> ", end="")
     choice = input()
     clear()
@@ -296,8 +378,12 @@ def cookieTool() -> None:
             for req_dir in req_dirs:
                 if os.path.isfile(req_dir):
                     continue
-                file_data = json.load(
-                    open(os.path.join(file_path, req_dir, "request.json"), "r"))
+                try:
+                    file_data = json.load(
+                        open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8"))
+                except:
+                    file_data = json.load(
+                        open(os.path.join(file_path, req_dir, "request.json"), "r", encoding="utf-8-sig"))
                 print("> 开始分析抓包数据")
                 try:
                     file_cookies = file_data["headers"]["Cookie"]
@@ -306,7 +392,7 @@ def cookieTool() -> None:
                         file_cookies = file_data["headers"]["cookie"]
                     except KeyError:
                         continue
-                findCookiesInStr(file_cookies)
+                findCookiesInStr(file_cookies, cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -340,7 +426,11 @@ def cookieTool() -> None:
                 break
 
         try:
-            file_data = json.load(open(file_path, "r"))
+            try:
+                file_data = json.load(open(file_path, "r", encoding="utf-8"))
+            except:
+                file_data = json.load(
+                    open(file_path, "r", encoding="utf-8-sig"))
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -370,7 +460,7 @@ def cookieTool() -> None:
                     if len(cookies) == len(COOKIES_NEEDED):
                         break
                     if header["name"] == "Cookie" or header["name"] == "cookie":
-                        findCookiesInStr(header["value"])
+                        findCookiesInStr(header["value"], cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -380,10 +470,14 @@ def cookieTool() -> None:
             clear()
             return
 
+    elif choice == "0":
+        return
+
     else:
         print("> 输入有误(回车以返回)\n")
         input()
         clear()
+        cookieTool()
         return
 
     clear()
@@ -409,9 +503,7 @@ def cookieTool() -> None:
 
         if choice == "y":
             try:
-                conf = configparser.RawConfigParser()
-                conf.read("config.ini", encoding="utf-8")
-
+                conf = readConfig()
                 current_cookies = ""
                 for key in cookies:
                     current_cookies += (key + "=" + cookies[key] + ";")
@@ -426,7 +518,6 @@ def cookieTool() -> None:
 
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
                 input()
-                clear()
                 return
             except KeyboardInterrupt:
                 print("用户强制结束程序...")
@@ -434,7 +525,6 @@ def cookieTool() -> None:
             except:
                 print("> 配置文件写入失败，检查config.ini是否存在且有权限读写(回车以返回)")
                 input()
-                clear()
                 return
         elif choice != "":
             print("> 输入有误，请重新输入(回车以返回)\n")
@@ -442,7 +532,6 @@ def cookieTool() -> None:
             clear()
             continue
         else:
-            clear()
             return
 
 
@@ -460,18 +549,325 @@ def checkUpdate() -> None:
         print("- 链接: {}".format(latest_url))
         print("\n> 回车以返回\n")
         input()
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
     except:
         print("\n> 检查更新失败，回车以返回\n")
         input()
+
+
+def completeCookie() -> None:
+    while True:
+        print("将自动补上Cookie中兑换游戏内物品所需的stoken\n> 进行选择：")
+        print("-- 1. 从浏览器获取的网页版米游社Cookie中补全")
+        print("-- 2. 从配置文件中读取Cookie值进行补全")
+        print("\n-- 0. 返回功能选择界面")
+        print("\n> ", end="")
+        choice = input()
+        clear()
+        conf = readConfig()
+
+        if choice == "1":
+            print("请进行以下操作：")
+            print("> 1. 登录: https://user.mihoyo.com/ 和 https://bbs.mihoyo.com/dby/")
+            print("> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
+            print(
+                "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
+            print("\n> 3. 粘贴第一次查找到的Cookie:")
+            origin_cookie = input("> ")
+            if origin_cookie.split()[-1] != ";":
+                origin_cookie += ";"
+            print("\n> 4. 粘贴第二次查找到的Cookie:")
+            origin_cookie += input("> ")
+            clear()
+            if origin_cookie.split()[-1] != ";":
+                origin_cookie += ";"
+        elif choice == "2":
+            try:
+                if conf == None:
+                    raise
+                origin_cookie = conf.get(
+                    "Config",
+                    "Cookie").strip("'''").strip("'").strip("\"\"\"").strip("\"")
+            except KeyboardInterrupt:
+                print("用户强制结束程序...")
+                exit(1)
+            except:
+                print("> 读取Cookie失败，请手动输入Cookie信息：(返回上一页请直接回车)")
+                print("> ", end="")
+                cookie_input = input()
+                clear()
+                if cookie_input != "":
+                    origin_cookie = cookie_input.strip("'''").strip("'").strip(
+                        "\"\"\"").strip("\"")
+                else:
+                    continue
+        elif choice == "0":
+            break
+        else:
+            print("> 输入有误，请重新输入(回车以返回)\n")
+            input()
+            clear()
+            continue
+
+        cookies = {}
+        if origin_cookie.split()[-1] != ";":
+            origin_cookie += ";"
+        findCookiesInStr(origin_cookie, cookies)
+
+        # 开头为"v2__"的stoken还需要搭配"mid"才行
+        if "stoken" in cookies:
+            if cookies["stoken"].find("v2__") == 0:
+                cookies.pop("stoken")
+            else:
+                print("Cookie是完整的，无需补全，回车以返回\n")
+                input()
+                clear()
+                continue
+
+        if "mid" in cookies:
+            cookies.pop("mid")
+
+        if "login_ticket" not in cookies:
+            print("> 由于缺少login_ticket，无法补全，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        bbs_uid = None
+        for cookie in ("login_uid", "stuid", "ltuid", "account_id"):
+            if cookie in cookies:
+                bbs_uid = cookies[cookie]
+                break
+        if bbs_uid == None:
+            print("> 由于Cookie缺少uid，无法补全，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("正在获取stoken...")
+        try:
+            get_stoken_req = requests.get(
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(cookies["login_ticket"], bbs_uid))
+            stoken = list(filter(
+                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            clear()
+            print("> 获取stoken失败，一种可能是登录失效，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        origin_cookie += ("stoken=" + stoken + ";")
+        print("> 补全后: {}".format(origin_cookie))
+        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
+        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
+        print("-- 按回车键跳过并返回功能选择界面")
+        choice = input("> ")
+        clear()
+        if choice != "y":
+            break
+
+        try:
+            if conf == None:
+                raise
+            conf.set("Config", "Cookie", origin_cookie)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
+            print("> 配置文件写入成功(回车以返回功能选择界面)")
+            input()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 配置文件写入失败(回车以返回)")
+            input()
+            clear()
+
+
+def onekeyCookie() -> None:
+    login_1_headers = {
+        "Host": "webapi.account.mihoyo.com",
+        "Connection": "keep-alive",
+        "Content-Length": "79",
+        "sec-ch-ua": UA,
+        "DNT": "1",
+        "x-rpc-device_model": X_RPC_DEVICE_MODEL,
+        "sec-ch-ua-mobile": "?0",
+        "User-Agent": USER_AGENT_PC,
+        "x-rpc-device_id": generateDeviceID(),
+        "Accept": "application/json, text/plain, */*",
+        "x-rpc-device_name": X_RPC_DEVICE_NAME,
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-rpc-client_type": "4",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Origin": "https://user.mihoyo.com",
+        "Sec-Fetch-Site": "same-site",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
+        "Referer": "https://user.mihoyo.com/",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6"
+    }
+    login_2_headers = {
+        "Host": "api-takumi.mihoyo.com",
+        "Content-Type": "application/json;charset=utf-8",
+        "Origin": "https://bbs.mihoyo.com",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": USER_AGENT_PC,
+        "Referer": "https://bbs.mihoyo.com/",
+        "Content-Length": "95",
+        "Accept-Language": "zh-CN,zh-Hans;q=0.9"
+    }
+
+    while True:
+        print("请进行以下操作：")
+        print("> 1. 进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
+        print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):\n-- (回车返回主菜单)")
+        phone = input("> ")
+        if phone == "":
+            break
+        print("\n> 4. 在此输入验证码 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):")
+        captcha = input("> ")
+
+        print("正在登录...")
+        try:
+            login_1_req = requests.post(
+                "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha", headers=login_1_headers, data="mobile={0}&mobile_captcha={1}&source=user.mihoyo.com".format(phone, captcha))
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 登录失败，回车以返回\n")
+            input()
+            clear()
+            continue
+        login_1_cookie = requests.utils.dict_from_cookiejar(
+            login_1_req.cookies)
+
+        if "login_ticket" not in login_1_cookie:
+            print("> 由于Cookie缺少login_ticket，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        for cookie in ("login_uid", "stuid", "ltuid", "account_id"):
+            if cookie in login_1_cookie:
+                bbs_uid = login_1_cookie[cookie]
+                break
+        if bbs_uid == None:
+            print("> 由于Cookie缺少uid，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("正在获取stoken...")
+        try:
+            get_stoken_req = requests.get(
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(login_1_cookie["login_ticket"], bbs_uid))
+            stoken = list(filter(
+                lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            clear()
+            print("> 获取stoken失败，一种可能是登录失效，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        print("> 5. 刷新页面，再次进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
+        print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
+        captcha = input("> ")
+
+        print("正在登录...")
+        try:
+            login_2_req = requests.post(
+                "https://api-takumi.mihoyo.com/account/auth/api/webLoginByMobile", headers=login_2_headers, json={
+                    "is_bh2": False,
+                    "mobile": phone,
+                    "captcha": captcha,
+                    "action_type": "login",
+                    "token_type": 6
+                })
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 登录失败，回车以返回\n")
+            input()
+            clear()
+            continue
+        login_2_cookie = requests.utils.dict_from_cookiejar(
+            login_2_req.cookies)
+
+        if "cookie_token" not in login_2_cookie:
+            print("> 由于Cookie缺少cookie_token，无法继续，回车以返回\n")
+            input()
+            clear()
+            continue
+
+        result_cookie = ""
+        for cookie in login_2_cookie:
+            result_cookie += (cookie + "=" + login_2_cookie[cookie] + ";")
+        result_cookie += ("login_ticket=" + login_1_cookie["login_ticket"] + ";")
+        result_cookie += ("stoken=" + stoken + ";")
+
+        print("> 成功获取Cookie:\n" + result_cookie)
+        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
+        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
+        print("-- 按回车键跳过并返回功能选择界面")
+        choice = input("> ")
+        clear()
+        if choice != "y":
+            break
+
+        try:
+            conf = readConfig()
+            if conf == None:
+                raise
+            conf.set("Config", "Cookie", result_cookie)
+            try:
+                with open("config.ini", "w", encoding="utf-8") as config_file:
+                    conf.write(config_file)
+            except:
+                with open("config.ini", "w", encoding="utf-8-sig") as config_file:
+                    conf.write(config_file)
+            print("> 配置文件写入成功(回车以返回功能选择界面)")
+            input()
+            break
+        except KeyboardInterrupt:
+            print("用户强制结束程序...")
+            exit(1)
+        except:
+            print("> 配置文件写入失败(回车以返回)")
+            input()
+            clear()
 
 
 while __name__ == '__main__':
     clear()
     print("> 选择功能：")
     print("-- 1. 查询商品ID(Good_ID)")
-    print("-- 2. 查询送货地址ID(Address_ID)")
-    print("-- 3. 从抓包导出文件分析获取Cookies(包括stoken)")
-    print("-- 4. 检查更新")
+    print("-- 2. 登录并一键获取Cookie(推荐)")
+    print("-- 3. 从抓包导出文件分析获取Cookie")
+    print("-- 4. 补全Cookie(从网页版或从配置文件中补全)")
+    print("-- 5. 查询送货地址ID(Address_ID)")
+    print("-- 6. 检查更新")
     print("\n-- 0. 退出")
     print("\n> ", end="")
 
@@ -480,10 +876,14 @@ while __name__ == '__main__':
     if choice == "1":
         goodTool()
     elif choice == "2":
-        addressTool()
+        onekeyCookie()
     elif choice == "3":
         cookieTool()
     elif choice == "4":
+        completeCookie()
+    elif choice == "5":
+        addressTool()
+    elif choice == "6":
         checkUpdate()
     elif choice == "0":
         break

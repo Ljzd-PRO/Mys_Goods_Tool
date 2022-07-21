@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：程序跟进米游社API、可自定义兑换任务的线程数([🔗v1.3.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.3.0))**
+**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.0))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 
@@ -29,7 +29,7 @@
 **[Config]**
 |  参数   | 说明  |
 |  ----  | ----  |
-| Cookie | **用户Cookies数据**<br>`tool.py`工具可以从抓包数据中筛选出Cookies信息（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 以及 `mid` 为必需项**<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
+| Cookie | **用户Cookies数据**<br>可通过`tool.py`工具直接获取（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 为必需项**<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
 | Time | **商品兑换活动开始时间**<br>（按照 `2022-1-1 00:00:00` 格式） |
 | Address_ID | **送货地址ID**<br>可用 `tool.py` 信息查询工具进行查询<br>*（附：[🔗`Address_ID` ~~手动抓包~~获取方法](./Docs/Address_ID.md)）* |
 | Good_ID | **要兑换的商品ID列表**<br>所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
