@@ -328,6 +328,14 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
+                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
+                        print(
+                            to_log(
+                                "ERROR",
+                                "商品：{} 为游戏内物品，由于stoken为\"v2\"类型，且未配置mid，放弃兑换该商品".format(
+                                    self.id)))
+                        self.result = -1
+                        return
                 # 若商品非游戏内物品，则直接返回，不进行下面的操作
                 else:
                     self.headers.setdefault("Content-Length", "88")
