@@ -79,8 +79,8 @@ class NtpTime():
                 print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
     print("互联网时间校对完成")
     for second in range(0, SLEEP_TIME):
-        print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
-        time.sleep(1)
+            print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
+            time.sleep(1)
 
     def time() -> float:
         """
@@ -272,24 +272,21 @@ def addressTool() -> None:
     }
     url = "https://api-takumi.mihoyo.com/account/address/list?t={time_now}".format(
         time_now=round(NtpTime.time() * 1000))
-    retry_times = 0
 
-    while True:
+    try:
+        address_list_req = requests.get(url, headers=headers)
+        address_list = address_list_req.json()["data"]["list"]
+    except KeyboardInterrupt:
+        print("用户强制结束程序...")
+        exit(1)
+    except:
+        print("获取地址信息失败（回车以返回）")
         try:
-            address_list_req = requests.get(url, headers=headers)
-            address_list = address_list_req.json()["data"]["list"]
-            break
-        except KeyboardInterrupt:
-            print("用户强制结束程序...")
-            exit(1)
+            print("服务器返回: " + address_list_req.json())
         except:
-            retry_times += 1
-            clear()
-            print("> 请求失败，正在重试({times})...".format(times=retry_times))
-            try:
-                print("服务器返回: " + address_list_req.json())
-            except:
-                pass
+            pass
+        input()
+        return
 
     while True:
         print("\n> 查询结果：")
@@ -351,8 +348,9 @@ def cookieTool() -> None:
     cookies = {}
 
     print("> 请选择抓包导出文件类型：")
-    print("- (1) 使用 HttpCanary 导出的文件夹")
-    print("- (2) .har 文件")
+    print("-- 1. 使用 HttpCanary 导出的文件夹")
+    print("-- 2. .har 文件")
+    print("\n-- 0. 返回主菜单")
     print("\n> ", end="")
     choice = input()
     clear()
@@ -472,10 +470,14 @@ def cookieTool() -> None:
             clear()
             return
 
+    elif choice == "0":
+        return
+
     else:
         print("> 输入有误(回车以返回)\n")
         input()
         clear()
+        cookieTool()
         return
 
     clear()
@@ -516,7 +518,6 @@ def cookieTool() -> None:
 
                 print("> 配置文件写入成功(回车以返回功能选择界面)")
                 input()
-                clear()
                 return
             except KeyboardInterrupt:
                 print("用户强制结束程序...")
@@ -524,7 +525,6 @@ def cookieTool() -> None:
             except:
                 print("> 配置文件写入失败，检查config.ini是否存在且有权限读写(回车以返回)")
                 input()
-                clear()
                 return
         elif choice != "":
             print("> 输入有误，请重新输入(回车以返回)\n")
@@ -532,7 +532,6 @@ def cookieTool() -> None:
             clear()
             continue
         else:
-            clear()
             return
 
 
@@ -736,8 +735,10 @@ def onekeyCookie() -> None:
         print("请进行以下操作：")
         print("> 1. 进入 https://user.mihoyo.com/#/login/captcha")
         print("> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
-        print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):")
+        print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):\n-- (回车返回主菜单)")
         phone = input("> ")
+        if phone == "":
+            break
         print("\n> 4. 在此输入验证码 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):")
         captcha = input("> ")
 
