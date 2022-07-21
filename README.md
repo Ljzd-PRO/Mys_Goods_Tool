@@ -16,7 +16,8 @@
 
 **🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.0))**
 
-**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
+**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**  
+*（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
 
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
 
