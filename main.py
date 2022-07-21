@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.4.0-beta"
+VERSION = "v1.3.1-beta"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -167,6 +167,9 @@ class Good:
     """
     商品兑换相关
     """
+    # 记录已成功兑换的商品
+    success_task = []
+
     def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
         """
         在Raw原始模式下的Cookies字符串中查找所需要的Cookie
@@ -458,8 +461,10 @@ class Good:
                     "INFO",
                     "兑换商品：{0} 返回结果：\n{1}\n".format(self.id, self.result.text)))
             try:
-                if json.loads(self.result.text)["message"] == "OK":
+                if json.loads(self.result.text)["message"] == "OK" or self.id in Good.success_task:
                     print(to_log("INFO", "商品 {} 兑换成功！可以自行确认。".format(self.id)))
+                    if self.id not in Good.success_task:
+                        Good.success_task.append(self.id)
                 else:
                     print(to_log("INFO", "商品 {} 兑换失败，可以自行确认。".format(self.id)))
             except KeyboardInterrupt:
