@@ -10,7 +10,7 @@ on:
       - 'dev/**.md'
       - 'dev/LICENSE'
       - 'dev/Docs/**'
-      - 'dev/.github/workflow/**'
+      - 'dev/.github/workflows/**'
   pull_request:
     branches-ignore:    
       - 'stable/**.md'
