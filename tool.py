@@ -3,7 +3,6 @@
 import os
 import random
 import time
-from traceback import print_tb
 import requests
 import json
 import platform
