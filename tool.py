@@ -10,8 +10,9 @@ import configparser
 import string
 import requests.utils
 import ntplib
+import pyperclip
 
-VERSION = "v1.4.0"
+VERSION = "v1.4.1-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -79,8 +80,8 @@ class NtpTime():
                 print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
     print("互联网时间校对完成")
     for second in range(0, SLEEP_TIME):
-            print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
-            time.sleep(1)
+        print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
+        time.sleep(1)
 
     def time() -> float:
         """
@@ -411,6 +412,7 @@ def cookieTool() -> None:
         print("> 请输入 .har 文件路径：")
         print("\n> ", end="")
         file_path = input()
+        clear()
 
         # 去除两边自动添加的无关符号
         for char in strip_char:
@@ -569,20 +571,30 @@ def completeCookie() -> None:
         conf = readConfig()
 
         if choice == "1":
+            command = "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}"
             print("请进行以下操作：")
             print("> 1. 登录: https://user.mihoyo.com/ 和 https://bbs.mihoyo.com/dby/")
-            print("> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
-            print(
-                "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
+            print("> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，输入下面的语句并回车\n")
+            print(command)
+            try:
+                pyperclip.copy(command)
+                print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
+            except:
+                pass
             print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
-            if origin_cookie.split()[-1] != ";":
-                origin_cookie += ";"
-            print("\n> 4. 粘贴第二次查找到的Cookie:")
-            origin_cookie += input("> ")
-            clear()
-            if origin_cookie.split()[-1] != ";":
-                origin_cookie += ";"
+            try:
+                if origin_cookie.split()[-1] != ";":
+                    origin_cookie += ";"
+                print("\n> 4. 粘贴第二次查找到的Cookie:")
+                origin_cookie += input("> ")
+                clear()
+                if origin_cookie.split()[-1] != ";":
+                    origin_cookie += ";"
+            except:
+                print("输入有误，回车以返回")
+                input()
+                continue
         elif choice == "2":
             try:
                 if conf == None:
@@ -733,7 +745,13 @@ def onekeyCookie() -> None:
 
     while True:
         print("请进行以下操作：")
-        print("> 1. 进入 https://user.mihoyo.com/#/login/captcha")
+        url = "https://user.mihoyo.com/#/login/captcha"
+        print("> 1. 进入 {}".format(url))
+        try:
+            pyperclip.copy(url)
+            print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
+        except:
+            pass
         print("> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
         print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):\n-- (回车返回主菜单)")
         phone = input("> ")
@@ -789,7 +807,12 @@ def onekeyCookie() -> None:
             clear()
             continue
 
-        print("> 5. 刷新页面，再次进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 5. 刷新页面，再次进入 {}".format(url))
+        try:
+            pyperclip.copy(url)
+            print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
+        except:
+            pass
         print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
         print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
         captcha = input("> ")
@@ -824,7 +847,8 @@ def onekeyCookie() -> None:
         result_cookie = ""
         for cookie in login_2_cookie:
             result_cookie += (cookie + "=" + login_2_cookie[cookie] + ";")
-        result_cookie += ("login_ticket=" + login_1_cookie["login_ticket"] + ";")
+        result_cookie += ("login_ticket=" +
+                          login_1_cookie["login_ticket"] + ";")
         result_cookie += ("stoken=" + stoken + ";")
 
         print("> 成功获取Cookie:\n" + result_cookie)
