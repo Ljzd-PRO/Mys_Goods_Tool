@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.4.0"
+VERSION = "v1.4.1-beta"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -39,25 +39,24 @@ if __name__ != "__main__":
     exit(0)
 
 
+# 清屏指令
+PLATFORM = platform.system()
+if PLATFORM == "Darwin":
+    CLEAR_COMMAND = "clear"
+elif PLATFORM == "Windows":
+    CLEAR_COMMAND = "cls"
+elif PLATFORM == "Linux":
+    CLEAR_COMMAND = "clear"
+else:
+    CLEAR_COMMAND = None
+
+
 def clear() -> None:
-    try:
-        """
-        清屏
-        """
-        plat = platform.system()
-        if plat == "Darwin":
-            os.system("clear")
-        elif plat == "Windows":
-            os.system("cls")
-        elif plat == "Linux":
-            os.system("clear")
-        else:
-            pass
-    except KeyboardInterrupt:
-        print(to_log("WARN", "用户强制结束程序"))
-        exit(1)
-    except:
-        to_log("WARN", "执行清屏命令失败")
+    """
+    清屏
+    """
+    if CLEAR_COMMAND != None:
+        os.system(CLEAR_COMMAND)
 
 
 def get_file_path(file_name: str = "") -> str:
@@ -662,3 +661,6 @@ while True:
     except:
         print(to_log("ERROR", "主程序出现错误"))
         to_log("ERROR", traceback.format_exc())
+
+to_log("INFO", "程序运行结束")
+input("程序运行结束，按下回车键以关闭...")
