@@ -65,6 +65,7 @@ thread = 3
 **可前往`./logs/mys_goods_tool.log`查看日志**
 
 ## 其他
+仅供学习时参考  
 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。  
 欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
 
