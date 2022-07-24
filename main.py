@@ -177,7 +177,7 @@ class Good:
         >>> location: int #目标Cookie字符串所在位置，若为None则自动查找
         >>> return str #返回目标Cookie对应的值
         """
-        if location == None:
+        if location is None:
             location = cookiesStr.find(target)
         return cookiesStr[cookiesStr.find(
             "=", location) + 1: cookiesStr.find(";", location)]
@@ -312,7 +312,7 @@ class Good:
                 print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
                 checkGood_data = json.loads(
                     self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
-                if checkGood_data == None:
+                if checkGood_data is None:
                     print(
                         to_log("ERROR",
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
@@ -573,7 +573,7 @@ class CheckNetwork:
                     print("正在检查网络连接...", end="")
                     CheckNetwork.result = ping(CheckNetwork.ip)
                     CheckNetwork.lastCheck = NtpTime.time()
-                    if CheckNetwork.result == None:
+                    if CheckNetwork.result is None:
                         to_log("WARN", "检测到网络连接异常！")
                     else:
                         CheckNetwork.result = CheckNetwork.result * 1000
@@ -592,7 +592,7 @@ def timeStampToStr(timeStamp: float = None) -> str:
     时间戳转字符串时间（无传入参数则返回当前时间）
     >>> timeStamp: float #时间戳
     """
-    if timeStamp == None:
+    if timeStamp is None:
         timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
@@ -641,7 +641,7 @@ while True:
                 CheckNetwork()
                 if CheckNetwork.result != -1:  # 排除初始化值
 
-                    if CheckNetwork.result == None or CheckNetwork.result == 0:
+                    if CheckNetwork.result is None or CheckNetwork.result == 0:
                         print("\r{} - 检测到网络连接异常！\n".format(
                             timeStampToStr(CheckNetwork.lastCheck)))
                     else:
