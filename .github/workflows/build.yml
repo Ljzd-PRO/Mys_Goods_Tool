@@ -6,17 +6,21 @@ on:
       - 'stable/**.md'
       - 'stable/LICENSE'
       - 'stable/Docs/**'
+      - 'stable/.github/workflow/**'
       - 'dev/**.md'
       - 'dev/LICENSE'
       - 'dev/Docs/**'
+      - 'dev/.github/workflow/**'
   pull_request:
     branches-ignore:    
       - 'stable/**.md'
       - 'stable/LICENSE'
       - 'stable/Docs/**'
+      - 'stable/.github/workflow/**'
       - 'dev/**.md'
       - 'dev/LICENSE'
       - 'dev/Docs/**'
+      - 'dev/.github/workflow/**'
 
 jobs:
   build:
