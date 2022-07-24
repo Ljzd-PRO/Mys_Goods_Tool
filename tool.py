@@ -231,7 +231,7 @@ def goodTool() -> None:
 def addressTool() -> None:
     conf = readConfig()
     try:
-        if conf == None:
+        if conf is None:
             raise
         cookie = conf.get(
             "Config",
@@ -610,7 +610,7 @@ def completeCookie() -> None:
                 continue
         elif choice == "2":
             try:
-                if conf == None:
+                if conf is None:
                     raise
                 origin_cookie = conf.get(
                     "Config",
@@ -665,7 +665,7 @@ def completeCookie() -> None:
             if cookie in cookies:
                 bbs_uid = cookies[cookie]
                 break
-        if bbs_uid == None:
+        if bbs_uid is None:
             print("> 由于Cookie缺少uid，无法补全，回车以返回\n")
             input()
             clear()
@@ -701,7 +701,7 @@ def completeCookie() -> None:
             break
 
         try:
-            if conf == None:
+            if conf is None:
                 raise
             conf.set("Config", "Cookie", origin_cookie)
             try:
@@ -805,7 +805,7 @@ def onekeyCookie() -> None:
             if cookie in login_1_cookie:
                 bbs_uid = login_1_cookie[cookie]
                 break
-        if bbs_uid == None:
+        if bbs_uid is None:
             print("> 由于Cookie缺少uid，无法继续，回车以返回\n")
             input()
             clear()
@@ -886,7 +886,7 @@ def onekeyCookie() -> None:
 
         try:
             conf = readConfig()
-            if conf == None:
+            if conf is None:
                 raise
             conf.set("Config", "Cookie", result_cookie)
             try:
