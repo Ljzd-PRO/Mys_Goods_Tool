@@ -3,16 +3,24 @@ name: Build and pack
 on:
   push:
     branches-ignore:    
-      - 'stable/**-README.md'
-      - 'stable/**-LICENSE'
-      - 'dev/**-README.md'
-      - 'dev/**-LICENSE'
+      - 'stable/**.md'
+      - 'stable/LICENSE'
+      - 'stable/Docs/**'
+      - 'stable/.github/workflow/**'
+      - 'dev/**.md'
+      - 'dev/LICENSE'
+      - 'dev/Docs/**'
+      - 'dev/.github/workflows/**'
   pull_request:
     branches-ignore:    
-      - 'stable/**-README.md'
-      - 'stable/**-LICENSE'
-      - 'dev/**-README.md'
-      - 'dev/**-LICENSE'
+      - 'stable/**.md'
+      - 'stable/LICENSE'
+      - 'stable/Docs/**'
+      - 'stable/.github/workflow/**'
+      - 'dev/**.md'
+      - 'dev/LICENSE'
+      - 'dev/Docs/**'
+      - 'dev/.github/workflow/**'
 
 jobs:
   build:
