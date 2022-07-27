@@ -520,7 +520,7 @@ class CheckNetwork:
     try:
         try:
             timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
-            timeUp = time.mktime(time.strptime( 
+            timeUp = time.mktime(time.strptime(
                 timeUp_Str, "%Y-%m-%d %H:%M:%S"))
 
         except KeyboardInterrupt:
