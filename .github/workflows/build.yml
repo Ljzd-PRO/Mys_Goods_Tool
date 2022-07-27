@@ -10,13 +10,6 @@ on:
       - 'dev/config.ini'
       - 'dev/requirements.txt'
   pull_request:
-    branches:    
-      - 'stable/**.py'
-      - 'stable/config.ini'
-      - 'stable/requirements.txt'
-      - 'dev/**.py'
-      - 'dev/config.ini'
-      - 'dev/requirements.txt'
 
 jobs:
   build:
