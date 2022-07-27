@@ -12,7 +12,7 @@ import requests.utils
 import ntplib
 import pyperclip
 
-VERSION = "v1.4.1-beta"
+VERSION = "v1.4.1"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
