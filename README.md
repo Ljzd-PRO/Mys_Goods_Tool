@@ -14,7 +14,7 @@
   </a>
 </div>
 
-**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.0](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.0))**
+**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.1](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.1))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**  
 *（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
@@ -44,7 +44,8 @@
 | Stop_Check | 距离开始兑换还剩多久停止检查网络<br>（单位 秒） |
 | Thread | 每个商品使用多少线程进行兑换<br>（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
 
-**示例**
+#### **更多说明: [🔗config.ini](./config.ini)**
+#### **示例**
 ```ini
 [Config]
 cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;mid=LMNabc;"
@@ -65,6 +66,7 @@ thread = 3
 **可前往`./logs/mys_goods_tool.log`查看日志**
 
 ## 其他
+仅供学习时参考  
 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。  
 欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
 

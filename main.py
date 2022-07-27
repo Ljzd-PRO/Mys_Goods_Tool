@@ -16,7 +16,7 @@ import copy
 import threading
 from ping3 import ping
 
-VERSION = "v1.4.0"
+VERSION = "v1.4.1"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -39,25 +39,24 @@ if __name__ != "__main__":
     exit(0)
 
 
+# 清屏指令
+PLATFORM = platform.system()
+if PLATFORM == "Darwin":
+    CLEAR_COMMAND = "clear"
+elif PLATFORM == "Windows":
+    CLEAR_COMMAND = "cls"
+elif PLATFORM == "Linux":
+    CLEAR_COMMAND = "clear"
+else:
+    CLEAR_COMMAND = None
+
+
 def clear() -> None:
-    try:
-        """
-        清屏
-        """
-        plat = platform.system()
-        if plat == "Darwin":
-            os.system("clear")
-        elif plat == "Windows":
-            os.system("cls")
-        elif plat == "Linux":
-            os.system("clear")
-        else:
-            pass
-    except KeyboardInterrupt:
-        print(to_log("WARN", "用户强制结束程序"))
-        exit(1)
-    except:
-        to_log("WARN", "执行清屏命令失败")
+    """
+    清屏
+    """
+    if CLEAR_COMMAND != None:
+        os.system(CLEAR_COMMAND)
 
 
 def get_file_path(file_name: str = "") -> str:
@@ -178,7 +177,7 @@ class Good:
         >>> location: int #目标Cookie字符串所在位置，若为None则自动查找
         >>> return str #返回目标Cookie对应的值
         """
-        if location == None:
+        if location is None:
             location = cookiesStr.find(target)
         return cookiesStr[cookiesStr.find(
             "=", location) + 1: cookiesStr.find(";", location)]
@@ -313,7 +312,7 @@ class Good:
                 print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
                 checkGood_data = json.loads(
                     self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
-                if checkGood_data == None:
+                if checkGood_data is None:
                     print(
                         to_log("ERROR",
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
@@ -508,9 +507,9 @@ except:
     to_log("ERROR", traceback.format_exc())
     exit(1)
 # 初始化每个目标商品ID的对象
-queue = []
+tasks = []
 for id in good_list:
-    queue.append(Good(id))
+    tasks.append(Good(id))
 
 
 class CheckNetwork:
@@ -521,6 +520,9 @@ class CheckNetwork:
     try:
         try:
             timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
+            timeUp = time.mktime(time.strptime(
+                timeUp_Str, "%Y-%m-%d %H:%M:%S"))
+
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
@@ -546,10 +548,6 @@ class CheckNetwork:
         try:
             checkTime = int(checkTime)
             stopCheck = int(stopCheck)
-
-            timeUp = time.mktime(time.strptime(
-                timeUp_Str, "%Y-%m-%d %H:%M:%S"))
-
             lastCheck = 0  # 上一次检测网络连接情况的时间
             result = -1  # 上一次的检测结果
             isTimeUp = False  # 是否接近兑换时间
@@ -574,7 +572,7 @@ class CheckNetwork:
                     print("正在检查网络连接...", end="")
                     CheckNetwork.result = ping(CheckNetwork.ip)
                     CheckNetwork.lastCheck = NtpTime.time()
-                    if CheckNetwork.result == None:
+                    if CheckNetwork.result is None:
                         to_log("WARN", "检测到网络连接异常！")
                     else:
                         CheckNetwork.result = CheckNetwork.result * 1000
@@ -593,7 +591,7 @@ def timeStampToStr(timeStamp: float = None) -> str:
     时间戳转字符串时间（无传入参数则返回当前时间）
     >>> timeStamp: float #时间戳
     """
-    if timeStamp == None:
+    if timeStamp is None:
         timeStamp = NtpTime.time()
     return time.strftime("%H:%M:%S", time.localtime(timeStamp))
 
@@ -606,30 +604,28 @@ except:
     thread_num = 3
 
 # 为每个兑换任务增加多个线程
-tasks = []
-queue_copy = []
-for task in queue:
-    tasks.append(threading.Thread(target=task.start))
+queue = []
+tasks_copy = []
+for task in tasks:
+    queue.append(threading.Thread(target=task.start))
     for num in range(0, thread_num - 1):
         task_copy = copy.deepcopy(task)
-        queue_copy.append(task_copy)
-        tasks.append(threading.Thread(target=task_copy.start))
+        tasks_copy.append(task_copy)
+        queue.append(threading.Thread(target=task_copy.start))
 
 temp_time = 0
 while True:
     try:
         if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
-            for task in tasks:
+            for task in queue:
                 task.start()
+
+            # 当检测到所有的线程都结束时，finished为True，跳出循环
             finished = False
             while not finished:
                 finished = True
                 for task in queue:
-                    if task.result == -1:
-                        finished = False
-                        break
-                for task in queue_copy:
-                    if task.result == -1:
+                    if task.is_alive():
                         finished = False
                         break
             break
@@ -642,7 +638,7 @@ while True:
                 CheckNetwork()
                 if CheckNetwork.result != -1:  # 排除初始化值
 
-                    if CheckNetwork.result == None or CheckNetwork.result == 0:
+                    if CheckNetwork.result is None or CheckNetwork.result == 0:
                         print("\r{} - 检测到网络连接异常！\n".format(
                             timeStampToStr(CheckNetwork.lastCheck)))
                     else:
@@ -662,3 +658,6 @@ while True:
     except:
         print(to_log("ERROR", "主程序出现错误"))
         to_log("ERROR", traceback.format_exc())
+
+to_log("INFO", "程序运行结束")
+input("程序运行结束，按下回车键以关闭...")

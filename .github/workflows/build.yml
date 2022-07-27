@@ -2,25 +2,14 @@ name: Build and pack
 
 on:
   push:
-    branches-ignore:    
-      - 'stable/**.md'
-      - 'stable/LICENSE'
-      - 'stable/Docs/**'
-      - 'stable/.github/workflow/**'
-      - 'dev/**.md'
-      - 'dev/LICENSE'
-      - 'dev/Docs/**'
-      - 'dev/.github/workflows/**'
+    branches:    
+      - 'stable/**.py'
+      - 'stable/config.ini'
+      - 'stable/requirements.txt'
+      - 'dev/**.py'
+      - 'dev/config.ini'
+      - 'dev/requirements.txt'
   pull_request:
-    branches-ignore:    
-      - 'stable/**.md'
-      - 'stable/LICENSE'
-      - 'stable/Docs/**'
-      - 'stable/.github/workflow/**'
-      - 'dev/**.md'
-      - 'dev/LICENSE'
-      - 'dev/Docs/**'
-      - 'dev/.github/workflow/**'
 
 jobs:
   build:

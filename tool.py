@@ -10,8 +10,9 @@ import configparser
 import string
 import requests.utils
 import ntplib
+import pyperclip
 
-VERSION = "v1.4.0"
+VERSION = "v1.4.1"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -79,8 +80,8 @@ class NtpTime():
                 print("校对互联网时间失败，正在重试({})".format(ntp_error_times))
     print("互联网时间校对完成")
     for second in range(0, SLEEP_TIME):
-            print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
-            time.sleep(1)
+        print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
+        time.sleep(1)
 
     def time() -> float:
         """
@@ -136,16 +137,17 @@ def generateDeviceID() -> str:
 
 def goodTool() -> None:
     while True:
-        print("> 请选择要查看的游戏：")
-        print("-- 1. 崩坏3")
-        print("-- 2. 原神")
-        print("-- 3. 崩坏学园2")
-        print("-- 4. 未定事件簿")
-        print("-- 5. 米游社")
-        print("\n-- 0. 返回功能选择界面")
-        print("\n> ", end="")
+        print("""\
+> 请选择要查看的游戏：
+-- 1. 崩坏3
+-- 2. 原神
+-- 3. 崩坏学园2
+-- 4. 未定事件簿
+-- 5. 米游社
+\n-- 0. 返回功能选择界面\
+""")
 
-        choice = input()
+        choice = input("\n> ")
         clear()
         if choice == "1":
             GAME = "bh3"
@@ -228,7 +230,7 @@ def goodTool() -> None:
 def addressTool() -> None:
     conf = readConfig()
     try:
-        if conf == None:
+        if conf is None:
             raise
         cookie = conf.get(
             "Config",
@@ -347,12 +349,14 @@ def cookieTool() -> None:
     # 查找结果
     cookies = {}
 
-    print("> 请选择抓包导出文件类型：")
-    print("-- 1. 使用 HttpCanary 导出的文件夹")
-    print("-- 2. .har 文件")
-    print("\n-- 0. 返回主菜单")
-    print("\n> ", end="")
-    choice = input()
+    print("""\
+> 请选择抓包导出文件类型：
+-- 1. 使用 HttpCanary 导出的文件夹
+-- 2. .har 文件
+\n-- 0. 返回主菜单\
+    """)
+
+    choice = input("\n> ")
     clear()
     if choice == "1":
         print("> 请输入 HttpCanary 导出文件夹路径：")
@@ -411,6 +415,7 @@ def cookieTool() -> None:
         print("> 请输入 .har 文件路径：")
         print("\n> ", end="")
         file_path = input()
+        clear()
 
         # 去除两边自动添加的无关符号
         for char in strip_char:
@@ -492,13 +497,15 @@ def cookieTool() -> None:
     print("----------")
 
     while True:
-        print("\n> 是否将分析得到的Cookies数据(包括stoken)写入配置文件？")
-        print("-- 输入 y 并回车以确认")
-        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
-        print("-- 注意：将覆盖现有Cookies数据")
-        print("-- 按回车键跳过并返回功能选择界面")
-        print("\n> ", end="")
-        choice = input()
+        print("""\
+\n> 是否将分析得到的Cookies数据(包括stoken)写入配置文件？
+-- 输入 y 并回车以确认
+-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置
+-- 注意：将覆盖现有Cookies数据
+-- 按回车键跳过并返回功能选择界面\
+        """)
+
+        choice = input("\n> ")
         clear()
 
         if choice == "y":
@@ -559,33 +566,50 @@ def checkUpdate() -> None:
 
 def completeCookie() -> None:
     while True:
-        print("将自动补上Cookie中兑换游戏内物品所需的stoken\n> 进行选择：")
-        print("-- 1. 从浏览器获取的网页版米游社Cookie中补全")
-        print("-- 2. 从配置文件中读取Cookie值进行补全")
-        print("\n-- 0. 返回功能选择界面")
-        print("\n> ", end="")
-        choice = input()
+        print("""\
+将自动补上Cookie中兑换游戏内物品所需的stoken
+> 进行选择：
+-- 1. 从浏览器获取的网页版米游社Cookie中补全
+-- 2. 从配置文件中读取Cookie值进行补全
+
+-- 0. 返回功能选择界面\
+        """)
+        choice = input("\n> ")
         clear()
         conf = readConfig()
 
         if choice == "1":
-            print("请进行以下操作：")
-            print("> 1. 登录: https://user.mihoyo.com/ 和 https://bbs.mihoyo.com/dby/")
-            print("> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，复制粘贴下面的语句(不包含换行)并回车\n")
-            print(
-                "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}")
+            command = "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}"
+            print("""\
+请进行以下操作：
+> 1. 登录: https://user.mihoyo.com/ 和 https://bbs.mihoyo.com/dby/
+> 2. 在浏览器两个页面分别打开开发者模式，进入控制台，输入下面的语句并回车\n\
+            """)
+            print(command)
+            try:
+                pyperclip.copy(command)
+                print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
+            except:
+                pass
             print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
-            if origin_cookie.split()[-1] != ";":
-                origin_cookie += ";"
-            print("\n> 4. 粘贴第二次查找到的Cookie:")
-            origin_cookie += input("> ")
-            clear()
-            if origin_cookie.split()[-1] != ";":
-                origin_cookie += ";"
+            try:
+                if origin_cookie.split()[-1] != ";":
+                    origin_cookie += ";"
+                print("\n> 4. 粘贴第二次查找到的Cookie:")
+                origin_cookie += input("> ")
+                clear()
+                if origin_cookie.split()[-1] != ";":
+                    origin_cookie += ";"
+            except:
+                clear()
+                print("输入有误，回车以返回")
+                input()
+                clear()
+                continue
         elif choice == "2":
             try:
-                if conf == None:
+                if conf is None:
                     raise
                 origin_cookie = conf.get(
                     "Config",
@@ -640,7 +664,7 @@ def completeCookie() -> None:
             if cookie in cookies:
                 bbs_uid = cookies[cookie]
                 break
-        if bbs_uid == None:
+        if bbs_uid is None:
             print("> 由于Cookie缺少uid，无法补全，回车以返回\n")
             input()
             clear()
@@ -663,17 +687,20 @@ def completeCookie() -> None:
             continue
 
         origin_cookie += ("stoken=" + stoken + ";")
-        print("> 补全后: {}".format(origin_cookie))
-        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
-        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
-        print("-- 按回车键跳过并返回功能选择界面")
+        print("""\
+> 补全后: {}
+
+-- 输入 y 并回车以写入 config.ini 配置文件
+-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置
+-- 按回车键跳过并返回功能选择界面\
+        """.format(origin_cookie))
         choice = input("> ")
         clear()
         if choice != "y":
             break
 
         try:
-            if conf == None:
+            if conf is None:
                 raise
             conf.set("Config", "Cookie", origin_cookie)
             try:
@@ -733,9 +760,19 @@ def onekeyCookie() -> None:
 
     while True:
         print("请进行以下操作：")
-        print("> 1. 进入 https://user.mihoyo.com/#/login/captcha")
-        print("> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
-        print("\n> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):\n-- (回车返回主菜单)")
+        url = "https://user.mihoyo.com/#/login/captcha"
+        print("> 1. 进入 {}".format(url))
+        try:
+            pyperclip.copy(url)
+            print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
+        except:
+            pass
+        print("""\
+> 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
+
+> 3. 在此输入手机号 - 用于获取login_ticket (不会发送给任何第三方服务器，项目开源安全):
+-- (回车返回主菜单)\
+        """)
         phone = input("> ")
         if phone == "":
             break
@@ -767,7 +804,7 @@ def onekeyCookie() -> None:
             if cookie in login_1_cookie:
                 bbs_uid = login_1_cookie[cookie]
                 break
-        if bbs_uid == None:
+        if bbs_uid is None:
             print("> 由于Cookie缺少uid，无法继续，回车以返回\n")
             input()
             clear()
@@ -789,7 +826,12 @@ def onekeyCookie() -> None:
             clear()
             continue
 
-        print("> 5. 刷新页面，再次进入 https://user.mihoyo.com/#/login/captcha")
+        print("> 5. 刷新页面，再次进入 {}".format(url))
+        try:
+            pyperclip.copy(url)
+            print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
+        except:
+            pass
         print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
         print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
         captcha = input("> ")
@@ -824,13 +866,18 @@ def onekeyCookie() -> None:
         result_cookie = ""
         for cookie in login_2_cookie:
             result_cookie += (cookie + "=" + login_2_cookie[cookie] + ";")
-        result_cookie += ("login_ticket=" + login_1_cookie["login_ticket"] + ";")
+        result_cookie += ("login_ticket=" +
+                          login_1_cookie["login_ticket"] + ";")
         result_cookie += ("stoken=" + stoken + ";")
 
-        print("> 成功获取Cookie:\n" + result_cookie)
-        print("\n-- 输入 y 并回车以写入 config.ini 配置文件")
-        print("-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置")
-        print("-- 按回车键跳过并返回功能选择界面")
+        print("""\
+> 成功获取Cookie:
+{}
+
+-- 输入 y 并回车以写入 config.ini 配置文件
+-- 注意：将对 config.ini 配置文件进行写入，文件中的注释和排版将被重置
+-- 按回车键跳过并返回功能选择界面\
+        """.format(result_cookie))
         choice = input("> ")
         clear()
         if choice != "y":
@@ -838,7 +885,7 @@ def onekeyCookie() -> None:
 
         try:
             conf = readConfig()
-            if conf == None:
+            if conf is None:
                 raise
             conf.set("Config", "Cookie", result_cookie)
             try:
@@ -861,17 +908,18 @@ def onekeyCookie() -> None:
 
 while __name__ == '__main__':
     clear()
-    print("> 选择功能：")
-    print("-- 1. 查询商品ID(Good_ID)")
-    print("-- 2. 登录并一键获取Cookie(推荐)")
-    print("-- 3. 从抓包导出文件分析获取Cookie")
-    print("-- 4. 补全Cookie(从网页版或从配置文件中补全)")
-    print("-- 5. 查询送货地址ID(Address_ID)")
-    print("-- 6. 检查更新")
-    print("\n-- 0. 退出")
-    print("\n> ", end="")
+    print(
+        """> 选择功能：
+-- 1. 查询商品ID(Good_ID)
+-- 2. 登录并一键获取Cookie(推荐)
+-- 3. 从抓包导出文件分析获取Cookie
+-- 4. 补全Cookie(从网页版或从配置文件中补全)
+-- 5. 查询送货地址ID(Address_ID)
+-- 6. 检查更新
 
-    choice = input()
+-- 0. 退出""")
+
+    choice = input("\n> ")
     clear()
     if choice == "1":
         goodTool()
