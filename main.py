@@ -507,9 +507,9 @@ except:
     to_log("ERROR", traceback.format_exc())
     exit(1)
 # 初始化每个目标商品ID的对象
-queue = []
+tasks = []
 for id in good_list:
-    queue.append(Good(id))
+    tasks.append(Good(id))
 
 
 class CheckNetwork:
@@ -604,30 +604,29 @@ except:
     thread_num = 3
 
 # 为每个兑换任务增加多个线程
-tasks = []
-queue_copy = []
-for task in queue:
-    tasks.append(threading.Thread(target=task.start))
+queue = []
+tasks_copy = []
+for task in tasks:
+    queue.append(threading.Thread(target=task.start))
     for num in range(0, thread_num - 1):
         task_copy = copy.deepcopy(task)
-        queue_copy.append(task_copy)
-        tasks.append(threading.Thread(target=task_copy.start))
+        tasks_copy.append(task_copy)
+        queue.append(threading.Thread(target=task_copy.start))
 
 temp_time = 0
 while True:
     try:
         if NtpTime.time() >= CheckNetwork.timeUp:  # 执行兑换操作
-            for task in tasks:
+            for task in queue:
                 task.start()
+
+            # 当检测到所有的任务对象的result属性都为1时，finished为True，跳出循环
+            # result为-1代表着该任务因为未初始化完成，不会进行兑换
             finished = False
             while not finished:
                 finished = True
                 for task in queue:
-                    if task.result == -1:
-                        finished = False
-                        break
-                for task in queue_copy:
-                    if task.result == -1:
+                    if task.is_alive():
                         finished = False
                         break
             break
