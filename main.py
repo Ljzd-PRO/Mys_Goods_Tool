@@ -620,8 +620,7 @@ while True:
             for task in queue:
                 task.start()
 
-            # 当检测到所有的任务对象的result属性都为1时，finished为True，跳出循环
-            # result为-1代表着该任务因为未初始化完成，不会进行兑换
+            # 当检测到所有的线程都结束时，finished为True，跳出循环
             finished = False
             while not finished:
                 finished = True
