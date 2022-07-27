@@ -520,6 +520,9 @@ class CheckNetwork:
     try:
         try:
             timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
+            timeUp = time.mktime(time.strptime( 
+                timeUp_Str, "%Y-%m-%d %H:%M:%S"))
+
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
@@ -545,10 +548,6 @@ class CheckNetwork:
         try:
             checkTime = int(checkTime)
             stopCheck = int(stopCheck)
-
-            timeUp = time.mktime(time.strptime(
-                timeUp_Str, "%Y-%m-%d %H:%M:%S"))
-
             lastCheck = 0  # 上一次检测网络连接情况的时间
             result = -1  # 上一次的检测结果
             isTimeUp = False  # 是否接近兑换时间
