@@ -44,7 +44,8 @@
 | Stop_Check | 距离开始兑换还剩多久停止检查网络<br>（单位 秒） |
 | Thread | 每个商品使用多少线程进行兑换<br>（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
 
-**示例**
+#### **更多说明: [🔗config.ini](./config.ini)**
+#### **示例**
 ```ini
 [Config]
 cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;mid=LMNabc;"
