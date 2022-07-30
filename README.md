@@ -48,7 +48,7 @@
 #### **示例**
 ```ini
 [Config]
-cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;mid=LMNabc;"
+cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;"
 time = 2022-6-8 19:00:00
 address_id = 13911
 good_id = 2022053111713, 2022053111397
