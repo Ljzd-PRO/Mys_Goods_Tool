@@ -14,6 +14,7 @@ import platform
 import ntplib
 import copy
 import threading
+import uuid
 from ping3 import ping
 
 VERSION = "v1.4.1"
@@ -101,12 +102,7 @@ def generateDeviceID() -> str:
     """
     生成随机的x-rpc-device_id
     """
-    return "".join(random.sample(string.ascii_letters + string.digits,
-                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                                                                         12)).lower()
+    return str(uuid.uuid4()).upper()
 
 
 print(to_log("程序当前版本: {}".format(VERSION)))
