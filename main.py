@@ -17,7 +17,7 @@ import threading
 import uuid
 from ping3 import ping
 
-VERSION = "v1.4.1"
+VERSION = "v1.4.2"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
