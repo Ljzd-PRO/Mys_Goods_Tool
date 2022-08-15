@@ -1,13 +1,11 @@
 # coding=utf-8
 
 import os
-import random
 import time
 import requests
 import json
 import platform
 import configparser
-import string
 import requests.utils
 import ntplib
 import pyperclip
@@ -204,9 +202,17 @@ def goodTool() -> None:
             elif good["type"] != 1 and good["next_num"] == 0:
                 print("库存：无限")
             else:
-                print("兑换时间：{}".format(
-                    time.strftime("%Y-%m-%d %H:%M:%S",
-                                  time.localtime(good["sale_start_time"]))))
+                try:
+                    res = requests.get("https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(good["goods_id"]))
+                    print("兑换时间：{}".format(
+                        time.strftime("%Y-%m-%d %H:%M:%S",
+                                    time.localtime(res.json()["data"]["sale_start_time"]))))
+                except KeyboardInterrupt:
+                    print("用户强制结束程序...")
+                    exit(1)
+                except:
+                    print("兑换时间：获取失败")
+
                 print("库存：{} 件".format(good["next_num"]))
 
             if good["account_cycle_type"] == "forever":
