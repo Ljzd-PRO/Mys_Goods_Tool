@@ -203,10 +203,11 @@ def goodTool() -> None:
                 print("库存：无限")
             else:
                 try:
-                    res = requests.get("https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(good["goods_id"]))
+                    res = requests.get(
+                        "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(good["goods_id"]))
                     print("兑换时间：{}".format(
                         time.strftime("%Y-%m-%d %H:%M:%S",
-                                    time.localtime(res.json()["data"]["sale_start_time"]))))
+                                      time.localtime(int(res.json()["data"]["sale_start_time"])))))
                 except KeyboardInterrupt:
                     print("用户强制结束程序...")
                     exit(1)
