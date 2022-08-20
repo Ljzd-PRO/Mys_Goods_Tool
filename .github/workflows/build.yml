@@ -3,12 +3,12 @@ name: Build and pack
 on:
   push:
     branches:    
-      - 'stable/**.py'
-      - 'stable/config.ini'
-      - 'stable/requirements.txt'
-      - 'dev/**.py'
-      - 'dev/config.ini'
-      - 'dev/requirements.txt'
+      - 'stable'
+      - 'dev'
+    paths:
+      - '**.py'
+      - 'config.ini'
+      - 'requirements.txt'
   pull_request:
 
 jobs:
