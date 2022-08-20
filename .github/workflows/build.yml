@@ -9,6 +9,7 @@ on:
       - '**.py'
       - 'config.ini'
       - 'requirements.txt'
+      - '.github/workflows/**'
   pull_request:
 
 jobs:
