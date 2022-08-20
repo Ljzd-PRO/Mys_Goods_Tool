@@ -206,7 +206,7 @@ def goodTool() -> None:
             else:
                 print("兑换时间：{}".format(
                     time.strftime("%Y-%m-%d %H:%M:%S",
-                                  time.localtime(good["sale_start_time"]))))
+                                  time.localtime(good["next_time"]))))
                 print("库存：{} 件".format(good["next_num"]))
 
             if good["account_cycle_type"] == "forever":
