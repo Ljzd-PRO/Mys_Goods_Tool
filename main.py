@@ -314,7 +314,7 @@ class Good:
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
                     self.result = -1
                     return
-                elif checkGood_data["type"] == 2:
+                elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
                     if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
