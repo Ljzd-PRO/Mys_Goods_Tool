@@ -1,17 +1,19 @@
 # coding=utf-8
 
 import os
-import random
 import time
 import requests
 import json
 import platform
 import configparser
-import string
 import requests.utils
 import ntplib
-import pyperclip
 import uuid
+
+try:
+    import pyperclip
+except ImportError:
+    print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
 
 VERSION = "v1.4.2-beta"
 """程序当前版本"""
