@@ -205,6 +205,8 @@ def goodTool() -> None:
                 print("兑换时间：任何时间")
             elif good["type"] != 1 and good["next_num"] == 0:
                 print("库存：无限")
+            elif good["status"] == "not_in_sell":
+                print("兑换时间：请前往App查看兑换时间")
             else:
                 print("兑换时间：{}".format(
                     time.strftime("%Y-%m-%d %H:%M:%S",
