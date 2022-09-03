@@ -1,18 +1,21 @@
 # coding=utf-8
 
 import os
-import random
 import time
 import requests
 import json
 import platform
 import configparser
-import string
 import requests.utils
 import ntplib
-import pyperclip
+import uuid
 
-VERSION = "v1.4.1"
+try:
+    import pyperclip
+except ImportError:
+    print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
+
+VERSION = "v1.4.2"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -127,12 +130,7 @@ def generateDeviceID() -> str:
     """
     生成随机的x-rpc-device_id
     """
-    return "".join(random.sample(string.ascii_letters + string.digits,
-                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                                                                         12)).lower()
+    return str(uuid.uuid4()).upper()
 
 
 def goodTool() -> None:
@@ -207,6 +205,8 @@ def goodTool() -> None:
                 print("兑换时间：任何时间")
             elif good["type"] != 1 and good["next_num"] == 0:
                 print("库存：无限")
+            elif good["status"] == "not_in_sell":
+                print("兑换时间：请前往App查看兑换时间")
             else:
                 print("兑换时间：{}".format(
                     time.strftime("%Y-%m-%d %H:%M:%S",

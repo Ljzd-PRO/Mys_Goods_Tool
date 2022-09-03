@@ -16,7 +16,7 @@
 
 **🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.1](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.1))**
 
-**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**  
+**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 *（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
 
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
@@ -66,8 +66,14 @@ thread = 3
 **可前往`./logs/mys_goods_tool.log`查看日志**
 
 ## 其他
-仅供学习时参考  
-本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。  
+- 仅供学习时参考
+
+- 相似项目推荐:  \
+**mysTool - 米游社辅助工具插件**  \
+简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录  \
+🔗 https://github.com/Ljzd-PRO/nonebot-plugin-mystool
+
+- 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。
 欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
 
-开发版分支：[🔗dev](https://github.com/Ljzd-PRO/Mys_Goods_Tool/tree/dev/)
+- 开发版分支：[🔗dev](https://github.com/Ljzd-PRO/Mys_Goods_Tool/tree/dev/)

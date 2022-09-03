@@ -14,9 +14,10 @@ import platform
 import ntplib
 import copy
 import threading
+import uuid
 from ping3 import ping
 
-VERSION = "v1.4.1"
+VERSION = "v1.4.2"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -101,12 +102,7 @@ def generateDeviceID() -> str:
     """
     生成随机的x-rpc-device_id
     """
-    return "".join(random.sample(string.ascii_letters + string.digits,
-                                 8)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                           4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                     4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                               4)).lower() + "-" + "".join(random.sample(string.ascii_letters + string.digits,
-                                                                                                                                                                                                         12)).lower()
+    return str(uuid.uuid4()).upper()
 
 
 print(to_log("程序当前版本: {}".format(VERSION)))
@@ -318,7 +314,7 @@ class Good:
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
                     self.result = -1
                     return
-                elif checkGood_data["type"] == 2:
+                elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
                     if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
@@ -337,7 +333,6 @@ class Good:
                         return
                 # 若商品非游戏内物品，则直接返回，不进行下面的操作
                 else:
-                    self.headers.setdefault("Content-Length", "88")
                     return
                 break
             except KeyboardInterrupt:
@@ -408,11 +403,11 @@ class Good:
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
-                user_list = json.loads(
-                    self.req.get(checkGame.format(actionTicket=actionTicket,
-                                                  game_biz=game_biz),
+                checkGame_url = checkGame.format(actionTicket=actionTicket, game_biz=game_biz)
+                res = self.req.get(checkGame_url,
                                  headers=self.headers,
-                                 timeout=TIME_OUT).text)["data"]["list"]
+                                 timeout=TIME_OUT).text
+                user_list = json.loads(res)["data"]["list"]
                 break
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
@@ -431,6 +426,8 @@ class Good:
                     to_log(
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
+                to_log("DEBUG", "checkGame_url: " + checkGame_url)
+                to_log("DEBUG", "checkGame_response: " + res)
                 to_log("ERROR", traceback.format_exc())
                 continue
 
@@ -440,7 +437,6 @@ class Good:
                 self.data.setdefault("region", user["region"])
                 self.data.setdefault("game_biz", game_biz)
 
-        self.headers.setdefault("Content-Length", "88")
 
     def start(self) -> None:
         """
