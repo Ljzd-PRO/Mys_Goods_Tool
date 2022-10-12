@@ -17,7 +17,7 @@ import threading
 import uuid
 from ping3 import ping
 
-VERSION = "v1.4.2"
+VERSION = "v1.4.3-beta"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -269,6 +269,11 @@ class Good:
             "exchange_num": 1,
             "address_id": Good.address
         }
+        try:
+            if int(Good.address):
+                self.data.setdefault("address_id", Good.address)
+        except:
+            pass
         self.headers = {
             "Accept":
             "application/json, text/plain, */*",
