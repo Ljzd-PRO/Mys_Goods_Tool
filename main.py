@@ -24,8 +24,6 @@ TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
 USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.36.1"
 """兑换商品时 Headers 所用的 User-Agent"""
-USER_AGENT_GET_ACTION_TICKET = "Hyperion/177 CFNetwork/1331.0.7 Darwin/21.4.0"
-"""获取用户 ActionTicket 时Headers所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
 X_RPC_APP_VERSION = "2.36.1"
@@ -262,9 +260,7 @@ class Good:
         self.result = None
         self.req = requests.Session()
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
-        getActionTicket = "https://api-takumi.mihoyo.com/auth/api/getActionTicketBySToken?action_type=game_role&stoken={stoken}&uid={bbs_uid}".format(
-            stoken=Good.stoken, bbs_uid=Good.bbs_uid)
-        checkGame = "https://api-takumi.mihoyo.com/binding/api/getUserGameRoles?point_sn=myb&action_ticket={actionTicket}&game_biz={game_biz}"
+        checkGame = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
         checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
             self.id)
         self.data = {
@@ -353,71 +349,16 @@ class Good:
                 to_log("ERROR", traceback.format_exc())
                 continue
 
-        error_times = 0
-        while True:
-            try:
-                print(to_log("INFO", "正在获取用户ActionTicket"))
-                getActionTicket_headers = self.headers.copy()
-                getActionTicket_headers[
-                    "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
-                try:
-                    getActionTicket_headers.setdefault("DS", get_DS())
-                except:
-                    print(to_log("ERROR", "初始化商品兑换任务失败，放弃兑换"))
-                    to_log("ERROR", traceback.format_exc())
-                    self.result = -1
-                    return
-                getActionTicket_req = self.req.get(
-                    getActionTicket,
-                    headers=getActionTicket_headers,
-                    timeout=TIME_OUT)
-                getActionTicket_res = json.loads(
-                    getActionTicket_req.text)
-                actionTicket = getActionTicket_res["data"]["ticket"]
-                break
-            except KeyboardInterrupt:
-                print(to_log("WARN", "用户强制结束程序"))
-                exit(1)
-            except:
-                error_times += 1
-                if error_times == MAX_RETRY_TIMES:
-                    print(
-                        to_log(
-                            "ERROR",
-                            "商品：{} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
-                                format(self.id)))
-                    self.result = -1
-                    return
-                print(
-                    to_log("ERROR",
-                           "获取用户ActionTicket失败，正在重试({})".format(error_times)))
-                try:
-                    print("获取ActionTicket返回: {}".format(
-                        getActionTicket_res["message"]))
-                except:
-                    pass
-                to_log("ERROR", traceback.format_exc())
-                to_log("DEBUG", "getActionTicket_url: {}".format(
-                    getActionTicket))
-                to_log("DEBUG", "getActionTicket_headers: {}".format(
-                    getActionTicket_headers))
-                try:
-                    to_log("DEBUG", "getActionTicket_response: {}".format(
-                        getActionTicket_res))
-                except:
-                    pass
-                continue
-
         game_biz = checkGood_data["game_biz"]
         error_times = 0
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
-                checkGame_url = checkGame.format(actionTicket=actionTicket, game_biz=game_biz)
+                checkGame_url = checkGame.format(Good.bbs_uid)
                 res = self.req.get(checkGame_url,
                                    headers=self.headers,
-                                   timeout=TIME_OUT).text
-                user_list = json.loads(res)["data"]["list"]
+                                   timeout=TIME_OUT)
+                user_list = res.json()["data"]["list"]
                 break
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
@@ -437,12 +378,12 @@ class Good:
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
                 to_log("DEBUG", "checkGame_url: " + checkGame_url)
-                to_log("DEBUG", "checkGame_response: " + res)
+                to_log("DEBUG", "checkGame_response: " + res.text)
                 to_log("ERROR", traceback.format_exc())
                 continue
 
         for user in user_list:
-            if user["game_biz"] == game_biz and user["game_uid"] == Good.uid:
+            if user["game_role_id"] == Good.uid:
                 self.data.setdefault("uid", Good.uid)
                 self.data.setdefault("region", user["region"])
                 self.data.setdefault("game_biz", game_biz)
