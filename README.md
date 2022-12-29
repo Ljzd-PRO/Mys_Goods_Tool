@@ -11,7 +11,7 @@
   </a>
 </div>
 
-**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.2](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.2))**
+**🎉 更新：更新 Headers 中的App版本号，解决近期兑换失败问题([🔗v1.4.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.3))**
 
 **🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 *（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
@@ -60,7 +60,11 @@ thread = 3
 
 ### 第2⃣️步 运行`main.py`或运行[🔗已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)
 
-**可前往`./logs/mys_goods_tool.log`查看日志**
+- 在兑换开始之前运行主程序。
+
+- 建议先把兑换时间设定为当前时间往后的一两分钟，测试一下是否能正常兑换，如果返回未到时间或者库存不足就基本没有问题。
+
+- **可前往`./logs/mys_goods_tool.log`查看日志**
 
 ## 其他
 - 仅供学习时参考
