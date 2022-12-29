@@ -1,33 +1,32 @@
 # coding=utf-8
 
+import configparser
+import copy
 import hashlib
 import json
+import os
+import platform
 import random
 import string
-import traceback
-import requests
-import configparser
-import os
 import sys
-import time
-import platform
-import ntplib
-import copy
 import threading
+import time
+import traceback
 import uuid
+
+import ntplib
+import requests
 from ping3 import ping
 
-VERSION = "v1.4.2"
+VERSION = "v1.4.3"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
-USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.14.1"
+USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.36.1"
 """兑换商品时 Headers 所用的 User-Agent"""
-USER_AGENT_GET_ACTION_TICKET = "Hyperion/177 CFNetwork/1331.0.7 Darwin/21.4.0"
-"""获取用户 ActionTicket 时Headers所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
-X_RPC_APP_VERSION = "2.23.1"
+X_RPC_APP_VERSION = "2.36.1"
 """Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
 """Headers所用的 x-rpc-sys_version"""
@@ -36,9 +35,20 @@ MAX_RETRY_TIMES = 5
 NTP_SERVER = "ntp.aliyun.com"
 """NTP服务器，用于获取网络时间"""
 
+HEADERS_GAME_RECORD = {
+    "Host": "api-takumi-record.mihoyo.com",
+    "Origin": "https://webstatic.mihoyo.com",
+    "Connection": "keep-alive",
+    "Accept": "application/json, text/plain, */*",
+    "User-Agent": USER_AGENT_EXCHANGE,
+    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+    "Referer": "https://webstatic.mihoyo.com/",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cookie": None
+}
+
 if __name__ != "__main__":
     exit(0)
-
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -105,10 +115,34 @@ def generateDeviceID() -> str:
     return str(uuid.uuid4()).upper()
 
 
+def get_DS():
+    try:
+        """
+            获取Headers中所需DS
+            """
+        # DS 加密算法:
+        # 1. https://github.com/lhllhx/miyoubi/issues/3
+        # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
+        t = int(NtpTime.time())
+        a = "".join(random.sample(
+            string.ascii_lowercase + string.digits, 6))
+        re = hashlib.md5(
+            f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
+                encoding="utf-8")).hexdigest()
+        return f"{t},{a},{re}"
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "生成Headers所需DS失败"))
+        to_log("ERROR", traceback.format_exc())
+        raise
+
+
 print(to_log("程序当前版本: {}".format(VERSION)))
 
 
-class NtpTime():
+class NtpTime:
     """
     >>> NtpTime.time() #获取校准后的时间（如果校准成功）
     """
@@ -135,6 +169,7 @@ class NtpTime():
                            "校对互联网时间失败，正在重试({})".format(ntp_error_times)))
                 to_log("WARN", traceback.format_exc())
 
+    @staticmethod
     def time() -> float:
         """
         获取校准后的时间（如果校准成功）
@@ -179,15 +214,18 @@ class Good:
             "=", location) + 1: cookiesStr.find(";", location)]
 
     global conf
+    stoken, cookie = "", ""
     try:
         cookie = conf.get("Config", "Cookie").replace(
             " ", "").strip("\"").strip("'")
+        if not cookie:
+            raise Exception("Cookie为空")
         address = conf.get("Config", "Address_ID")
         try:
             stoken = conf.get("Config", "stoken").replace(
                 " ", "").strip("\"").strip("'")
         except configparser.NoOptionError:
-            stoken = ""
+            pass
         try:
             uid = conf.get("Config", "UID")
         except configparser.NoOptionError:
@@ -225,29 +263,6 @@ class Good:
         to_log("ERROR", traceback.format_exc())
         exit(1)
 
-    def get_DS():
-        try:
-            """
-            获取Headers中所需DS
-            """
-            # DS 加密算法:
-            # 1. https://github.com/lhllhx/miyoubi/issues/3
-            # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-            t = int(NtpTime.time())
-            a = "".join(random.sample(
-                string.ascii_lowercase + string.digits, 6))
-            re = hashlib.md5(
-                f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
-                    encoding="utf-8")).hexdigest()
-            return f"{t},{a},{re}"
-        except KeyboardInterrupt:
-            print(to_log("WARN", "用户强制结束程序"))
-            exit(1)
-        except:
-            print(to_log("ERROR", "生成Headers所需DS失败"))
-            to_log("ERROR", traceback.format_exc())
-            raise
-
     def __init__(self, id: str) -> None:
         """
         针对每个目标商品进行初始化
@@ -257,9 +272,7 @@ class Good:
         self.result = None
         self.req = requests.Session()
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
-        getActionTicket = "https://api-takumi.mihoyo.com/auth/api/getActionTicketBySToken?action_type=game_role&stoken={stoken}&uid={bbs_uid}".format(
-            stoken=Good.stoken, bbs_uid=Good.bbs_uid)
-        checkGame = "https://api-takumi.mihoyo.com/binding/api/getUserGameRoles?point_sn=myb&action_ticket={actionTicket}&game_biz={game_biz}"
+        checkGame = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
         checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
             self.id)
         self.data = {
@@ -269,38 +282,43 @@ class Good:
             "exchange_num": 1,
             "address_id": Good.address
         }
+        try:
+            if int(Good.address):
+                self.data.setdefault("address_id", Good.address)
+        except:
+            pass
         self.headers = {
             "Accept":
-            "application/json, text/plain, */*",
+                "application/json, text/plain, */*",
             "Accept-Encoding":
-            "gzip, deflate, br",
+                "gzip, deflate, br",
             "Accept-Language":
-            "zh-CN,zh-Hans;q=0.9",
+                "zh-CN,zh-Hans;q=0.9",
             "Connection":
-            "keep-alive",
+                "keep-alive",
             "Content-Type":
-            "application/json;charset=utf-8",
+                "application/json;charset=utf-8",
             "Cookie":
-            Good.cookie,
+                Good.cookie,
             "Host":
-            "api-takumi.mihoyo.com",
+                "api-takumi.mihoyo.com",
             "User-Agent":
-            USER_AGENT_EXCHANGE,
+                USER_AGENT_EXCHANGE,
             "x-rpc-app_version":
-            X_RPC_APP_VERSION,
+                X_RPC_APP_VERSION,
             "x-rpc-channel":
-            "appstore",
+                "appstore",
             "x-rpc-client_type":
-            "1",
+                "1",
             "x-rpc-device_id": generateDeviceID(),
             "x-rpc-device_model":
-            X_RPC_DEVICE_MODEL,
+                X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
-            "".join(
-                random.sample(string.ascii_letters + string.digits,
-                              random.randrange(5))).upper(),
+                "".join(
+                    random.sample(string.ascii_letters + string.digits,
+                                  random.randrange(5))).upper(),
             "x-rpc-sys_version":
-            X_RPC_SYS_VERSION
+                X_RPC_SYS_VERSION
         }
 
         while True:
@@ -343,71 +361,18 @@ class Good:
                 to_log("ERROR", traceback.format_exc())
                 continue
 
-        error_times = 0
-        while True:
-            try:
-                print(to_log("INFO", "正在获取用户ActionTicket"))
-                getActionTicket_headers = self.headers.copy()
-                getActionTicket_headers[
-                    "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
-                try:
-                    getActionTicket_headers.setdefault("DS", Good.get_DS())
-                except:
-                    print(to_log("ERROR", "初始化商品兑换任务失败，放弃兑换"))
-                    to_log("ERROR", traceback.format_exc())
-                    self.result = -1
-                    return
-                getActionTicket_req = self.req.get(
-                    getActionTicket,
-                    headers=getActionTicket_headers,
-                    timeout=TIME_OUT)
-                getActionTicket_res = json.loads(
-                    getActionTicket_req.text)
-                actionTicket = getActionTicket_res["data"]["ticket"]
-                break
-            except KeyboardInterrupt:
-                print(to_log("WARN", "用户强制结束程序"))
-                exit(1)
-            except:
-                error_times += 1
-                if error_times == MAX_RETRY_TIMES:
-                    print(
-                        to_log(
-                            "ERROR",
-                            "商品：{} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
-                            format(self.id)))
-                    self.result = -1
-                    return
-                print(
-                    to_log("ERROR",
-                           "获取用户ActionTicket失败，正在重试({})".format(error_times)))
-                try:
-                    print("获取ActionTicket返回: {}".format(
-                        getActionTicket_res["message"]))
-                except:
-                    pass
-                to_log("ERROR", traceback.format_exc())
-                to_log("DEBUG", "getActionTicket_url: {}".format(
-                    getActionTicket))
-                to_log("DEBUG", "getActionTicket_headers: {}".format(
-                    getActionTicket_headers))
-                try:
-                    to_log("DEBUG", "getActionTicket_response: {}".format(
-                        getActionTicket_res))
-                except:
-                    pass
-                continue
-
         game_biz = checkGood_data["game_biz"]
         error_times = 0
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
-                checkGame_url = checkGame.format(actionTicket=actionTicket, game_biz=game_biz)
+                checkGame_url = checkGame.format(Good.bbs_uid)
+                checkGame_headers = HEADERS_GAME_RECORD.copy()
+                checkGame_headers["Cookie"] = Good.cookie
                 res = self.req.get(checkGame_url,
-                                 headers=self.headers,
-                                 timeout=TIME_OUT).text
-                user_list = json.loads(res)["data"]["list"]
+                                   headers=checkGame_headers,
+                                   timeout=TIME_OUT)
+                user_list = res.json()["data"]["list"]
                 break
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
@@ -419,7 +384,7 @@ class Good:
                         to_log(
                             "ERROR",
                             "商品：{} 为游戏内物品，由于检查游戏账户失败，放弃兑换该商品".
-                            format(self.id)))
+                                format(self.id)))
                     self.result = -1
                     return
                 print(
@@ -427,16 +392,15 @@ class Good:
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
                 to_log("DEBUG", "checkGame_url: " + checkGame_url)
-                to_log("DEBUG", "checkGame_response: " + res)
+                to_log("DEBUG", "checkGame_response: " + res.text)
                 to_log("ERROR", traceback.format_exc())
                 continue
 
         for user in user_list:
-            if user["game_biz"] == game_biz and user["game_uid"] == Good.uid:
+            if user["game_role_id"] == Good.uid:
                 self.data.setdefault("uid", Good.uid)
                 self.data.setdefault("region", user["region"])
                 self.data.setdefault("game_biz", game_biz)
-
 
     def start(self) -> None:
         """
@@ -574,7 +538,7 @@ class CheckNetwork:
                         CheckNetwork.result = CheckNetwork.result * 1000
                         to_log(
                             "INFO", "网络连接正常，延时 {} ms".format(
-                                    round(CheckNetwork.result, 2)))
+                                round(CheckNetwork.result, 2)))
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)

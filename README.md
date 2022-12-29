@@ -1,5 +1,5 @@
 # 米游社商品兑换工具
-<div align="left">
+<div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
     <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
   </a>
@@ -9,14 +9,17 @@
   <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
     <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
   </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/codeql-analysis.yml" target="_blank">
-    <img alt="GitHub CodeQL 代码检查" src="https://img.shields.io/github/workflow/status/Ljzd-PRO/Mys_Goods_Tool/CodeQL?logo=github&style=for-the-badge">
-  </a>
 </div>
 
-**🎉 更新：可通过手机验证登录一键获取Cookie，不再需要抓包([🔗v1.4.2](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.2))**
+### 🎉 更新 [🔗v1.4.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.3)
 
-**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
+更换获取游戏账号数据的API，解决无法兑换游戏内商品的问题。
+
+更新 Headers 中的App版本号，解决近期兑换失败问题。
+
+**🎉 iOS
+iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
+可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 *（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
 
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
@@ -63,7 +66,11 @@ thread = 3
 
 ### 第2⃣️步 运行`main.py`或运行[🔗已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)
 
-**可前往`./logs/mys_goods_tool.log`查看日志**
+- 在兑换开始之前运行主程序。
+
+- 建议先把兑换时间设定为当前时间往后的一两分钟，测试一下是否能正常兑换，如果返回未到时间或者库存不足就基本没有问题。
+
+- **可前往`./logs/mys_goods_tool.log`查看日志**
 
 ## 其他
 - 仅供学习时参考
