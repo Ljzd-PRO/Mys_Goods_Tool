@@ -35,6 +35,18 @@ MAX_RETRY_TIMES = 5
 NTP_SERVER = "ntp.aliyun.com"
 """NTP服务器，用于获取网络时间"""
 
+HEADERS_GAME_RECORD = {
+    "Host": "api-takumi-record.mihoyo.com",
+    "Origin": "https://webstatic.mihoyo.com",
+    "Connection": "keep-alive",
+    "Accept": "application/json, text/plain, */*",
+    "User-Agent": USER_AGENT_EXCHANGE,
+    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+    "Referer": "https://webstatic.mihoyo.com/",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cookie": None
+}
+
 if __name__ != "__main__":
     exit(0)
 
@@ -355,8 +367,10 @@ class Good:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
                 checkGame_url = checkGame.format(Good.bbs_uid)
+                checkGame_headers = HEADERS_GAME_RECORD.copy()
+                checkGame_headers["Cookie"] = Good.cookie
                 res = self.req.get(checkGame_url,
-                                   headers=self.headers,
+                                   headers=checkGame_headers,
                                    timeout=TIME_OUT)
                 user_list = res.json()["data"]["list"]
                 break
