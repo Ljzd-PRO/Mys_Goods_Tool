@@ -1,5 +1,5 @@
 # 米游社商品兑换工具
-<div align="left">
+<div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
     <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
   </a>
@@ -8,9 +8,6 @@
   </a>
   <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
     <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/codeql-analysis.yml" target="_blank">
-    <img alt="GitHub CodeQL 代码检查" src="https://img.shields.io/github/workflow/status/Ljzd-PRO/Mys_Goods_Tool/CodeQL?logo=github&style=for-the-badge">
   </a>
 </div>
 
