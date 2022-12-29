@@ -86,7 +86,8 @@ class NtpTime():
         print("\r{} 秒后进入主菜单...".format(SLEEP_TIME - second), end="")
         time.sleep(1)
 
-    def time() -> float:
+    @classmethod
+    def time(cls) -> float:
         """
         获取校准后的时间（如果校准成功）
         """
