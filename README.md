@@ -11,9 +11,15 @@
   </a>
 </div>
 
-**🎉 更新：更新 Headers 中的App版本号，解决近期兑换失败问题([🔗v1.4.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.3))**
+### 🎉 更新 [🔗v1.4.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.3)
 
-**🎉 iOS iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish)) 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
+更换获取游戏账号数据的API，解决无法兑换游戏内商品的问题。
+
+更新 Headers 中的App版本号，解决近期兑换失败问题。
+
+**🎉 iOS
+iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
+可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
 *（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
 
 米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
