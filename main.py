@@ -1,20 +1,21 @@
 # coding=utf-8
 
+import configparser
+import copy
 import hashlib
 import json
+import os
+import platform
 import random
 import string
-import traceback
-import requests
-import configparser
-import os
 import sys
-import time
-import platform
-import ntplib
-import copy
 import threading
+import time
+import traceback
 import uuid
+
+import ntplib
+import requests
 from ping3 import ping
 
 VERSION = "v1.4.3"
@@ -38,7 +39,6 @@ NTP_SERVER = "ntp.aliyun.com"
 
 if __name__ != "__main__":
     exit(0)
-
 
 # 清屏指令
 PLATFORM = platform.system()
@@ -83,7 +83,7 @@ def to_log(info_type: str = "", info: str = "") -> str:
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
-        except:
+        finally:
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log = now + "  " + info_type + "  " + info
         with open(get_file_path("logs/mys_goods_tool.log"), "a",
@@ -103,6 +103,30 @@ def generateDeviceID() -> str:
     生成随机的x-rpc-device_id
     """
     return str(uuid.uuid4()).upper()
+
+
+def get_DS():
+    try:
+        """
+            获取Headers中所需DS
+            """
+        # DS 加密算法:
+        # 1. https://github.com/lhllhx/miyoubi/issues/3
+        # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
+        t = int(NtpTime.time())
+        a = "".join(random.sample(
+            string.ascii_lowercase + string.digits, 6))
+        re = hashlib.md5(
+            f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
+                encoding="utf-8")).hexdigest()
+        return f"{t},{a},{re}"
+    except KeyboardInterrupt:
+        print(to_log("WARN", "用户强制结束程序"))
+        exit(1)
+    except:
+        print(to_log("ERROR", "生成Headers所需DS失败"))
+        to_log("ERROR", traceback.format_exc())
+        raise
 
 
 print(to_log("程序当前版本: {}".format(VERSION)))
@@ -135,6 +159,7 @@ class NtpTime():
                            "校对互联网时间失败，正在重试({})".format(ntp_error_times)))
                 to_log("WARN", traceback.format_exc())
 
+    @staticmethod
     def time() -> float:
         """
         获取校准后的时间（如果校准成功）
@@ -179,15 +204,18 @@ class Good:
             "=", location) + 1: cookiesStr.find(";", location)]
 
     global conf
+    stoken, cookie = ""
     try:
         cookie = conf.get("Config", "Cookie").replace(
             " ", "").strip("\"").strip("'")
+        if not cookie:
+            raise Exception("Cookie为空")
         address = conf.get("Config", "Address_ID")
         try:
             stoken = conf.get("Config", "stoken").replace(
                 " ", "").strip("\"").strip("'")
         except configparser.NoOptionError:
-            stoken = ""
+            pass
         try:
             uid = conf.get("Config", "UID")
         except configparser.NoOptionError:
@@ -225,29 +253,6 @@ class Good:
         to_log("ERROR", traceback.format_exc())
         exit(1)
 
-    def get_DS():
-        try:
-            """
-            获取Headers中所需DS
-            """
-            # DS 加密算法:
-            # 1. https://github.com/lhllhx/miyoubi/issues/3
-            # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-            t = int(NtpTime.time())
-            a = "".join(random.sample(
-                string.ascii_lowercase + string.digits, 6))
-            re = hashlib.md5(
-                f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
-                    encoding="utf-8")).hexdigest()
-            return f"{t},{a},{re}"
-        except KeyboardInterrupt:
-            print(to_log("WARN", "用户强制结束程序"))
-            exit(1)
-        except:
-            print(to_log("ERROR", "生成Headers所需DS失败"))
-            to_log("ERROR", traceback.format_exc())
-            raise
-
     def __init__(self, id: str) -> None:
         """
         针对每个目标商品进行初始化
@@ -276,36 +281,36 @@ class Good:
             pass
         self.headers = {
             "Accept":
-            "application/json, text/plain, */*",
+                "application/json, text/plain, */*",
             "Accept-Encoding":
-            "gzip, deflate, br",
+                "gzip, deflate, br",
             "Accept-Language":
-            "zh-CN,zh-Hans;q=0.9",
+                "zh-CN,zh-Hans;q=0.9",
             "Connection":
-            "keep-alive",
+                "keep-alive",
             "Content-Type":
-            "application/json;charset=utf-8",
+                "application/json;charset=utf-8",
             "Cookie":
-            Good.cookie,
+                Good.cookie,
             "Host":
-            "api-takumi.mihoyo.com",
+                "api-takumi.mihoyo.com",
             "User-Agent":
-            USER_AGENT_EXCHANGE,
+                USER_AGENT_EXCHANGE,
             "x-rpc-app_version":
-            X_RPC_APP_VERSION,
+                X_RPC_APP_VERSION,
             "x-rpc-channel":
-            "appstore",
+                "appstore",
             "x-rpc-client_type":
-            "1",
+                "1",
             "x-rpc-device_id": generateDeviceID(),
             "x-rpc-device_model":
-            X_RPC_DEVICE_MODEL,
+                X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
-            "".join(
-                random.sample(string.ascii_letters + string.digits,
-                              random.randrange(5))).upper(),
+                "".join(
+                    random.sample(string.ascii_letters + string.digits,
+                                  random.randrange(5))).upper(),
             "x-rpc-sys_version":
-            X_RPC_SYS_VERSION
+                X_RPC_SYS_VERSION
         }
 
         while True:
@@ -356,7 +361,7 @@ class Good:
                 getActionTicket_headers[
                     "User-Agent"] = USER_AGENT_GET_ACTION_TICKET
                 try:
-                    getActionTicket_headers.setdefault("DS", Good.get_DS())
+                    getActionTicket_headers.setdefault("DS", get_DS())
                 except:
                     print(to_log("ERROR", "初始化商品兑换任务失败，放弃兑换"))
                     to_log("ERROR", traceback.format_exc())
@@ -380,7 +385,7 @@ class Good:
                         to_log(
                             "ERROR",
                             "商品：{} 为游戏内物品，由于获取用户ActionTicket失败，放弃兑换该商品".
-                            format(self.id)))
+                                format(self.id)))
                     self.result = -1
                     return
                 print(
@@ -410,8 +415,8 @@ class Good:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
                 checkGame_url = checkGame.format(actionTicket=actionTicket, game_biz=game_biz)
                 res = self.req.get(checkGame_url,
-                                 headers=self.headers,
-                                 timeout=TIME_OUT).text
+                                   headers=self.headers,
+                                   timeout=TIME_OUT).text
                 user_list = json.loads(res)["data"]["list"]
                 break
             except KeyboardInterrupt:
@@ -424,7 +429,7 @@ class Good:
                         to_log(
                             "ERROR",
                             "商品：{} 为游戏内物品，由于检查游戏账户失败，放弃兑换该商品".
-                            format(self.id)))
+                                format(self.id)))
                     self.result = -1
                     return
                 print(
@@ -441,7 +446,6 @@ class Good:
                 self.data.setdefault("uid", Good.uid)
                 self.data.setdefault("region", user["region"])
                 self.data.setdefault("game_biz", game_biz)
-
 
     def start(self) -> None:
         """
@@ -579,7 +583,7 @@ class CheckNetwork:
                         CheckNetwork.result = CheckNetwork.result * 1000
                         to_log(
                             "INFO", "网络连接正常，延时 {} ms".format(
-                                    round(CheckNetwork.result, 2)))
+                                round(CheckNetwork.result, 2)))
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
