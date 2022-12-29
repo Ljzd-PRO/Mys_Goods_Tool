@@ -46,6 +46,7 @@
 
 
 ## 功能 - 补全Cookie
+**短信登录获取的Cookie不需要进行补全！**  
 由于网页版米游社Cookie不包含兑换游戏内物品所需的 `stoken`，因此需要获取 `stoken`，补全Cookie。  
 另一种情况是没能从App抓包数据中找到 `stoken`，config.ini 配置文件中的Cookie需要补全。
 
