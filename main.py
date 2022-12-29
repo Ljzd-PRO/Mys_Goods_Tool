@@ -81,7 +81,7 @@ def to_log(info_type: str = "", info: str = "") -> str:
         except KeyboardInterrupt:
             print(to_log("WARN", "用户强制结束程序"))
             exit(1)
-        finally:
+        except:
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log = now + "  " + info_type + "  " + info
         with open(get_file_path("logs/mys_goods_tool.log"), "a",
@@ -130,7 +130,7 @@ def get_DS():
 print(to_log("程序当前版本: {}".format(VERSION)))
 
 
-class NtpTime():
+class NtpTime:
     """
     >>> NtpTime.time() #获取校准后的时间（如果校准成功）
     """
@@ -202,7 +202,7 @@ class Good:
             "=", location) + 1: cookiesStr.find(";", location)]
 
     global conf
-    stoken, cookie = ""
+    stoken, cookie = "", ""
     try:
         cookie = conf.get("Config", "Cookie").replace(
             " ", "").strip("\"").strip("'")
