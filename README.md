@@ -77,7 +77,7 @@ thread = 3
 
 - 相似项目推荐:  \
 **mysTool - 米游社辅助工具插件**  \
-简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录  \
+简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录、原神树脂提醒  \
 🔗 https://github.com/Ljzd-PRO/nonebot-plugin-mystool
 
 - 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。
