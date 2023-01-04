@@ -44,7 +44,6 @@ HEADERS_GAME_RECORD = {
     "Accept-Language": "zh-CN,zh-Hans;q=0.9",
     "Referer": "https://webstatic.mihoyo.com/",
     "Accept-Encoding": "gzip, deflate, br",
-    "Cookie": None
 }
 
 if __name__ != "__main__":
@@ -212,7 +211,7 @@ class Good:
     success_task = []
 
     global conf
-    stoken, cookie = "", ""
+    stoken = ""
     try:
         cookie = cookie_str_to_dict(conf.get("Config", "Cookie").replace(
             " ", "").strip("\"").strip("'"))
@@ -293,8 +292,6 @@ class Good:
                 "keep-alive",
             "Content-Type":
                 "application/json;charset=utf-8",
-            "Cookie":
-                Good.cookie,
             "Host":
                 "api-takumi.mihoyo.com",
             "User-Agent":
@@ -328,7 +325,7 @@ class Good:
                     self.result = -1
                     return
                 elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
-                    if Good.cookie.find("stoken") == -1:
+                    if "stoken" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
@@ -336,7 +333,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
+                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
@@ -363,10 +360,10 @@ class Good:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
                 checkGame_url = checkGame.format(Good.bbs_uid)
                 checkGame_headers = HEADERS_GAME_RECORD.copy()
-                checkGame_headers["Cookie"] = Good.cookie
                 res = self.req.get(checkGame_url,
                                    headers=checkGame_headers,
-                                   timeout=TIME_OUT)
+                                   timeout=TIME_OUT,
+                                   cookies=Good.cookie)
                 user_list = res.json()["data"]["list"]
                 break
             except KeyboardInterrupt:
@@ -410,7 +407,8 @@ class Good:
                 print(to_log("INFO", "开始发送商品 {} 的兑换请求...".format(self.id)))
                 self.result = self.req.post(self.url,
                                             headers=self.headers,
-                                            json=self.data)
+                                            json=self.data,
+                                            cookies=Good.cookie)
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
