@@ -139,6 +139,17 @@ def get_DS():
         raise
 
 
+def cookie_str_to_dict(cookie_str: str):
+    cookies = cookie_str.strip().split(";")
+    cookie_dict = {}
+    for cookie in cookies:
+        if not cookie:
+            continue
+        cookie_pair = cookie.split("=")
+        cookie_dict.setdefault(cookie_pair[0], cookie_pair[1])
+    return cookie_dict
+
+
 print(to_log("程序当前版本: {}".format(VERSION)))
 
 
@@ -200,26 +211,11 @@ class Good:
     # 记录已成功兑换的商品
     success_task = []
 
-    def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
-        """
-        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
-        >>> target: str #查找目标
-        >>> cookiesStr: str #Raw Cookies 字符串
-        >>> location: int #目标Cookie字符串所在位置，若为None则自动查找
-        >>> return str #返回目标Cookie对应的值
-        """
-        if location is None:
-            location = cookiesStr.find(target)
-        return cookiesStr[cookiesStr.find(
-            "=", location) + 1: cookiesStr.find(";", location)]
-
     global conf
     stoken, cookie = "", ""
     try:
-        cookie = conf.get("Config", "Cookie").replace(
-            " ", "").strip("\"").strip("'")
-        if not cookie:
-            raise Exception("Cookie为空")
+        cookie = cookie_str_to_dict(conf.get("Config", "Cookie").replace(
+            " ", "").strip("\"").strip("'"))
         address = conf.get("Config", "Address_ID")
         try:
             stoken = conf.get("Config", "stoken").replace(
@@ -240,21 +236,20 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        location = cookie.find("stoken")
-        if stoken != "..." and stoken != "" and location == -1:
-            cookie += ("stoken=" + stoken + ";")
+        if stoken != "..." and stoken != "" and "stoken" not in cookie:
+            cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif location != -1:
-            stoken = findCookieInStr("stoken", cookie, location)
+        elif "stoken" in cookie:
+            stoken = cookie["stoken"]
         else:
             stoken = None
 
         # 从 Cookie 中获取游戏UID
-        bbs_uid = findCookieInStr("ltuid", cookie)
         for target in ("ltuid", "account_id", "stuid"):
-            bbs_uid = findCookieInStr(target, cookie)
-            if bbs_uid != "":
+            if target not in cookie:
+                bbs_uid = ""
                 break
+            bbs_uid = cookie[target]
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
         exit(1)
