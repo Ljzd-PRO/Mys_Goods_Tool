@@ -2,7 +2,6 @@
 
 import configparser
 import copy
-import hashlib
 import json
 import os
 import platform
@@ -13,20 +12,21 @@ import threading
 import time
 import traceback
 import uuid
+from typing import List, Dict, Any
 
 import ntplib
 import requests
 from ping3 import ping
 
-VERSION = "v1.4.3"
+VERSION = "v1.4.4"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
-USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.36.1"
+USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.42.1"
 """兑换商品时 Headers 所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
-X_RPC_APP_VERSION = "2.36.1"
+X_RPC_APP_VERSION = "2.28.1"
 """Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
 """Headers所用的 x-rpc-sys_version"""
@@ -44,7 +44,6 @@ HEADERS_GAME_RECORD = {
     "Accept-Language": "zh-CN,zh-Hans;q=0.9",
     "Referer": "https://webstatic.mihoyo.com/",
     "Accept-Encoding": "gzip, deflate, br",
-    "Cookie": None
 }
 
 if __name__ != "__main__":
@@ -66,14 +65,15 @@ def clear() -> None:
     """
     清屏
     """
-    if CLEAR_COMMAND != None:
+    if CLEAR_COMMAND is not None:
         os.system(CLEAR_COMMAND)
 
 
 def get_file_path(file_name: str = "") -> str:
     """
     获取文件绝对路径, 防止在某些情况下报错
-    >>> file_name: str #文件名
+
+    :param file_name: 文件名
     """
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
@@ -81,9 +81,11 @@ def get_file_path(file_name: str = "") -> str:
 def to_log(info_type: str = "", info: str = "") -> str:
     """
     储存日志
-    >>> info_type: str #日志的等级
-    >>> info: str #日志的信息
+
+    :param info_type: 日志的等级
+    :param info: 日志的信息
     """
+    now = ""
     try:
         if not os.path.exists(get_file_path("logs")):
             os.mkdir(get_file_path("logs/"))
@@ -108,35 +110,23 @@ def to_log(info_type: str = "", info: str = "") -> str:
         traceback.print_exc()
 
 
-def generateDeviceID() -> str:
+def generate_device_id() -> str:
     """
     生成随机的x-rpc-device_id
     """
     return str(uuid.uuid4()).upper()
 
 
-def get_DS():
-    try:
-        """
-            获取Headers中所需DS
-            """
-        # DS 加密算法:
-        # 1. https://github.com/lhllhx/miyoubi/issues/3
-        # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-        t = int(NtpTime.time())
-        a = "".join(random.sample(
-            string.ascii_lowercase + string.digits, 6))
-        re = hashlib.md5(
-            f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
-                encoding="utf-8")).hexdigest()
-        return f"{t},{a},{re}"
-    except KeyboardInterrupt:
-        print(to_log("WARN", "用户强制结束程序"))
-        exit(1)
-    except:
-        print(to_log("ERROR", "生成Headers所需DS失败"))
-        to_log("ERROR", traceback.format_exc())
-        raise
+def cookie_str_to_dict(cookie_str: str):
+    cookies = cookie_str.strip().split(";")
+    cookie_dict = {}
+    for cookie in cookies:
+        if not cookie:
+            continue
+        key = cookie[:cookie.find("=")]
+        value = cookie[cookie.find("=") + 1:]
+        cookie_dict.setdefault(key, value)
+    return cookie_dict
 
 
 print(to_log("程序当前版本: {}".format(VERSION)))
@@ -144,7 +134,7 @@ print(to_log("程序当前版本: {}".format(VERSION)))
 
 class NtpTime:
     """
-    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    获取校准后的时间（如果校准成功）
     """
     ntp_error_times = 0
     time_offset = 0
@@ -178,6 +168,7 @@ class NtpTime:
 
 
 # 读取配置文件
+conf = None
 try:
     conf = configparser.RawConfigParser()
     try:
@@ -200,26 +191,12 @@ class Good:
     # 记录已成功兑换的商品
     success_task = []
 
-    def findCookieInStr(target: str, cookiesStr: str, location: int = None) -> str:
-        """
-        在Raw原始模式下的Cookies字符串中查找所需要的Cookie
-        >>> target: str #查找目标
-        >>> cookiesStr: str #Raw Cookies 字符串
-        >>> location: int #目标Cookie字符串所在位置，若为None则自动查找
-        >>> return str #返回目标Cookie对应的值
-        """
-        if location is None:
-            location = cookiesStr.find(target)
-        return cookiesStr[cookiesStr.find(
-            "=", location) + 1: cookiesStr.find(";", location)]
-
     global conf
-    stoken, cookie = "", ""
+    cookie = {}
+    stoken = ""
     try:
-        cookie = conf.get("Config", "Cookie").replace(
-            " ", "").strip("\"").strip("'")
-        if not cookie:
-            raise Exception("Cookie为空")
+        cookie = cookie_str_to_dict(conf.get("Config", "Cookie").replace(
+            " ", "").strip("\"").strip("'"))
         address = conf.get("Config", "Address_ID")
         try:
             stoken = conf.get("Config", "stoken").replace(
@@ -240,21 +217,20 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        location = cookie.find("stoken")
-        if stoken != "..." and stoken != "" and location == -1:
-            cookie += ("stoken=" + stoken + ";")
+        if stoken != "..." and stoken != "" and "stoken" not in cookie:
+            cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif location != -1:
-            stoken = findCookieInStr("stoken", cookie, location)
+        elif "stoken" not in cookie:
+            stoken = cookie["stoken"]
         else:
             stoken = None
 
         # 从 Cookie 中获取游戏UID
-        bbs_uid = findCookieInStr("ltuid", cookie)
         for target in ("ltuid", "account_id", "stuid"):
-            bbs_uid = findCookieInStr(target, cookie)
-            if bbs_uid != "":
+            if target not in cookie:
+                bbs_uid = ""
                 break
+            bbs_uid = cookie[target]
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
         exit(1)
@@ -266,14 +242,14 @@ class Good:
     def __init__(self, id: str) -> None:
         """
         针对每个目标商品进行初始化
-        >>> id: str #商品ID(Good_ID)
+        :param id: 商品ID(Good_ID)
         """
         self.id = id
         self.result = None
         self.req = requests.Session()
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
-        checkGame = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
-        checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
+        check_game = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
+        check_good = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
             self.id)
         self.data = {
             "app_id": 1,
@@ -298,8 +274,6 @@ class Good:
                 "keep-alive",
             "Content-Type":
                 "application/json;charset=utf-8",
-            "Cookie":
-                Good.cookie,
             "Host":
                 "api-takumi.mihoyo.com",
             "User-Agent":
@@ -310,7 +284,7 @@ class Good:
                 "appstore",
             "x-rpc-client_type":
                 "1",
-            "x-rpc-device_id": generateDeviceID(),
+            "x-rpc-device_id": generate_device_id(),
             "x-rpc-device_model":
                 X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
@@ -321,19 +295,20 @@ class Good:
                 X_RPC_SYS_VERSION
         }
 
+        check_good_data: Dict[str, Any] = {}
         while True:
             try:
                 print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
-                checkGood_data = json.loads(
-                    self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
-                if checkGood_data is None:
+                check_good_data = json.loads(
+                    self.req.get(check_good, timeout=TIME_OUT).text)["data"]
+                if check_good_data is None:
                     print(
                         to_log("ERROR",
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
                     self.result = -1
                     return
-                elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
-                    if Good.cookie.find("stoken") == -1:
+                elif check_good_data["type"] == 2 and check_good_data["game_biz"] != "bbs_cn":
+                    if "stoken" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
@@ -341,7 +316,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
+                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
@@ -361,17 +336,20 @@ class Good:
                 to_log("ERROR", traceback.format_exc())
                 continue
 
-        game_biz = checkGood_data["game_biz"]
+        game_biz = check_good_data["game_biz"]
         error_times = 0
+        user_list: List[Dict[str, Any]] = []
+        check_game_url = ""
+        res = None
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
-                checkGame_url = checkGame.format(Good.bbs_uid)
-                checkGame_headers = HEADERS_GAME_RECORD.copy()
-                checkGame_headers["Cookie"] = Good.cookie
-                res = self.req.get(checkGame_url,
-                                   headers=checkGame_headers,
-                                   timeout=TIME_OUT)
+                check_game_url = check_game.format(Good.bbs_uid)
+                check_game_headers = HEADERS_GAME_RECORD.copy()
+                res = self.req.get(check_game_url,
+                                   headers=check_game_headers,
+                                   timeout=TIME_OUT,
+                                   cookies=Good.cookie)
                 user_list = res.json()["data"]["list"]
                 break
             except KeyboardInterrupt:
@@ -391,7 +369,7 @@ class Good:
                     to_log(
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
-                to_log("DEBUG", "checkGame_url: " + checkGame_url)
+                to_log("DEBUG", "checkGame_url: " + check_game_url)
                 to_log("DEBUG", "checkGame_response: " + res.text)
                 to_log("ERROR", traceback.format_exc())
                 continue
@@ -415,7 +393,8 @@ class Good:
                 print(to_log("INFO", "开始发送商品 {} 的兑换请求...".format(self.id)))
                 self.result = self.req.post(self.url,
                                             headers=self.headers,
-                                            json=self.data)
+                                            json=self.data,
+                                            cookies=Good.cookie)
             except KeyboardInterrupt:
                 print(to_log("WARN", "用户强制结束程序"))
                 exit(1)
@@ -447,6 +426,7 @@ class Good:
 system = platform.system()
 
 # 将配置文件中目标商品ID读入列表
+good_list = ""
 try:
     good_list = conf.get("Config", "Good_ID")
 except KeyboardInterrupt:
@@ -456,6 +436,7 @@ except:
     print(to_log("ERROR", "从配置文件中读取商品ID失败，可能是没有正确配置"))
     to_log("ERROR", traceback.format_exc())
     exit(1)
+
 try:
     good_list = good_list.replace(" ", "")
     good_list = good_list.split(",")
@@ -477,6 +458,9 @@ class CheckNetwork:
     检查网络连接和显示剩余时间
     """
     global conf
+    isCheck = None
+    checkTime = None
+    stopCheck = None
     try:
         try:
             timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
@@ -546,14 +530,15 @@ class CheckNetwork:
             print(to_log("WARN", "执行网络检查失败"))
 
 
-def timeStampToStr(timeStamp: float = None) -> str:
+def time_stamp_to_str(time_stamp: float = None) -> str:
     """
     时间戳转字符串时间（无传入参数则返回当前时间）
-    >>> timeStamp: float #时间戳
+
+    :param time_stamp: 时间戳
     """
-    if timeStamp is None:
-        timeStamp = NtpTime.time()
-    return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+    if time_stamp is None:
+        time_stamp = NtpTime.time()
+    return time.strftime("%H:%M:%S", time.localtime(time_stamp))
 
 
 # 读取线程数
@@ -593,17 +578,17 @@ while True:
         elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
             clear()
 
-            print("当前时间：", timeStampToStr(), "\n")
+            print("当前时间：", time_stamp_to_str(), "\n")
             if CheckNetwork.isCheck:
                 CheckNetwork()
                 if CheckNetwork.result != -1:  # 排除初始化值
 
                     if CheckNetwork.result is None or CheckNetwork.result == 0:
                         print("\r{} - 检测到网络连接异常！\n".format(
-                            timeStampToStr(CheckNetwork.lastCheck)))
+                            time_stamp_to_str(CheckNetwork.lastCheck)))
                     else:
                         print("\r{0} - 网络连接正常，延时 {1} ms\n".format(
-                            timeStampToStr(CheckNetwork.lastCheck),
+                            time_stamp_to_str(CheckNetwork.lastCheck),
                             round(CheckNetwork.result, 2)))
 
             print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(

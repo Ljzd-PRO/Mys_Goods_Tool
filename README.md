@@ -11,11 +11,14 @@
   </a>
 </div>
 
-### 🎉 更新 [🔗v1.4.3](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.3)
+### 🎉 更新 [🔗v1.4.4](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.4)
 
-更换获取游戏账号数据的API，解决无法兑换游戏内商品的问题。
+修复获取**米游社**uid失败导致检查游戏账户失败的问题  
+如报错：
 
-更新 Headers 中的App版本号，解决近期兑换失败问题。
+```
+2023-01-18 15:46:13  DEBUG  checkGame_response: {"data":null,"message":"Invalid uid","retcode":-1}
+```
 
 **🎉 iOS
 iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))

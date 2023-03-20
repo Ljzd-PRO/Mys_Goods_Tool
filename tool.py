@@ -1,21 +1,25 @@
 # coding=utf-8
 
-import os
-import time
-import requests
-import json
-import platform
 import configparser
-import requests.utils
-import ntplib
+import json
+import os
+import platform
+import time
 import uuid
+from typing import List, Dict, Any
 
+import ntplib
+import requests
+import requests.utils
+
+pyperclip_import_result = True
 try:
     import pyperclip
 except ImportError:
     print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
+    pyperclip_import_result = False
 
-VERSION = "v1.4.3"
+VERSION = "v1.4.4"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
@@ -55,13 +59,13 @@ def clear() -> None:
     """
     清屏
     """
-    if CLEAR_COMMAND != None:
+    if CLEAR_COMMAND is not None:
         os.system(CLEAR_COMMAND)
 
 
-class NtpTime():
+class NtpTime:
     """
-    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    获取校准后的时间（如果校准成功）
     """
     ntp_error_times = 0
     time_offset = 0
@@ -94,7 +98,7 @@ class NtpTime():
         return time.time() + NtpTime.time_offset
 
 
-def readConfig():
+def read_config():
     """
     读取配置文件
     """
@@ -112,29 +116,30 @@ def readConfig():
         return
 
 
-def findCookiesInStr(cookiesStr: str, save: dict) -> None:
+def find_cookies_in_str(cookies_str: str, save: dict) -> None:
     """
     在Raw原始模式下的Cookies字符串中查找所需要的Cookie
-    >>> cookiesStr: str #Raw Cookies 字符串
-    >>> save: str #结果保存到的字典
+
+    :param cookies_str: Raw Cookies 字符串
+    :param save: 结果保存到的字典
     """
     for cookie_needed in COOKIES_NEEDED:
         if len(save) == len(COOKIES_NEEDED):
             return
-        location = cookiesStr.find(cookie_needed)
+        location = cookies_str.find(cookie_needed)
         if location != -1:
-            save.setdefault(cookie_needed, cookiesStr[cookiesStr.find(
-                "=", location) + 1: cookiesStr.find(";", location)])
+            save.setdefault(cookie_needed, cookies_str[cookies_str.find(
+                "=", location) + 1: cookies_str.find(";", location)])
 
 
-def generateDeviceID() -> str:
+def generate_device_id() -> str:
     """
     生成随机的x-rpc-device_id
     """
     return str(uuid.uuid4()).upper()
 
 
-def goodTool() -> None:
+def good_tool() -> None:
     while True:
         print("""\
 > 请选择要查看的游戏：
@@ -149,15 +154,15 @@ def goodTool() -> None:
         choice = input("\n> ")
         clear()
         if choice == "1":
-            GAME = "bh3"
+            game = "bh3"
         elif choice == "2":
-            GAME = "hk4e"
+            game = "hk4e"
         elif choice == "3":
-            GAME = "bh2"
+            game = "bh2"
         elif choice == "4":
-            GAME = "nxx"
+            game = "nxx"
         elif choice == "5":
-            GAME = "bbs"
+            game = "bbs"
         elif choice == "0":
             return
         else:
@@ -175,9 +180,9 @@ def goodTool() -> None:
             try:
                 get_list = json.loads(
                     requests.get(url.format(page=page,
-                                            game=GAME)).text)["data"]["list"]
+                                            game=game)).text)["data"]["list"]
                 # 判断是否已经读完所有商品
-                if get_list == []:
+                if not get_list:
                     break
                 else:
                     good_list += get_list
@@ -228,8 +233,12 @@ def goodTool() -> None:
         clear()
 
 
-def addressTool() -> None:
-    conf = readConfig()
+def address_tool() -> None:
+    conf = read_config()
+    cookie = ""
+    address_list_req = None
+    address_list: List[Dict[str, Any]] = []
+    choice = ""
     try:
         if conf is None:
             raise
@@ -261,7 +270,7 @@ def addressTool() -> None:
             cookie,
         "Connection":
             "keep-alive",
-        "x-rpc-device_id": generateDeviceID(),
+        "x-rpc-device_id": generate_device_id(),
         "x-rpc-client_type":
             "5",
         "User-Agent":
@@ -343,12 +352,14 @@ def addressTool() -> None:
             clear()
 
 
-def cookieTool() -> None:
+def cookie_tool() -> None:
     strip_char = ["'", "\"", " "]
     replace_char = [("\:", ":"), ("\ ", " "), ("\~", "~")]
 
     # 查找结果
     cookies = {}
+
+    file_data: Dict[str, Any] = {}
 
     print("""\
 > 请选择抓包导出文件类型：
@@ -397,7 +408,7 @@ def cookieTool() -> None:
                         file_cookies = file_data["headers"]["cookie"]
                     except KeyError:
                         continue
-                findCookiesInStr(file_cookies, cookies)
+                find_cookies_in_str(file_cookies, cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -453,8 +464,8 @@ def cookieTool() -> None:
 
         print("> 开始分析抓包数据")
         try:
-            file_data = file_data["log"]["entries"]
-            for data in file_data:
+            request_data = file_data["log"]["entries"]
+            for data in request_data:
                 if len(cookies) == len(COOKIES_NEEDED):
                     break
                 for cookie in data["request"]["cookies"]:
@@ -466,7 +477,7 @@ def cookieTool() -> None:
                     if len(cookies) == len(COOKIES_NEEDED):
                         break
                     if header["name"] == "Cookie" or header["name"] == "cookie":
-                        findCookiesInStr(header["value"], cookies)
+                        find_cookies_in_str(header["value"], cookies)
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -483,7 +494,7 @@ def cookieTool() -> None:
         print("> 输入有误(回车以返回)\n")
         input()
         clear()
-        cookieTool()
+        cookie_tool()
         return
 
     clear()
@@ -511,7 +522,7 @@ def cookieTool() -> None:
 
         if choice == "y":
             try:
-                conf = readConfig()
+                conf = read_config()
                 current_cookies = ""
                 for key in cookies:
                     current_cookies += (key + "=" + cookies[key] + ";")
@@ -543,7 +554,7 @@ def cookieTool() -> None:
             return
 
 
-def checkUpdate() -> None:
+def check_update() -> None:
     try:
         latest_url = requests.get(
             "https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/latest", allow_redirects=False).headers["Location"]
@@ -565,7 +576,9 @@ def checkUpdate() -> None:
         input()
 
 
-def completeCookie() -> None:
+def complete_cookie() -> None:
+    origin_cookie = ""
+    stoken = ""
     while True:
         print("""\
 将自动补上Cookie中兑换游戏内物品所需的stoken
@@ -577,7 +590,7 @@ def completeCookie() -> None:
         """)
         choice = input("\n> ")
         clear()
-        conf = readConfig()
+        conf = read_config()
 
         if choice == "1":
             command = "var cookie=document.cookie;var ask=confirm('是否保存到剪切板?\\nCookie查找结果：'+cookie);if(ask==true){copy(cookie);msg=cookie}else{msg='Cancel'}"
@@ -587,11 +600,9 @@ def completeCookie() -> None:
 > 2. 在浏览器两个页面分别打开开发者模式，进入控制台，输入下面的语句并回车\n\
             """)
             print(command)
-            try:
+            if pyperclip_import_result:
                 pyperclip.copy(command)
                 print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
-            except:
-                pass
             print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
             try:
@@ -639,7 +650,7 @@ def completeCookie() -> None:
         cookies = {}
         if origin_cookie.split()[-1] != ";":
             origin_cookie += ";"
-        findCookiesInStr(origin_cookie, cookies)
+        find_cookies_in_str(origin_cookie, cookies)
 
         # 开头为"v2__"的stoken还需要搭配"mid"才行
         if "stoken" in cookies:
@@ -674,7 +685,8 @@ def completeCookie() -> None:
         print("正在获取stoken...")
         try:
             get_stoken_req = requests.get(
-                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(cookies["login_ticket"], bbs_uid))
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(
+                    cookies["login_ticket"], bbs_uid))
             stoken = list(filter(
                 lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
         except KeyboardInterrupt:
@@ -722,7 +734,12 @@ def completeCookie() -> None:
             clear()
 
 
-def onekeyCookie() -> None:
+def onekey_cookie() -> None:
+    login_1_req = None
+    login_2_req = None
+    bbs_uid = ""
+    stoken = ""
+
     login_1_headers = {
         "Host": "webapi.account.mihoyo.com",
         "Connection": "keep-alive",
@@ -732,7 +749,7 @@ def onekeyCookie() -> None:
         "x-rpc-device_model": X_RPC_DEVICE_MODEL,
         "sec-ch-ua-mobile": "?0",
         "User-Agent": USER_AGENT_PC,
-        "x-rpc-device_id": generateDeviceID(),
+        "x-rpc-device_id": generate_device_id(),
         "Accept": "application/json, text/plain, */*",
         "x-rpc-device_name": X_RPC_DEVICE_NAME,
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -763,11 +780,9 @@ def onekeyCookie() -> None:
         print("请进行以下操作：")
         url = "https://user.mihoyo.com/#/login/captcha"
         print("> 1. 进入 {}".format(url))
-        try:
+        if pyperclip_import_result:
             pyperclip.copy(url)
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
-        except:
-            pass
         print("""\
 > 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
 
@@ -783,7 +798,8 @@ def onekeyCookie() -> None:
         print("正在登录...")
         try:
             login_1_req = requests.post(
-                "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha", headers=login_1_headers, data="mobile={0}&mobile_captcha={1}&source=user.mihoyo.com".format(phone, captcha))
+                "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha", headers=login_1_headers,
+                data="mobile={0}&mobile_captcha={1}&source=user.mihoyo.com".format(phone, captcha))
         except KeyboardInterrupt:
             print("用户强制结束程序...")
             exit(1)
@@ -814,7 +830,8 @@ def onekeyCookie() -> None:
         print("正在获取stoken...")
         try:
             get_stoken_req = requests.get(
-                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(login_1_cookie["login_ticket"], bbs_uid))
+                "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}".format(
+                    login_1_cookie["login_ticket"], bbs_uid))
             stoken = list(filter(
                 lambda data: data["name"] == "stoken", get_stoken_req.json()["data"]["list"]))[0]["token"]
         except KeyboardInterrupt:
@@ -828,11 +845,9 @@ def onekeyCookie() -> None:
             continue
 
         print("> 5. 刷新页面，再次进入 {}".format(url))
-        try:
+        if pyperclip_import_result:
             pyperclip.copy(url)
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
-        except:
-            pass
         print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
         print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
         captcha = input("> ")
@@ -885,7 +900,7 @@ def onekeyCookie() -> None:
             break
 
         try:
-            conf = readConfig()
+            conf = read_config()
             if conf is None:
                 raise
             conf.set("Config", "Cookie", result_cookie)
@@ -923,17 +938,17 @@ while __name__ == '__main__':
     choice = input("\n> ")
     clear()
     if choice == "1":
-        goodTool()
+        good_tool()
     elif choice == "2":
-        onekeyCookie()
+        onekey_cookie()
     elif choice == "3":
-        cookieTool()
+        cookie_tool()
     elif choice == "4":
-        completeCookie()
+        complete_cookie()
     elif choice == "5":
-        addressTool()
+        address_tool()
     elif choice == "6":
-        checkUpdate()
+        check_update()
     elif choice == "0":
         break
     else:
