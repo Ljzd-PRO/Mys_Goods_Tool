@@ -148,8 +148,9 @@ def cookie_str_to_dict(cookie_str: str):
     for cookie in cookies:
         if not cookie:
             continue
-        cookie_pair = cookie.split("=")
-        cookie_dict.setdefault(cookie_pair[0], cookie_pair[1])
+        key = cookie[:cookie.find("=")]
+        value = cookie[cookie.find("=") + 1:]
+        cookie_dict.setdefault(key, value)
     return cookie_dict
 
 
