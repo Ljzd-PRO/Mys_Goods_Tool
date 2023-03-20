@@ -111,14 +111,14 @@ def to_log(info_type: str = "", info: str = "") -> str:
         traceback.print_exc()
 
 
-def generateDeviceID() -> str:
+def generate_device_id() -> str:
     """
     生成随机的x-rpc-device_id
     """
     return str(uuid.uuid4()).upper()
 
 
-def get_DS():
+def get_ds():
     try:
         """
             获取Headers中所需DS
@@ -273,8 +273,8 @@ class Good:
         self.result = None
         self.req = requests.Session()
         self.url = "https://api-takumi.mihoyo.com/mall/v1/web/goods/exchange"
-        checkGame = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
-        checkGood = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
+        check_game = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
+        check_good = "https://api-takumi.mihoyo.com/mall/v1/web/goods/detail?app_id=1&point_sn=myb&goods_id={}".format(
             self.id)
         self.data = {
             "app_id": 1,
@@ -309,7 +309,7 @@ class Good:
                 "appstore",
             "x-rpc-client_type":
                 "1",
-            "x-rpc-device_id": generateDeviceID(),
+            "x-rpc-device_id": generate_device_id(),
             "x-rpc-device_model":
                 X_RPC_DEVICE_MODEL,
             "x-rpc-device_name":
@@ -320,19 +320,19 @@ class Good:
                 X_RPC_SYS_VERSION
         }
 
-        checkGood_data: Dict[str, Any] = {}
+        check_good_data: Dict[str, Any] = {}
         while True:
             try:
                 print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
-                checkGood_data = json.loads(
-                    self.req.get(checkGood, timeout=TIME_OUT).text)["data"]
-                if checkGood_data is None:
+                check_good_data = json.loads(
+                    self.req.get(check_good, timeout=TIME_OUT).text)["data"]
+                if check_good_data is None:
                     print(
                         to_log("ERROR",
                                "无法找到商品：{} 的信息，放弃兑换该商品".format(self.id)))
                     self.result = -1
                     return
-                elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
+                elif check_good_data["type"] == 2 and check_good_data["game_biz"] != "bbs_cn":
                     if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
@@ -361,18 +361,18 @@ class Good:
                 to_log("ERROR", traceback.format_exc())
                 continue
 
-        game_biz = checkGood_data["game_biz"]
+        game_biz = check_good_data["game_biz"]
         error_times = 0
         user_list: List[Dict[str, Any]] = []
-        checkGame_url = ""
+        check_game_url = ""
         res = None
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
-                checkGame_url = checkGame.format(Good.bbs_uid)
-                checkGame_headers = HEADERS_GAME_RECORD.copy()
-                res = self.req.get(checkGame_url,
-                                   headers=checkGame_headers,
+                check_game_url = check_game.format(Good.bbs_uid)
+                check_game_headers = HEADERS_GAME_RECORD.copy()
+                res = self.req.get(check_game_url,
+                                   headers=check_game_headers,
                                    timeout=TIME_OUT,
                                    cookies=Good.cookie)
                 user_list = res.json()["data"]["list"]
@@ -394,7 +394,7 @@ class Good:
                     to_log(
                         "ERROR", "检查游戏账户：{0} 失败，正在重试({1})".format(
                             Good.uid, error_times)))
-                to_log("DEBUG", "checkGame_url: " + checkGame_url)
+                to_log("DEBUG", "checkGame_url: " + check_game_url)
                 to_log("DEBUG", "checkGame_response: " + res.text)
                 to_log("ERROR", traceback.format_exc())
                 continue
@@ -555,15 +555,15 @@ class CheckNetwork:
             print(to_log("WARN", "执行网络检查失败"))
 
 
-def timeStampToStr(timeStamp: float = None) -> str:
+def time_stamp_to_str(time_stamp: float = None) -> str:
     """
     时间戳转字符串时间（无传入参数则返回当前时间）
 
-    :param timeStamp: 时间戳
+    :param time_stamp: 时间戳
     """
-    if timeStamp is None:
-        timeStamp = NtpTime.time()
-    return time.strftime("%H:%M:%S", time.localtime(timeStamp))
+    if time_stamp is None:
+        time_stamp = NtpTime.time()
+    return time.strftime("%H:%M:%S", time.localtime(time_stamp))
 
 
 # 读取线程数
@@ -603,17 +603,17 @@ while True:
         elif int(NtpTime.time()) != int(temp_time):  # 每隔一秒刷新一次
             clear()
 
-            print("当前时间：", timeStampToStr(), "\n")
+            print("当前时间：", time_stamp_to_str(), "\n")
             if CheckNetwork.isCheck:
                 CheckNetwork()
                 if CheckNetwork.result != -1:  # 排除初始化值
 
                     if CheckNetwork.result is None or CheckNetwork.result == 0:
                         print("\r{} - 检测到网络连接异常！\n".format(
-                            timeStampToStr(CheckNetwork.lastCheck)))
+                            time_stamp_to_str(CheckNetwork.lastCheck)))
                     else:
                         print("\r{0} - 网络连接正常，延时 {1} ms\n".format(
-                            timeStampToStr(CheckNetwork.lastCheck),
+                            time_stamp_to_str(CheckNetwork.lastCheck),
                             round(CheckNetwork.result, 2)))
 
             print("距离兑换开始还剩：{0} 小时 {1} 分 {2} 秒".format(
