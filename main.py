@@ -66,7 +66,7 @@ def clear() -> None:
     """
     清屏
     """
-    if CLEAR_COMMAND != None:
+    if CLEAR_COMMAND is not None:
         os.system(CLEAR_COMMAND)
 
 
