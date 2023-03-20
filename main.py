@@ -268,7 +268,6 @@ class Good:
         针对每个目标商品进行初始化
         :param id: 商品ID(Good_ID)
         """
-        global user_list
         self.id = id
         self.result = None
         self.req = requests.Session()
@@ -451,6 +450,7 @@ class Good:
 system = platform.system()
 
 # 将配置文件中目标商品ID读入列表
+good_list = ""
 try:
     good_list = conf.get("Config", "Good_ID")
 except KeyboardInterrupt:
@@ -461,7 +461,6 @@ except:
     to_log("ERROR", traceback.format_exc())
     exit(1)
 
-good_list = ""
 try:
     good_list = good_list.replace(" ", "")
     good_list = good_list.split(",")
