@@ -19,7 +19,7 @@ except ImportError:
     print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
     pyperclip_import_result = False
 
-VERSION = "v1.4.4-beta"
+VERSION = "v1.4.4"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
