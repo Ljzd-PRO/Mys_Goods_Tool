@@ -216,7 +216,7 @@ class Good:
     success_task = []
 
     global conf
-    cookie = ""
+    cookie = {}
     stoken = ""
     try:
         cookie = cookie_str_to_dict(conf.get("Config", "Cookie").replace(
@@ -241,17 +241,17 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and cookie.find("stoken") == -1:
+        if stoken != "..." and stoken != "" and "stoken" not in cookie:
             cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif cookie.find("stoken") != -1:
+        elif "stoken" not in cookie:
             stoken = cookie["stoken"]
         else:
             stoken = None
 
         # 从 Cookie 中获取游戏UID
         for target in ("ltuid", "account_id", "stuid"):
-            if cookie.find(target) == -1:
+            if target not in cookie:
                 bbs_uid = ""
                 break
             bbs_uid = cookie[target]
@@ -332,7 +332,7 @@ class Good:
                     self.result = -1
                     return
                 elif check_good_data["type"] == 2 and check_good_data["game_biz"] != "bbs_cn":
-                    if Good.cookie.find("stoken") == -1:
+                    if "stoken" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
@@ -340,7 +340,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
+                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
