@@ -2,7 +2,6 @@
 
 import configparser
 import copy
-import hashlib
 import json
 import os
 import platform
@@ -23,11 +22,11 @@ VERSION = "v1.4.4"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
-USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHtimeL, like Gecko) miHoYoBBS/2.36.1"
+USER_AGENT_EXCHANGE = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.42.1"
 """兑换商品时 Headers 所用的 User-Agent"""
 X_RPC_DEVICE_MODEL = "iPhone10,2"
 """Headers所用的 x-rpc-device_model"""
-X_RPC_APP_VERSION = "2.36.1"
+X_RPC_APP_VERSION = "2.28.1"
 """Headers所用的 x-rpc-app_version"""
 X_RPC_SYS_VERSION = "15.1"
 """Headers所用的 x-rpc-sys_version"""
@@ -116,30 +115,6 @@ def generate_device_id() -> str:
     生成随机的x-rpc-device_id
     """
     return str(uuid.uuid4()).upper()
-
-
-def get_ds():
-    try:
-        """
-            获取Headers中所需DS
-            """
-        # DS 加密算法:
-        # 1. https://github.com/lhllhx/miyoubi/issues/3
-        # 2. https://github.com/jianggaocheng/mihoyo-signin/blob/master/lib/mihoyoClient.js
-        t = int(NtpTime.time())
-        a = "".join(random.sample(
-            string.ascii_lowercase + string.digits, 6))
-        re = hashlib.md5(
-            f"salt=b253c83ab2609b1b600eddfe974df47b&t={t}&r={a}".encode(
-                encoding="utf-8")).hexdigest()
-        return f"{t},{a},{re}"
-    except KeyboardInterrupt:
-        print(to_log("WARN", "用户强制结束程序"))
-        exit(1)
-    except:
-        print(to_log("ERROR", "生成Headers所需DS失败"))
-        to_log("ERROR", traceback.format_exc())
-        raise
 
 
 def cookie_str_to_dict(cookie_str: str):
