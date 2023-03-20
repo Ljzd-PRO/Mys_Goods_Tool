@@ -12,10 +12,12 @@ import ntplib
 import requests
 import requests.utils
 
+pyperclip_import_result = True
 try:
     import pyperclip
 except ImportError:
     print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
+    pyperclip_import_result = False
 
 VERSION = "v1.4.4-beta"
 """程序当前版本"""
@@ -598,11 +600,9 @@ def complete_cookie() -> None:
 > 2. 在浏览器两个页面分别打开开发者模式，进入控制台，输入下面的语句并回车\n\
             """)
             print(command)
-            try:
+            if pyperclip_import_result:
                 pyperclip.copy(command)
                 print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
-            except:
-                pass
             print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
             try:
@@ -780,11 +780,9 @@ def onekey_cookie() -> None:
         print("请进行以下操作：")
         url = "https://user.mihoyo.com/#/login/captcha"
         print("> 1. 进入 {}".format(url))
-        try:
+        if pyperclip_import_result:
             pyperclip.copy(url)
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
-        except:
-            pass
         print("""\
 > 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
 
@@ -847,11 +845,9 @@ def onekey_cookie() -> None:
             continue
 
         print("> 5. 刷新页面，再次进入 {}".format(url))
-        try:
+        if pyperclip_import_result:
             pyperclip.copy(url)
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
-        except:
-            pass
         print("> 6. 在浏览器中输入刚才所用的手机号并获取验证码，但不要使用验证码登录")
         print("\n> 7. 在此输入验证码 - 用于获取cookie_token等 (不会发送给任何第三方服务器，项目开源安全):")
         captcha = input("> ")
