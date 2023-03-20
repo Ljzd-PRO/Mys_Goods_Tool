@@ -1,21 +1,22 @@
 # coding=utf-8
 
-import os
-import time
-import requests
-import json
-import platform
 import configparser
-import requests.utils
-import ntplib
+import json
+import os
+import platform
+import time
 import uuid
+
+import ntplib
+import requests
+import requests.utils
 
 try:
     import pyperclip
 except ImportError:
     print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
 
-VERSION = "v1.4.3"
+VERSION = "v1.4.4-beta"
 """程序当前版本"""
 COOKIES_NEEDED = [
     "stuid", "stoken", "ltoken", "ltuid", "account_id", "cookie_token",
