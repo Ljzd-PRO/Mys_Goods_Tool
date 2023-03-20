@@ -13,6 +13,7 @@ import threading
 import time
 import traceback
 import uuid
+from typing import List, Dict, Any
 
 import ntplib
 import requests
@@ -72,7 +73,8 @@ def clear() -> None:
 def get_file_path(file_name: str = "") -> str:
     """
     获取文件绝对路径, 防止在某些情况下报错
-    >>> file_name: str #文件名
+
+    :param file_name: 文件名
     """
     return os.path.join(os.path.split(sys.argv[0])[0], file_name)
 
@@ -80,9 +82,11 @@ def get_file_path(file_name: str = "") -> str:
 def to_log(info_type: str = "", info: str = "") -> str:
     """
     储存日志
-    >>> info_type: str #日志的等级
-    >>> info: str #日志的信息
+
+    :param info_type: 日志的等级
+    :param info: 日志的信息
     """
+    now = ""
     try:
         if not os.path.exists(get_file_path("logs")):
             os.mkdir(get_file_path("logs/"))
@@ -154,7 +158,7 @@ print(to_log("程序当前版本: {}".format(VERSION)))
 
 class NtpTime:
     """
-    >>> NtpTime.time() #获取校准后的时间（如果校准成功）
+    获取校准后的时间（如果校准成功）
     """
     ntp_error_times = 0
     time_offset = 0
@@ -188,6 +192,7 @@ class NtpTime:
 
 
 # 读取配置文件
+conf = None
 try:
     conf = configparser.RawConfigParser()
     try:
@@ -211,6 +216,7 @@ class Good:
     success_task = []
 
     global conf
+    cookie = ""
     stoken = ""
     try:
         cookie = cookie_str_to_dict(conf.get("Config", "Cookie").replace(
@@ -235,17 +241,17 @@ class Good:
 
     try:
         # 若 Cookie 中不存在stoken，且配置中 stoken 不为空，则进行字符串相加
-        if stoken != "..." and stoken != "" and "stoken" not in cookie:
+        if stoken != "..." and stoken != "" and cookie.find("stoken") == -1:
             cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif "stoken" in cookie:
+        elif cookie.find("stoken") != -1:
             stoken = cookie["stoken"]
         else:
             stoken = None
 
         # 从 Cookie 中获取游戏UID
         for target in ("ltuid", "account_id", "stuid"):
-            if target not in cookie:
+            if cookie.find(target) == -1:
                 bbs_uid = ""
                 break
             bbs_uid = cookie[target]
@@ -260,8 +266,9 @@ class Good:
     def __init__(self, id: str) -> None:
         """
         针对每个目标商品进行初始化
-        >>> id: str #商品ID(Good_ID)
+        :param id: 商品ID(Good_ID)
         """
+        global user_list
         self.id = id
         self.result = None
         self.req = requests.Session()
@@ -313,6 +320,7 @@ class Good:
                 X_RPC_SYS_VERSION
         }
 
+        checkGood_data: Dict[str, Any] = {}
         while True:
             try:
                 print(to_log("INFO", "正在检查商品：{} 的详细信息".format(self.id)))
@@ -325,7 +333,7 @@ class Good:
                     self.result = -1
                     return
                 elif checkGood_data["type"] == 2 and checkGood_data["game_biz"] != "bbs_cn":
-                    if "stoken" not in Good.cookie:
+                    if Good.cookie.find("stoken") == -1:
                         print(
                             to_log(
                                 "ERROR",
@@ -333,7 +341,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
+                    if Good.stoken.find("v2__") == 0 and Good.cookie.find("mid") == -1:
                         print(
                             to_log(
                                 "ERROR",
@@ -355,6 +363,9 @@ class Good:
 
         game_biz = checkGood_data["game_biz"]
         error_times = 0
+        user_list: List[Dict[str, Any]] = []
+        checkGame_url = ""
+        res = None
         while True:
             try:
                 print(to_log("INFO", "正在检查游戏账户：{} 的详细信息".format(Good.uid)))
@@ -449,6 +460,8 @@ except:
     print(to_log("ERROR", "从配置文件中读取商品ID失败，可能是没有正确配置"))
     to_log("ERROR", traceback.format_exc())
     exit(1)
+
+good_list = ""
 try:
     good_list = good_list.replace(" ", "")
     good_list = good_list.split(",")
@@ -470,6 +483,9 @@ class CheckNetwork:
     检查网络连接和显示剩余时间
     """
     global conf
+    isCheck = None
+    checkTime = None
+    stopCheck = None
     try:
         try:
             timeUp_Str = conf.get("Config", "Time")  # 获取配置文件中的兑换开始时间
@@ -542,7 +558,8 @@ class CheckNetwork:
 def timeStampToStr(timeStamp: float = None) -> str:
     """
     时间戳转字符串时间（无传入参数则返回当前时间）
-    >>> timeStamp: float #时间戳
+
+    :param timeStamp: 时间戳
     """
     if timeStamp is None:
         timeStamp = NtpTime.time()
