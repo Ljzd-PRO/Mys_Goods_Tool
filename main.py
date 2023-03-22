@@ -315,7 +315,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
+                    if Good.cookie["stoken"].find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
