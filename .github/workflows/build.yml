@@ -1,27 +1,33 @@
-name: Build and pack
+name: Build and pack (v1)
+
+env:
+  V1-PATH: ./mys_goods_tool_v1/
 
 on:
+  workflow_dispatch:
   push:
-    branches:    
+    branches:
       - 'stable'
       - 'dev'
     paths:
-      - 'mys_goods_tool'
-      - 'mys_goods_tool_v2'
+      - ${{ env.V1-PATH }}
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
+    paths:
+      - ${{ env.V1-PATH }}
+      - 'requirements.txt'
+      - '.github/workflows/**'
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, macOS-latest ]
-        
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
@@ -30,19 +36,20 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install -r requirements.txt
+        python -m pip install pyinstaller
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry install
         
     - name: Build main(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        pyinstaller -F ./main.py
+        pyinstaller -F ${env:V1-PATH}main.py
         move dist\main.exe .\
     
     - name: Build main
       if: ${{ runner.os != 'Windows' }}
       run: |
-        pyinstaller -F ./main.py
+        pyinstaller -F ${V1-PATH}main.py
         mv ./dist/main ./
         
     - name: Cleaning up build(Windows)
@@ -50,44 +57,32 @@ jobs:
       run: |
         del dist
         del *.spec
-        del main.py
         move build build_main
         
-    - name: Cleaning up main build
-      if: ${{ runner.os != 'Windows' }}
-      run: |
-        rm -rf dist/ __pycache__/ build/ *.spec main.py
-        
-    - name: Build tool(Windows)
+      - name: Cleaning up build
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          rm -rf dist/ __pycache__/ build/ *.spec
+
+      - name: Build tool(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        pyinstaller -F ./tool.py
+        pyinstaller -F ${env:V1-PATH}tool.py
         move dist\tool.exe .\
     
     - name: Build tool
       if: ${{ runner.os != 'Windows' }}
       run: |
-        pyinstaller -F ./tool.py
+        pyinstaller -F ${V1-PATH}tool.py
         mv ./dist/tool ./
         
-    - name: Cleaning up tool build(Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        del dist
-        del *.spec
-        del tool.py
-        
-    - name: Cleaning up build
-      if: ${{ runner.os != 'Windows' }}
-      run: |
-        rm -rf dist/ __pycache__/ build/ *.spec tool.py
         
     - name: Upload build
       uses: actions/upload-artifact@v3
       with:
         name: Mys_Goods_Tool-${{ runner.os }}-x86_64
         path: |
-          ./main*
-          ./tool*
-          ./config.ini
-          ./logs
+          ${{ env.V1-PATH }}main*
+          ${{ env.V1-PATH }}tool*
+          ${{ env.V1-PATH }}config.ini
+          ${{ env.V1-PATH }}logs
