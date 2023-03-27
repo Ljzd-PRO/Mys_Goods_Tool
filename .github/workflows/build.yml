@@ -6,8 +6,8 @@ on:
       - 'stable'
       - 'dev'
     paths:
-      - '**.py'
-      - 'config.ini'
+      - 'mys_goods_tool'
+      - 'mys_goods_tool_v2'
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
