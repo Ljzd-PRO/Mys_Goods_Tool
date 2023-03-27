@@ -87,8 +87,8 @@ def to_log(info_type: str = "", info: str = "") -> str:
     """
     now = ""
     try:
-        if not os.path.exists(get_file_path("logs")):
-            os.mkdir(get_file_path("logs/"))
+        if not os.path.exists(get_file_path("../logs")):
+            os.mkdir(get_file_path("../logs/"))
         try:
             now = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.localtime(NtpTime.time()))
@@ -98,7 +98,7 @@ def to_log(info_type: str = "", info: str = "") -> str:
         except:
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log = now + "  " + info_type + "  " + info
-        with open(get_file_path("logs/mys_goods_tool.log"), "a",
+        with open(get_file_path("../logs/mys_goods_tool.log"), "a",
                   encoding="utf-8") as log_a_file_io:
             log_a_file_io.write(log + "\n")
         return log
