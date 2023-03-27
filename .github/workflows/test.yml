@@ -5,6 +5,8 @@ on:
   push:
 
 env:
+  # Setting an environment variable with the value of a configuration variable
+  _: ${{ vars }}
 
 jobs:
   display-variables:
