@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - ${{ vars.V1_PATH }}
+      - '.github/workflows/**'
 
 jobs:
   display-variables:
