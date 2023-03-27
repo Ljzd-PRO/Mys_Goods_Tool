@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "mys-goods-tool"
+version = "2.0.0"
+description = ""
+authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
+readme = "README.md"
+packages = [{ include = "mys_goods_tool" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+tenacity = "~=8.2.2"
+requests = "~=2.28.2"
+ping3 = "~=4.0.4"
+ntplib = "~=0.4.0"
+pyperclip = "~=1.8.2"
+pydantic = "~=1.10.6"
+loguru = "~=0.6.0"
+httpx = "~=0.23.3"
+rich = "~=13.3.2"
+textual = "~=0.16.0"
+urllib3 = ">=1.21.1,<=1.26"
+charset_normalizer = ">=2.0.0,<4.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
