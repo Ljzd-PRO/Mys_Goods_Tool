@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - ${{ vars.JOB_NAME }}
+      - ${{ vars.V1_PATH }}
 
 jobs:
   display-variables:
