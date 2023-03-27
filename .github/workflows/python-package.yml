@@ -19,7 +19,7 @@ on:
       - '.github/workflows/**'
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
