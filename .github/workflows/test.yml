@@ -6,7 +6,7 @@ on:
 
 env:
   # Setting an environment variable with the value of a configuration variable
-  _: ${{ vars }}
+  _: ${{ vars._ }}
 
 jobs:
   display-variables:
