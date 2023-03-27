@@ -228,8 +228,7 @@ class Good:
         # 从 Cookie 中获取游戏UID
         for target in ("ltuid", "account_id", "stuid"):
             if target not in cookie:
-                bbs_uid = ""
-                break
+                continue
             bbs_uid = cookie[target]
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
@@ -316,7 +315,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
+                    if Good.cookie["stoken"].find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
