@@ -11,6 +11,10 @@
 #
 name: "CodeQL"
 
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+
 on:
   push:
     branches:

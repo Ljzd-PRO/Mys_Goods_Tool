@@ -1,5 +1,9 @@
 name: Build and pack (v1)
 
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+
 on:
   workflow_dispatch:
   push:

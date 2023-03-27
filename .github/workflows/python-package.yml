@@ -3,6 +3,10 @@
 
 name: Multiple Python Versions Test
 
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+
 on:
   workflow_dispatch:
   push:
