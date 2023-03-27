@@ -75,11 +75,12 @@ jobs:
             mv ./dist/tool ./
 
           - name: Upload build
-        uses: actions/upload-artifact@v3
-        with:
-          name: Mys_Goods_Tool-${{ runner.os }}-x86_64
-          path: |
-            ${{ vars.V1_PATH }}main*
-            ${{ vars.V1_PATH }}tool*
-            ${{ vars.V1_PATH }}config.ini
-            ${{ vars.V1_PATH }}logs
+
+      uses: actions/upload-artifact@v3
+      with:
+        name: Mys_Goods_Tool-${{ runner.os }}-x86_64
+        path: |
+          ${{ vars.V1_PATH }}main*
+          ${{ vars.V1_PATH }}tool*
+          ${{ vars.V1_PATH }}config.ini
+          ${{ vars.V1_PATH }}logs
