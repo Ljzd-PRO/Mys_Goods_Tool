@@ -1,9 +1,5 @@
 name: Build and pack (v1)
 
-env:
-  # Initialize vars context by reading it from env context
-  _: ${{ vars._ }}
-
 on:
   workflow_dispatch:
   push:
@@ -11,14 +7,21 @@ on:
       - stable
       - dev
     paths:
-      - ${{ vars.V1_PATH }}
+      - './mys_goods_tool_v1'
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
     paths:
-      - ${{ vars.V1_PATH }}
+      - './mys_goods_tool_v1'
       - 'requirements.txt'
       - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
 
 jobs:
   build:

@@ -11,18 +11,14 @@
 #
 name: "CodeQL"
 
-env:
-  # Initialize vars context by reading it from env context
-  _: ${{ vars._ }}
-
 on:
   push:
     branches:
       - stable
       - dev
     paths:
-      - ${{ vars.V1_PATH }}
-      - ${{ vars.V2_PATH }}
+      - './mys_goods_tool'
+      - './mys_goods_tool_v1'
 
   pull_request:
     # The branches below must be a subset of the branches above
@@ -30,8 +26,15 @@ on:
       - stable
       - dev
     paths:
-      - ${{ vars.V1_PATH }}
-      - ${{ vars.V2_PATH }}
+      - './mys_goods_tool'
+      - './mys_goods_tool_v1'
+
+permissions:
+  contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
 
 jobs:
   analyze:

@@ -1,9 +1,5 @@
 name: Upload Python Package
 
-env:
-  # Initialize vars context by reading it from env context
-  _: ${{ vars._ }}
-
 on:
   workflow_dispatch:
   release:
@@ -11,6 +7,10 @@ on:
 
 permissions:
   contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
 
 jobs:
   deploy:
