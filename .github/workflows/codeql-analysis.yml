@@ -17,8 +17,8 @@ on:
       - stable
       - dev
     paths:
-      - ${{ env.V1_PATH }}
-      - ${{ env.V2_PATH }}
+      - ${{ vars.V1_PATH }}
+      - ${{ vars.V2_PATH }}
 
   pull_request:
     # The branches below must be a subset of the branches above
@@ -26,8 +26,8 @@ on:
       - stable
       - dev
     paths:
-      - ${{ env.V1_PATH }}
-      - ${{ env.V2_PATH }}
+      - ${{ vars.V1_PATH }}
+      - ${{ vars.V2_PATH }}
 
 jobs:
   analyze:

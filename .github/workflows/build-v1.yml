@@ -7,17 +7,18 @@ on:
       - stable
       - dev
     paths:
-      - ${{ env.V1_PATH }}
+      - ${{ vars.V1_PATH }}
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
     paths:
-      - ${{ env.V1_PATH }}
+      - ${{ vars.V1_PATH }}
       - 'requirements.txt'
       - '.github/workflows/**'
 
 jobs:
   build:
+    
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -40,13 +41,13 @@ jobs:
     - name: Build main(Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        pyinstaller -F ${env:V1_PATH}main.py
+        pyinstaller -F ${{ vars.V1_PATH }}main.py
         move dist\main.exe .\
     
     - name: Build main
       if: ${{ runner.os != 'Windows' }}
       run: |
-        pyinstaller -F ${V1_PATH}main.py
+        pyinstaller -F ${{ vars.V1_PATH }}main.py
         mv ./dist/main ./
 
       - name: Cleaning up build(Windows)
@@ -64,13 +65,13 @@ jobs:
       - name: Build tool(Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          pyinstaller -F ${env:V1_PATH}tool.py
+          pyinstaller -F ${{ vars.V1_PATH }}tool.py
           move dist\tool.exe .\
 
       - name: Build tool
         if: ${{ runner.os != 'Windows' }}
         run: |
-        pyinstaller -F ${V1_PATH}tool.py
+        pyinstaller -F ${{ vars.V1_PATH }}tool.py
         mv ./dist/tool ./
 
       - name: Upload build
@@ -78,7 +79,7 @@ jobs:
       with:
         name: Mys_Goods_Tool-${{ runner.os }}-x86_64
         path: |
-          ${{ env.V1_PATH }}main*
-          ${{ env.V1_PATH }}tool*
-          ${{ env.V1_PATH }}config.ini
-          ${{ env.V1_PATH }}logs
+          ${{ vars.V1_PATH }}main*
+          ${{ vars.V1_PATH }}tool*
+          ${{ vars.V1_PATH }}config.ini
+          ${{ vars.V1_PATH }}logs
