@@ -3,12 +3,13 @@ name: vars test
 env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
+  path: ${{ vars.V1_PATH }}
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ${{ vars.V1_PATH }}
+      - ${{ env.path }}
       - '.github/workflows/**'
 
 jobs:
