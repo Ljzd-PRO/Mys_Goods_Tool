@@ -8,13 +8,13 @@ on:
   push:
     branches: [ "stable", "dev" ]
     paths:
-      - 'mys_goods_tool_v2'
+      - ${{ vars.V2_PATH }}
       - 'pyproject.toml'
       - '.github/workflows/**'
   pull_request:
     branches: [ "stable", "dev" ]
     paths:
-      - 'mys_goods_tool_v2'
+      - ${{ vars.V2_PATH }}
       - 'pyproject.toml'
       - '.github/workflows/**'
 
