@@ -1,12 +1,14 @@
 name: vars test
 
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+
 on:
   workflow_dispatch:
   push:
-
-env:
-  # Setting an environment variable with the value of a configuration variable
-  _: ${{ vars._ }}
+    paths:
+      - ${{ vars.JOB_NAME }}
 
 jobs:
   display-variables:
