@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'stable'
-      - 'dev'
+      - stable
+      - dev
     paths:
-      - ${{ vars.V1_PATH }}
+      - ${{ env.V1_PATH }}
       - 'requirements.txt'
       - '.github/workflows/**'
   pull_request:
     paths:
-      - ${{ vars.V1_PATH }}
+      - ${{ env.V1_PATH }}
       - 'requirements.txt'
       - '.github/workflows/**'
 
@@ -78,7 +78,7 @@ jobs:
       with:
         name: Mys_Goods_Tool-${{ runner.os }}-x86_64
         path: |
-          ${{ vars.V1_PATH }}main*
-          ${{ vars.V1_PATH }}tool*
-          ${{ vars.V1_PATH }}config.ini
-          ${{ vars.V1_PATH }}logs
+          ${{ env.V1_PATH }}main*
+          ${{ env.V1_PATH }}tool*
+          ${{ env.V1_PATH }}config.ini
+          ${{ env.V1_PATH }}logs

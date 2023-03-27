@@ -14,14 +14,20 @@ name: "CodeQL"
 on:
   push:
     branches:
-    - stable
-    - dev
-    
+      - stable
+      - dev
+    paths:
+      - ${{ env.V1_PATH }}
+      - ${{ env.V2_PATH }}
+
   pull_request:
     # The branches below must be a subset of the branches above
     branches:
-    - stable
-    - dev
+      - stable
+      - dev
+    paths:
+      - ${{ env.V1_PATH }}
+      - ${{ env.V2_PATH }}
 
 jobs:
   analyze:
