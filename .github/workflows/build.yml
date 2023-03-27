@@ -51,33 +51,32 @@ jobs:
       run: |
         pyinstaller -F ${V1-PATH}main.py
         mv ./dist/main ./
-        
-    - name: Cleaning up build(Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        del dist
-        del *.spec
-        move build build_main
-        
+
+      - name: Cleaning up build(Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          del dist
+          del *.spec
+          move build build_main
+
       - name: Cleaning up build
         if: ${{ runner.os != 'Windows' }}
         run: |
           rm -rf dist/ __pycache__/ build/ *.spec
 
       - name: Build tool(Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        pyinstaller -F ${env:V1-PATH}tool.py
-        move dist\tool.exe .\
-    
-    - name: Build tool
-      if: ${{ runner.os != 'Windows' }}
-      run: |
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          pyinstaller -F ${env:V1-PATH}tool.py
+          move dist\tool.exe .\
+
+      - name: Build tool
+        if: ${{ runner.os != 'Windows' }}
+        run: |
         pyinstaller -F ${V1-PATH}tool.py
         mv ./dist/tool ./
-        
-        
-    - name: Upload build
+
+      - name: Upload build
       uses: actions/upload-artifact@v3
       with:
         name: Mys_Goods_Tool-${{ runner.os }}-x86_64
