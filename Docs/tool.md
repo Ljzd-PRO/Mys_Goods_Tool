@@ -1,5 +1,5 @@
 # `tool` 工具 使用说明
-**❕注意：`tool`工具即[`tool.py`](/tool.py)，或`tool.exe`**
+**❕注意：`tool`工具即[`tool.py`](/mys_goods_tool_v1/tool.py)，或`tool.exe`**
 
 适用于 **v1.4.3** 即当前版本
 

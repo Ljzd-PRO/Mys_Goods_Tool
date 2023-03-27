@@ -50,7 +50,8 @@ iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[�
 | Stop_Check | 距离开始兑换还剩多久停止检查网络<br>（单位 秒） |
 | Thread | 每个商品使用多少线程进行兑换<br>（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
 
-#### **更多说明: [🔗config.ini](./config.ini)**
+#### **更多说明: [🔗config.ini](mys_goods_tool_v1/config.ini)**
+
 #### **示例**
 ```ini
 [Config]
