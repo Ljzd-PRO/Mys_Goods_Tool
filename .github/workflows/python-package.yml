@@ -10,13 +10,11 @@ on:
     paths:
       - './mys_goods_tool'
       - 'pyproject.toml'
-      - '.github/workflows/**'
   pull_request:
     branches: [ "stable", "dev" ]
     paths:
       - './mys_goods_tool'
       - 'pyproject.toml'
-      - '.github/workflows/**'
 
 permissions:
   contents: read
