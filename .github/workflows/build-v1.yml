@@ -9,12 +9,10 @@ on:
     paths:
       - './mys_goods_tool_v1'
       - 'requirements.txt'
-      - '.github/workflows/**'
   pull_request:
     paths:
       - './mys_goods_tool_v1'
       - 'requirements.txt'
-      - '.github/workflows/**'
 
 permissions:
   contents: read
