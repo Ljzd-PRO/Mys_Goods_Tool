@@ -3,7 +3,6 @@ import json
 import os
 import random
 import string
-import sys
 import time
 import traceback
 import uuid
@@ -27,7 +26,7 @@ LOG_FORMAT: str = (
 )
 """默认日志格式"""
 
-logger.add(sys.stdout, diagnose=False, format=LOG_FORMAT, level="INFO")
+logger.remove()
 logger.add(conf.preference.log_path, diagnose=True, format=LOG_FORMAT, level="DEBUG")
 
 
@@ -237,10 +236,12 @@ def get_free_port(host: str = "localhost"):
         port = random.randint(PORT_RANGE[0], PORT_RANGE[1])
         with socket(AF_INET, SOCK_STREAM) as sock:
             res = sock.connect_ex((host, port))
-            if res == 0:
+            if res:
                 return port
             else:
                 used_port.add(port)
+    logger.error("未找到可用端口")
+    return
 
 
 class Subscribe:
