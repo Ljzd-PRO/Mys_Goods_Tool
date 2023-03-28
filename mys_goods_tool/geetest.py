@@ -2,15 +2,14 @@ import json
 import os
 import traceback
 from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
-from multiprocessing import Pool
 from threading import Thread
-from typing import Any, Optional, Callable, Tuple
+from typing import Any, Optional, Callable, Tuple, List
 from urllib import parse
 
 from data_model import GeetestResult
 from user_data import ROOT_PATH
 from user_data import config as conf
-from utils import logger, get_free_port
+from utils import logger, get_free_port, ProcessManager
 
 STATIC_DIRECTORY = ROOT_PATH / "geetest-webui"
 
@@ -79,67 +78,13 @@ class GeetestHandler(SimpleHTTPRequestHandler):
             with open(file_path, "rb") as file:
                 self.wfile.write(file.read())
         except FileNotFoundError:
-            logger.error(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但请求文件不存在或不可读")
+            logger.warning(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但请求文件 {self.path} 不存在或不可读")
             logger.debug(traceback.format_exc())
             self.send_error(404)
         except:
             logger.error(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但处理请求时发生错误")
             logger.debug(traceback.format_exc())
             self.send_error(500)
-
-
-class GeetestProcess:
-    """
-    GEETEST行为验证HTTP服务器进程相关
-    """
-    httpd: ThreadingHTTPServer
-    """GEETEST行为验证HTTP服务器实例"""
-
-    @classmethod
-    def run(cls, listen_address: Tuple[str, int]):
-        """
-        进程所执行的任务，被阻塞（启动HTTP服务器）
-        """
-        cls.httpd = ThreadingHTTPServer(listen_address, GeetestHandler)
-        logger.info(
-            f"HTTP服务器 - 监听地址：http://{listen_address[0]}:{listen_address[1]}")
-        cls.httpd.serve_forever()
-
-
-class GeetestProcessManager:
-    """
-    异步GEETEST验证服务器，包含进程池对象
-
-    注意：由于进程池对象不能被序列化，因此进程对象保存在外部。
-    因此，目前仅能创建一个HTTP服务器实例/线程
-    """
-
-    def __init__(self, listen_address: Tuple[str, int], result_callback: Callable[[GeetestHandler, GeetestResult], Any],
-                 httpd_close_callback: Callable, error_httpd_callback: Callable):
-        """
-        初始化异步GEETEST验证服务器，包含进程池对象
-
-        :param listen_address: HTTP服务器监听地址
-        :param result_callback: 接收验证结果数据的回调函数
-        :param httpd_close_callback: HTTP服务器正常结束后的回调函数
-        :param error_httpd_callback: HTTP服务器发生错误后的回调函数
-        """
-        self.pool = None
-        """进程池"""
-        self.listen_address = listen_address
-        self.result_callback = result_callback
-        self.httpd_close_callback = httpd_close_callback
-        self.error_httpd_callback = error_httpd_callback
-
-    def start(self):
-        """
-        创建进程池并启动HTTP服务器
-        """
-        self.pool = Pool(1)
-        GeetestHandler.result_callback = self.result_callback
-        self.pool.apply_async(GeetestProcess.run, [self.listen_address], callback=self.httpd_close_callback,
-                              error_callback=self.error_httpd_callback)
-        self.pool.close()
 
 
 def set_listen_address():
@@ -163,8 +108,69 @@ def set_listen_address():
             return "localhost", get_free_port()
 
 
-async def async_set_listen_address():
-    return set_listen_address()
+class GeetestProcess:
+    """
+    GEETEST行为验证HTTP服务器 进程相关
+    （可被pickle序列化的对象类型有限，给该类引入新的数据时需要注意）
+    """
+    httpd_pool: List[ThreadingHTTPServer] = []
+    """GEETEST行为验证HTTP服务器实例列表"""
+
+    @classmethod
+    def run(cls, listen_address: Tuple[str, int]):
+        """
+        进程所执行的任务，被阻塞（启动HTTP服务器）
+
+        :param listen_address HTTP服务器监听地址
+        """
+        cls.httpd_pool.append(ThreadingHTTPServer(listen_address, GeetestHandler))
+        logger.info(
+            f"HTTP服务器 - 监听地址：http://{listen_address[0]}:{listen_address[1]}")
+        cls.httpd_pool[-1].serve_forever()
+
+    def __getitem__(self, item: int):
+        if item != -1 and len(self.httpd_pool) > item:
+            return self.httpd_pool[item]
+        else:
+            return None
+
+
+class GeetestProcessManager(ProcessManager):
+    """
+    异步GEETEST验证服务器，包含进程池对象
+    """
+
+    def __init__(self, listen_address: Tuple[str, int], result_callback: Callable[[GeetestHandler, GeetestResult], Any],
+                 httpd_close_callback: Callable, error_httpd_callback: Callable):
+        """
+        初始化异步GEETEST验证服务器，包含进程池对象
+
+        :param listen_address: HTTP服务器监听地址
+        :param result_callback: 接收验证结果数据的回调函数
+        :param httpd_close_callback: HTTP服务器正常结束后的回调函数
+        :param error_httpd_callback: HTTP服务器发生错误后的回调函数
+        """
+        super().__init__(httpd_close_callback, error_httpd_callback)
+        self.listen_address = listen_address
+        self.result_callback = result_callback
+        self.httpd_index = -1
+        """线程所操作的对象的索引"""
+
+    def start(self, *_):
+        """
+        创建进程池并启动HTTP服务器
+        """
+        GeetestHandler.result_callback = self.result_callback
+        self.httpd_index = len(GeetestProcess.httpd_pool)
+        super().start(GeetestProcess.run, [self.listen_address])
+
+
+class SetAddressProcessManager(ProcessManager):
+    def start(self, *_):
+        """
+        创建进程池并开始寻找可用的地址
+        """
+        super().start(set_listen_address, [])
 
 
 class GeetestServerThread(Thread):
