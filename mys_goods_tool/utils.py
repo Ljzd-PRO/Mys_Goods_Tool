@@ -6,8 +6,9 @@ import string
 import time
 import traceback
 import uuid
+from multiprocessing import Pool
 from socket import socket, AF_INET, SOCK_STREAM
-from typing import Literal, Union, Dict, List, Any
+from typing import Literal, Union, Dict, List, Any, Callable, Iterable
 from urllib.parse import urlencode
 
 import httpx
@@ -302,3 +303,31 @@ class Subscribe:
 
             self.index += 1
             return True
+
+
+class ProcessManager:
+    """
+    异步进程管理器
+    """
+
+    def __init__(self, callback: Callable, error_callback: Callable):
+        """
+        初始化异步进程管理器，包含进程池对象
+
+        :param callback: 线程任务正常执行结束后的回调函数
+        :param error_callback: 线程任务执行发生错误后的回调函数
+        """
+        self.pool = None
+        """进程池"""
+        self.callback = callback
+        """线程任务正常执行结束后的回调函数"""
+        self.error_callback = error_callback
+        """线程任务执行发生错误后的回调函数"""
+
+    def start(self, process_func: Callable, process_params: Iterable):
+        """
+        创建进程池并启动线程任务
+        """
+        self.pool = Pool(1)
+        self.pool.apply_async(process_func, process_params, callback=self.callback, error_callback=self.error_callback)
+        self.pool.close()
