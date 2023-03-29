@@ -75,8 +75,8 @@ jobs:
       - name: Build tool
         if: ${{ runner.os != 'Windows' }}
         run: |
-        pyinstaller -F ${{ vars.V1_PATH }}tool.py
-        mv ./dist/tool ./
+          pyinstaller -F ${{ vars.V1_PATH }}tool.py
+          mv ./dist/tool ./
 
       - name: Upload build
         uses: actions/upload-artifact@v3
