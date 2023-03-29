@@ -312,12 +312,12 @@ class ProcessManager:
 
     def __init__(self, callback: Callable, error_callback: Callable):
         """
-        初始化异步进程管理器，包含进程池对象
+        创建进程池，初始化异步进程管理器，包含进程池对象
 
         :param callback: 线程任务正常执行结束后的回调函数
         :param error_callback: 线程任务执行发生错误后的回调函数
         """
-        self.pool = None
+        self.pool = Pool(1)
         """进程池"""
         self.callback = callback
         """线程任务正常执行结束后的回调函数"""
@@ -326,8 +326,7 @@ class ProcessManager:
 
     def start(self, process_func: Callable, process_params: Iterable):
         """
-        创建进程池并启动线程任务
+        并启动线程任务
         """
-        self.pool = Pool(1)
         self.pool.apply_async(process_func, process_params, callback=self.callback, error_callback=self.error_callback)
         self.pool.close()
