@@ -220,17 +220,17 @@ class Good:
         if stoken != "..." and stoken != "" and "stoken" not in cookie:
             cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif "stoken" not in cookie:
+        elif "stoken" in cookie:
             stoken = cookie["stoken"]
         else:
             stoken = None
 
-        # 从 Cookie 中获取游戏UID
+        # 从 Cookie 中获取米游社 UID
+        bbs_uid = ""
         for target in ("ltuid", "account_id", "stuid"):
-            if target not in cookie:
-                bbs_uid = ""
+            if target in cookie:
+                bbs_uid = cookie[target]
                 break
-            bbs_uid = cookie[target]
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
         exit(1)
