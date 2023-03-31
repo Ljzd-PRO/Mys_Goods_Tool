@@ -601,7 +601,10 @@ def complete_cookie() -> None:
             """)
             print(command)
             if pyperclip_import_result:
-                pyperclip.copy(command)
+                try:
+                    pyperclip.copy(command)
+                except PyperclipException:
+                    print("拷贝至剪切板失败，你可以手动复制")
                 print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
             print("\n> 3. 粘贴第一次查找到的Cookie:")
             origin_cookie = input("> ")
@@ -781,7 +784,10 @@ def onekey_cookie() -> None:
         url = "https://user.mihoyo.com/#/login/captcha"
         print("> 1. 进入 {}".format(url))
         if pyperclip_import_result:
-            pyperclip.copy(url)
+            try:
+                pyperclip.copy(command)
+            except PyperclipException:
+                print("拷贝至剪切板失败，你可以手动复制")
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
         print("""\
 > 2. 在浏览器中输入手机号并获取验证码，但不要使用验证码登录")
