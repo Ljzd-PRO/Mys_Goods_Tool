@@ -17,6 +17,7 @@ try:
     import pyperclip
 except ImportError:
     print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
+    pyperclip = None
     pyperclip_import_result = False
 
 VERSION = "v1.4.4"
@@ -603,7 +604,7 @@ def complete_cookie() -> None:
             if pyperclip_import_result:
                 try:
                     pyperclip.copy(command)
-                except PyperclipException:
+                except pyperclip.PyperclipException:
                     print("拷贝至剪切板失败，你可以手动复制")
                 print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。")
             print("\n> 3. 粘贴第一次查找到的Cookie:")
@@ -785,8 +786,8 @@ def onekey_cookie() -> None:
         print("> 1. 进入 {}".format(url))
         if pyperclip_import_result:
             try:
-                pyperclip.copy(command)
-            except PyperclipException:
+                pyperclip.copy(url)
+            except pyperclip.PyperclipException:
                 print("拷贝至剪切板失败，你可以手动复制")
             print("-- 已自动拷贝至剪切板，若没有成功，需要手动复制。\n")
         print("""\
