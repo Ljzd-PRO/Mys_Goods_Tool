@@ -12,7 +12,7 @@
 </div>
 
 ### 紧急修复（基于v1.4.4）
-https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/runs/4574713068
+https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/runs/4583909169
 
 **🎉 iOS
 iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
