@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import traceback
-from typing import NamedTuple, Tuple
+import queue
+from typing import NamedTuple, Tuple, Optional
 
 from importlib_metadata import version
 from rich.console import RenderableType
@@ -11,8 +11,9 @@ from rich.pretty import Pretty
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal
+from textual.containers import Container, Horizontal, Vertical
 from textual.dom import DOMNode
+from textual.events import Event
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import (
@@ -23,12 +24,12 @@ from textual.widgets import (
     Input,
     Static,
     Switch,
-    TextLog, LoadingIndicator, Tree
+    TextLog, LoadingIndicator, Tree, RadioButton
 )
 
 from api import create_mobile_captcha, create_mmt
-from data_model import GeetestResult, MmtData, CreateMobileCaptchaStatus
-from geetest import GeetestHandler, GeetestProcessManager, SetAddressProcessManager
+from data_model import GeetestResult, MmtData
+from geetest import GeetestProcessManager, SetAddressProcessManager
 from utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -115,17 +116,6 @@ DATA = {
     ],
 }
 
-WIDGETS_MD = """
-
-通过短信验证登录绑定米游社账号
-
-Build your own or use the builtin widgets.
-
-- **Account** Text / Password input.
-- **PassWD** Clickable button with a number of styles.
-
-"""
-
 NONE = "none"
 """显示（CSS display 属性 - none）"""
 BLOCK = "block"
@@ -176,6 +166,18 @@ DataTable.DEFAULT_CSS += """
 Tree.DEFAULT_CSS += """
     Tree {
         margin: 1 0;
+    }
+    """
+Vertical.DEFAULT_CSS += """
+    Vertical {
+        height: auto;
+        layout: vertical;
+    }
+    """
+Horizontal.DEFAULT_CSS += """
+    Horizontal {
+        height: auto;
+        layout: horizontal;
     }
     """
 
@@ -310,10 +312,12 @@ class SubTitle(Static):
 
 
 class LoginForm(Container):
+    """
+    登录表单
+    """
     DEFAULT_CSS = """
     LoginForm {
         height: auto;
-        margin: 1 0;
         padding: 1 2;
         layout: grid;
         grid-size: 2;
@@ -333,6 +337,170 @@ class LoginForm(Container):
         text-align: right;
     }
     """
+
+
+class RadioStatus(RadioButton, can_focus=False):
+    """
+    完成的进度节点，不允许点击交互
+    可通过触发事件以即时修改value属性
+    """
+
+    class ChangeStatus(Event):
+        """
+        请求按钮状态修改的事件
+        """
+
+        def __init__(self, radio_status: RadioStatus):
+            self.radio_status = radio_status
+            super().__init__()
+
+    class TurnOn(ChangeStatus):
+        """请求按钮状态修改为亮起的事件"""
+        pass
+
+    class TurnOff(ChangeStatus):
+        """请求按钮状态修改为熄灭的事件"""
+        pass
+
+    def turn_on(self):
+        """修改按钮状态为亮起"""
+        self.post_message(RadioStatus.TurnOn(self))
+
+    def turn_off(self):
+        """修改按钮状态为熄灭"""
+        self.post_message(RadioStatus.TurnOff(self))
+
+    def toggle(self) -> None:
+        """
+        重写按钮交互，交互时不会改变按钮状态
+        """
+        pass
+
+
+class StaticStatus(Static):
+    """
+    实时文本说明，可通过触发事件以即时修改文本属性
+    """
+
+    class ChangeRenderable(Event):
+        """
+        请求renderable属性（此处与文本相关）修改的事件
+        """
+
+        def __init__(self, static_status: StaticStatus, renderable: RenderableType):
+            self.static_status = static_status
+            self.renderable = renderable
+            super().__init__()
+
+    def change_renderable(self, renderable: RenderableType) -> None:
+        """修改renderable属性（此处与文本相关）"""
+        self.post_message(StaticStatus.ChangeRenderable(self, renderable))
+
+
+class LoginInformation(Container):
+    class Tips(Container):
+        DEFAULT_CSS = """
+        Tips {
+            height: 100%;
+            width: 45%;
+            align: right middle;
+            margin: 0 2 0 0;
+            padding: 1;
+            overflow: hidden;
+            border: round #666;
+        }
+    
+        App.-light-mode Tips {
+            border: round #CCC;
+        }
+        
+        Tips>StaticStatus {
+            width: 100%;
+            margin: 0 0 1 0;
+            text-align: center;
+        }
+        """
+
+    class StepSet(Container):
+        DEFAULT_CSS = """
+        StepSet {
+            height: auto;
+            width: 45%;
+            align: left middle;
+            margin: 0 2 0 0;
+            overflow: hidden;
+            border: round #666;
+        }
+        
+        StepSet RadioStatus {
+            margin: 1 2;
+        }
+        """
+
+    DEFAULT_CSS = """
+    LoginInformation {
+        height: auto;
+        width: 100%;
+        margin: 1 0;
+        overflow: hidden;
+    }
+    
+    LoginInformation Horizontal {
+        align: center middle;
+    }
+    
+    
+    """
+    RadioTuple = NamedTuple("RadioTuple",
+                            create_geetest=RadioStatus,
+                            http_server=RadioStatus,
+                            finish_geetest=RadioStatus,
+                            create_captcha=RadioStatus,
+                            login=RadioStatus
+                            )
+
+    StaticTuple = NamedTuple("StaticTuple",
+                             save_title=StaticStatus,
+                             save_text=StaticStatus,
+                             geetest_title=StaticStatus,
+                             geetest_text=StaticStatus
+                             )
+
+    radio_tuple = RadioTuple(
+        create_geetest=RadioStatus("短信验证码 - 申请人机验证任务"),
+        http_server=RadioStatus("开启人机验证网页服务器"),
+        finish_geetest=RadioStatus("完成人机验证"),
+        create_captcha=RadioStatus("发出短信验证码"),
+        login=RadioStatus("完成登录")
+    )
+
+    static_tuple = StaticTuple(
+        save_title=StaticStatus(Markdown("## 下一个账号将保存至")),
+        save_text=StaticStatus("..."),
+        geetest_title=StaticStatus(Markdown("## GEETEST人机验证链接")),
+        geetest_text=StaticStatus("- 暂无需要完成的人机验证任务 -")
+    )
+
+    radio_set = StepSet(*radio_tuple)
+    static_set = Tips(*static_tuple)
+
+    def compose(self) -> ComposeResult:
+        yield Horizontal(self.radio_set, self.static_set)
+
+    async def on_event(self, event: Event) -> None:
+        """
+        重写事件处理，在收到请求修改LoginInformation内的各种组件属性的事件时，完成修改
+        这是因为组件只会在事件结束后进行刷新，如果有事件需要修改多个组件属性，就无法一个个生效，需要交由新的事件处理。
+
+        :param event: 事件
+        """
+        if isinstance(event, RadioStatus.TurnOn):
+            event.radio_status.value = True
+        elif isinstance(event, RadioStatus.TurnOff):
+            event.radio_status.value = False
+        elif isinstance(event, StaticStatus.ChangeRenderable):
+            event.static_status.renderable = event.renderable
+        await super().on_event(event)
 
 
 class ButtonDisplay(Button):
@@ -461,7 +629,7 @@ class Sidebar(Container):
 
     def compose(self) -> ComposeResult:
         yield Title("Mys_Goods_Tool")
-        yield OptionGroup(Message(MESSAGE), Version())
+        yield OptionGroup(Message("MESSAGE"), Version())
         yield DarkSwitch()
 
 
@@ -498,16 +666,6 @@ class LocationLink(Static):
 
 
 class CaptchaForm(LoginForm):
-    geetest_result: GeetestResult
-    """人机验证结果数据"""
-    mmt_data: MmtData
-    """GEETEST行为验证任务数据"""
-    create_captcha_status: CreateMobileCaptchaStatus
-    """接收人机验证的返回情况"""
-    geetest_server_manager: GeetestProcessManager
-    """包含进程池的GEETEST验证HTTP服务器线程管理器"""
-    set_address_manager: SetAddressProcessManager
-    """包含进程池的可用监听地址获取线程管理器"""
     input = Input(placeholder="手机号", id="phone")
     """手机号输入框"""
 
@@ -516,6 +674,18 @@ class CaptchaForm(LoginForm):
 
     def __init__(self):
         super().__init__()
+
+        self.mmt_data: Optional[MmtData] = None
+        """GEETEST行为验证任务数据"""
+        self.geetest_manager: Optional[GeetestProcessManager] = None
+        """包含进程池的GEETEST验证HTTP服务器 进程管理器"""
+        self.set_address_manager = SetAddressProcessManager(self.set_address_callback,
+                                                            self.set_address_error_callback)
+        """包含进程池的可用监听地址获取 进程管理器"""
+        self.listen_result_task: Optional[asyncio.Task] = None
+        """等待GEETEST验证结果的异步任务"""
+        self.loop = asyncio.get_event_loop()
+        """事件循环"""
 
         self.loading = LoadingIndicator()
         self.loading.display = NONE
@@ -537,50 +707,76 @@ class CaptchaForm(LoginForm):
         yield self.loading
 
     def close_create_captcha_send(self):
+        """
+        关闭发送短信验证码按钮
+        """
         self.loading.display = NONE
         self.button.send.hide()
         self.button.send.disabled = False
 
-    def httpd_callback(self):
-        if self.create_captcha_status:
-            self.button.success.display = BLOCK
-        else:
-            self.button.error.display = BLOCK
-
-    def httpd_error_callback(self, _: BaseException):
-        logger.error("HTTP服务器 - 启动失败")
-        logger.debug(traceback.format_exc())
+    def httpd_error_callback(self, exception: BaseException):
+        """
+        GEETEST验证HTTP服务器启动失败时的回调函数
+        """
+        logger.error("用于Geetest验证的HTTP服务器启动失败")
+        logger.debug(exception)
         self.button.stop_geetest.hide()
         self.button.error.show()
 
-    @classmethod
-    def get_result(cls, _: GeetestHandler, result: GeetestResult):
-        CaptchaForm.geetest_result = result
-        coroutine = create_mobile_captcha(int(cls.input.value), CaptchaForm.mmt_data, result)
-        loop = asyncio.get_event_loop()
-        CaptchaForm.create_captcha_status = loop.run_until_complete(coroutine)
-        if CaptchaForm.create_captcha_status:
-            cls.geetest_server_manager.pool.terminate()
+    async def listen_result(self):
+        """
+        等待GEETEST验证结果的异步任务
+        """
+        while True:
+            await asyncio.sleep(1)
+            try:
+                geetest_result: GeetestResult = self.geetest_manager.result_queue.get_nowait()
+            except queue.Empty:
+                continue
+            else:
+                logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
+                LoginInformation.radio_tuple.finish_geetest.value = True
+                self.loading.display = BLOCK
+                if await create_mobile_captcha(int(self.input.value), self.mmt_data, geetest_result):
+                    self.loading.display = NONE
+                    logger.info(f"短信验证码已发送至 {self.input.value}")
+                    LoginInformation.radio_tuple.create_captcha.value = True
+                    self.geetest_manager.pipe[1].send(True)
+                    await self.geetest_manager.force_stop_later(10)
+                    self.button.success.show()
+                    self.button.stop_geetest.hide()
+                    break
+                self.loading.display = NONE
 
     def set_address_callback(self, address: Tuple[str, int]):
+        """
+        可用监听地址获取成功时的回调函数
+
+        :param address: 返回的可用地址
+        """
         if not address:
             self.close_create_captcha_send()
             self.button.error.show()
             return
-        self.geetest_server_manager = GeetestProcessManager(address, self.get_result, self.httpd_callback,
-                                                            self.httpd_error_callback)
-        self.geetest_server_manager.start()
+        self.geetest_manager = GeetestProcessManager(address, error_httpd_callback=self.httpd_error_callback)
+        logger.info(f"尝试在 http://{address[0]}:{address[1]} 上启动用于Geetest验证的HTTP服务器")
+        self.geetest_manager.start()
         self.close_create_captcha_send()
         self.button.stop_geetest.show()
+        LoginInformation.radio_tuple.http_server.turn_on()
+        LoginInformation.static_tuple.geetest_text.change_renderable(f"http://{address[0]}:{address[1]}/index.html?"
+                                                                     f"gt={self.mmt_data.gt}&"
+                                                                     f"challenge={self.mmt_data.challenge}")
+        self.listen_result_task = self.loop.create_task(self.listen_result())
 
-    def set_address_error_callback(self):
+    def set_address_error_callback(self, exception: BaseException):
         logger.error("尝试异步获取可用HTTP监听地址失败")
-        logger.debug(traceback.format_exc())
+        logger.debug(exception)
         self.close_create_captcha_send()
         self.button.error.show()
         return
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "create_captcha_send":
             self.button.send.disabled = True
             self.loading.display = BLOCK
@@ -590,15 +786,21 @@ class CaptchaForm(LoginForm):
                 self.close_create_captcha_send()
                 self.button.error.show()
                 return
-
-            self.set_address_manager = SetAddressProcessManager(self.set_address_callback,
-                                                                self.set_address_error_callback)
-            self.set_address_manager.start()
+            else:
+                logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
+                LoginInformation.radio_tuple.create_geetest.turn_on()
+                self.mmt_data = create_mmt_result[1]
+                self.set_address_manager.start()
 
         elif event.button.id == "create_captcha_stop_geetest":
-            self.geetest_server_manager.pool.terminate()
+            LoginInformation.radio_tuple.create_geetest.turn_off()
+            LoginInformation.radio_tuple.http_server.turn_off()
+            LoginInformation.radio_tuple.finish_geetest.turn_off()
+            LoginInformation.radio_tuple.create_captcha.turn_off()
+            self.geetest_manager.pipe[1].send(True)
             self.button.stop_geetest.hide()
             self.button.send.show()
+            await self.geetest_manager.force_stop_later(10)
 
         elif event.button.id in ["create_captcha_success", "create_captcha_error"]:
             self.button.success.hide()
@@ -719,7 +921,7 @@ class TuiApp(App[None]):
                 Column(
                     Section(
                         SectionTitle("米游社账号登录绑定"),
-                        TextContent(Markdown(WIDGETS_MD)),
+                        LoginInformation(),
                         CaptchaForm(),
                         GetCookieForm(),
                         DataTable(),
@@ -757,7 +959,7 @@ class TuiApp(App[None]):
 
     def on_mount(self) -> None:
         logger.add(self.query_one(TextLog).write, diagnose=False, level="DEBUG", format=LOG_FORMAT)
-        self.add_note("Mys_Goods_Tool 开始运行")
+        logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
 
     def action_screenshot(self, filename: str | None = None, path: str = "./") -> None:
