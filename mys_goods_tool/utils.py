@@ -6,9 +6,9 @@ import string
 import time
 import traceback
 import uuid
-from multiprocessing import Pool
+from multiprocessing import Pool, pool
 from socket import socket, AF_INET, SOCK_STREAM
-from typing import Literal, Union, Dict, List, Any, Callable, Iterable
+from typing import Literal, Union, Dict, List, Any, Callable, Iterable, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -241,7 +241,7 @@ def get_free_port(host: str = "localhost"):
                 return port
             else:
                 used_port.add(port)
-    logger.error("未找到可用端口")
+    logger.error("获取随机可用端口 - 未找到可用端口")
     return
 
 
@@ -310,14 +310,14 @@ class ProcessManager:
     异步进程管理器
     """
 
-    def __init__(self, callback: Callable, error_callback: Callable):
+    def __init__(self, callback: Optional[Callable] = None, error_callback: Optional[Callable] = None):
         """
         创建进程池，初始化异步进程管理器，包含进程池对象
 
         :param callback: 线程任务正常执行结束后的回调函数
         :param error_callback: 线程任务执行发生错误后的回调函数
         """
-        self.pool = Pool(1)
+        self.pool: Optional[pool.Pool] = None
         """进程池"""
         self.callback = callback
         """线程任务正常执行结束后的回调函数"""
@@ -328,5 +328,6 @@ class ProcessManager:
         """
         并启动线程任务
         """
+        self.pool = Pool(1)
         self.pool.apply_async(process_func, process_params, callback=self.callback, error_callback=self.error_callback)
         self.pool.close()

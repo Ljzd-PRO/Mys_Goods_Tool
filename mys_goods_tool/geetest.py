@@ -1,7 +1,12 @@
+import asyncio
 import json
 import os
+import threading
 import traceback
 from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
+from multiprocessing import Pipe, Manager, connection
+from multiprocessing.connection import Connection
+from queue import Queue
 from threading import Thread
 from typing import Any, Optional, Callable, Tuple
 from urllib import parse
@@ -49,7 +54,8 @@ class GeetestHandler(SimpleHTTPRequestHandler):
                 seccode = params.get("seccode")
                 validate = params.get("validate")
                 if not seccode or not validate:
-                    logger.error(f"HTTP服务器 - 收到 {self.address_string()} 的验证结果，但URL参数缺少 seccode 和 validate")
+                    logger.error(
+                        f"HTTP服务器 - 收到 {self.address_string()} 的验证结果，但URL参数缺少 seccode 和 validate")
                     self.send_error(400, "Bad request, missing URL params `seccode` and `validate`")
                 else:
                     geetest_result = GeetestResult(seccode=seccode[0], validate=validate[0])
@@ -115,15 +121,40 @@ class GeetestProcess:
     """
     httpd: ThreadingHTTPServer
     """GEETEST行为验证HTTP服务器实例"""
+    pipe: Tuple[Connection]
+    """进程间通信管道，用于终止HTTP服务器"""
+    geetest_result_queue: Queue[GeetestResult]
+    """由Manager管理的验证结果数据"""
+    wait_thread: Thread
 
     @classmethod
-    def run(cls, listen_address: Tuple[str, int]):
+    def result_callback(cls, result: GeetestResult):
+        """
+        给主进程发送验证结果
+        """
+        cls.geetest_result_queue.put(result)
+
+    @classmethod
+    def wait_until_stop(cls):
+        connection.wait([cls.pipe[0]])
+        cls.httpd.shutdown()
+        logger.info(f"HTTP服务器 - 运行于 {cls.httpd.server_address} 的服务器已停止")
+
+    @classmethod
+    def run(cls, listen_address: Tuple[str, int], pipe: Tuple[Connection], geetest_result_queue: Queue[GeetestResult]):
         """
         进程所执行的任务，被阻塞（启动HTTP服务器）
 
         :param listen_address HTTP服务器监听地址
+        :param pipe 进程间通信管道，用于终止HTTP服务器
+        :param geetest_result_queue 由Manager管理的验证结果数据
         """
+        cls.pipe = pipe
+        cls.geetest_result_queue = geetest_result_queue
+        GeetestHandler.result_callback = cls.result_callback
         cls.httpd = ThreadingHTTPServer(listen_address, GeetestHandler)
+        cls.wait_thread = threading.Thread(target=cls.wait_until_stop, daemon=True)
+        cls.wait_thread.start()
         logger.info(
             f"HTTP服务器 - 监听地址：http://{listen_address[0]}:{listen_address[1]}")
         cls.httpd.serve_forever()
@@ -134,26 +165,32 @@ class GeetestProcessManager(ProcessManager):
     异步GEETEST验证服务器，包含进程池对象
     """
 
-    def __init__(self, listen_address: Tuple[str, int], result_callback: Callable[[GeetestHandler, GeetestResult], Any],
-                 httpd_close_callback: Callable, error_httpd_callback: Callable):
+    def __init__(self, listen_address: Tuple[str, int], httpd_close_callback: Optional[Callable] = None,
+                 error_httpd_callback: Optional[Callable] = None):
         """
         创建进程池，初始化异步GEETEST验证服务器，包含进程池对象
 
         :param listen_address: HTTP服务器监听地址
-        :param result_callback: 接收验证结果数据的回调函数
         :param httpd_close_callback: HTTP服务器正常结束后的回调函数
         :param error_httpd_callback: HTTP服务器发生错误后的回调函数
         """
         self.listen_address = listen_address
-        self.result_callback = result_callback
+        self.pipe: Tuple[Connection] = Pipe(duplex=False)
+        self.result_queue: Queue[GeetestResult] = Manager().Queue()
+
         super().__init__(httpd_close_callback, error_httpd_callback)
 
     def start(self, *_):
         """
         启动HTTP服务器
         """
-        GeetestHandler.result_callback = self.result_callback
-        super().start(GeetestProcess.run, [self.listen_address])
+        super().start(GeetestProcess.run, [self.listen_address, self.pipe, self.result_queue])
+
+    async def force_stop_later(self, delay: float):
+        """
+        延迟一段时间后强制停止HTTP服务器
+        """
+        asyncio.get_event_loop().call_later(delay, self.pool.terminate)
 
 
 class SetAddressProcessManager(ProcessManager):
@@ -189,7 +226,7 @@ class GeetestServerThread(Thread):
         关闭HTTP服务器
         """
         self.httpd.shutdown()
-        logger.info("HTTP服务器 - 已关闭")
+        logger.info(f"HTTP服务器 - 运行于 {self.httpd.server_address} 的服务器已停止")
 
 
 def __get_result_demo(_: GeetestHandler, geetest_result: GeetestResult):
