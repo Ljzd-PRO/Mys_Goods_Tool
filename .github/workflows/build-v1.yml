@@ -2,15 +2,6 @@ name: Build and pack (v1)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - stable
-      - dev
-
-  pull_request:
-    branches:
-      - stable
-      - dev
 
 permissions:
   contents: read
