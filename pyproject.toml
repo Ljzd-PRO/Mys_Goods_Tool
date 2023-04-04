@@ -16,9 +16,8 @@ pyperclip = "~=1.8.2"
 pydantic = "~=1.10.6"
 loguru = "~=0.6.0"
 httpx = "~=0.23.3"
-rich = "~=13.3.2"
-textual = "~=0.16.0"
-urllib3 = ">=1.21.1,<=1.26"
+rich = "~=13.3.3"
+textual = "~=0.18.0"
 charset_normalizer = ">=2.0.0,<4.0.0"
 
 [build-system]
