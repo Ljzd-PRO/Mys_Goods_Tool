@@ -647,6 +647,10 @@ async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult
 
     :param mobile_captcha_result: 短信验证结果数据
     :param retry: 是否允许重试
+
+    >>> import asyncio
+    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number=12345678910, captcha=123456))
+    >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
@@ -661,7 +665,7 @@ async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult
                                                     "&source=user.mihoyo.com",
                                             timeout=conf.preference.timeout)
                 res_json = res.json()
-                if res_json["data"]["msg"] == "验证码错误" or res_json["data"]["info"] == "Captcha not match Err":
+                if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
                     logger.info(f"短信验证码获取 login_ticket - 验证码错误")
                     return GetCookieStatus(incorrect_captcha=True), None
                 bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(
@@ -724,6 +728,10 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
 
     :param mobile_captcha_result: 短信验证结果数据
     :param retry: 是否允许重试
+
+    >>> import asyncio
+    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number=12345678910, captcha=123456))
+    >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
@@ -733,18 +741,20 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                     res = await client.post(URL_LOGIN_COOKIE_TOKEN, headers=HEADERS_LOGIN_STOKEN, json={
                         "is_bh2": False,
                         "mobile": str(mobile_captcha_result.phone_number),
-                        "captcha": mobile_captcha_result.captcha,
+                        "captcha": str(mobile_captcha_result.captcha),
                         "action_type": "login",
                         "token_type": 6
                     }, timeout=conf.preference.timeout)
                 res_json = res.json()
-                if res_json["data"]["msg"] == "验证码错误" or res_json["data"]["info"] == "Captcha not match Err":
+                if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
                     logger.info(f"登录米哈游账号 - 验证码错误")
                     return GetCookieStatus(incorrect_captcha=True), None
                 bbs_cookies = BBSCookies.parse_obj(
                     dict_from_cookiejar(res.cookies.jar))
                 if not bbs_cookies.cookie_token:
                     return GetCookieStatus(missing_cookie_token=True), None
+                elif not bbs_cookies.bbs_uid:
+                    return GetCookieStatus(missing_bbs_uid=True), None
                 else:
                     return GetCookieStatus(success=True), bbs_cookies
     except tenacity.RetryError as e:
@@ -776,9 +786,9 @@ class Exchange:
         if not account:
             account_in_plan = exchange_plan.account
             if isinstance(account_in_plan, str):
-                find_account = list(filter(lambda x: x.cookies.bbs_uid == account_in_plan, conf.accounts))
+                find_account = conf.accounts.get(account_in_plan)
                 if find_account:
-                    self.account = find_account[0]
+                    self.account = find_account
                 else:
                     self.account = None
                     logger.error(f"兑换计划的账户 {account_in_plan} 不存在")
