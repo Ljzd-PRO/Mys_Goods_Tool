@@ -2,7 +2,7 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple, Any, Dict
 
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError
@@ -72,6 +72,12 @@ class DeviceConfig(BaseModel, extra=Extra.ignore):
 class BBSCookies(BaseModel):
     """
     米游社Cookies数据
+
+    >>> assert BBSCookies().is_correct is False
+    >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct is True
+
+    >>> assert not BBSCookies().bbs_uid
+    >>> assert BBSCookies(stuid="123").bbs_uid == "123"
     """
     stuid: Optional[str]
     """米游社UID"""
@@ -113,10 +119,23 @@ class UserAccount(BaseModel, extra=Extra.ignore):
     """手机号"""
     cookies: BBSCookies
     """Cookies"""
-    device_id_ios = str
+
+    device_id_ios: str
     """iOS设备用 deviceID"""
     device_id_android: str
     """安卓设备用 deviceID"""
+
+    def __init__(self, **data: Any):
+        """
+        >>> assert isinstance(UserAccount(cookies=BBSCookies()), UserAccount)
+        """
+        if not data.get("device_id_ios") or not data.get("device_id_android"):
+            from utils import generate_device_id
+            if not data.get("device_id_ios"):
+                data.setdefault("device_id_ios", generate_device_id())
+            if not data.get("device_id_android"):
+                data.setdefault("device_id_android", generate_device_id())
+        super().__init__(**data)
 
     @property
     def bbs_uid(self):
@@ -186,13 +205,22 @@ class Config(BaseModel, extra=Extra.ignore):
     """偏好设置"""
     device_config: DeviceConfig = DeviceConfig()
     """设备信息"""
-    accounts: List[UserAccount] = []
+    accounts: Dict[str, UserAccount] = {}
     """储存一些已绑定的账号数据"""
+
+    def save(self):
+        """
+        保存配置文件
+        """
+        return write_config_file(self)
 
 
 def write_config_file(conf: Config = Config()):
+    """
+    写入配置文件
+    """
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        f.write(conf.json(indent=4))
+        return f.write(conf.json(indent=4))
 
 
 config = Config()
