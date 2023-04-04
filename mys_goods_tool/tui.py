@@ -419,6 +419,7 @@ class LocationLink(Static):
         self.reveal = reveal
 
     def on_click(self) -> None:
+        # 跳转到指定位置
         self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
 
 
