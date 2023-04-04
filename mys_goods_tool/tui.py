@@ -70,34 +70,6 @@ Here are some examples:
 
 """
 
-CSS_MD = """
-
-Textual uses Cascading Stylesheets (CSS) to create Rich interactive User Interfaces.
-
-- **Easy to learn** - much simpler than browser CSS
-- **Live editing** - see your changes without restarting the app!
-
-Here's an example of some CSS used in this app:
-
-"""
-
-EXAMPLE_CSS = """\
-Screen {
-    layers: base overlay notes;
-    overflow: hidden;
-}
-
-Sidebar {
-    width: 40;
-    background: $panel;
-    transition: offset 500ms in_out_cubic;
-    layer: overlay;
-
-}
-
-Sidebar.-hidden {
-    offset-x: -100%;
-}"""
 
 DATA = {
     "foo": [
@@ -455,7 +427,7 @@ class PhoneForm(LoginForm):
     """
     手机号 表单
     """
-    input = Input(placeholder="手机号", id="phone")
+    input = Input(placeholder="手机号", id="login_phone")
     """手机号输入框"""
 
     ButtonTuple = NamedTuple("ButtonTuple", send=ButtonDisplay, stop_geetest=ButtonDisplay, success=ButtonDisplay,
@@ -475,6 +447,8 @@ class PhoneForm(LoginForm):
         """事件循环"""
         self.loop_tasks: Set[asyncio.Task] = set()
         """异步任务集合（保留其强引用）"""
+        self.before_create_captcha = True
+        """当前状态是否处于按下“发送短信验证码”按钮之前"""
 
         self.loading = LoadingIndicator()
         self.loading.display = NONE
@@ -595,31 +569,41 @@ class PhoneForm(LoginForm):
         TuiApp.notice("[red]尝试获取可用HTTP监听地址失败！[/]")
         return
 
+    async def create_captcha(self):
+        if not self.before_create_captcha:
+            return
+        elif not self.input.value:
+            TuiApp.notice("登录信息缺少 [bold red]手机号[/] ！")
+            return
+        elif not self.input.value.isdigit():
+            TuiApp.notice("登录信息 [bold red]手机号[/] 格式错误！")
+            return
+        self.before_create_captcha = False
+
+        [i.turn_off() for i in CaptchaLoginInformation.radio_tuple]
+        self.button.send.disabled = True
+        self.loading.display = BLOCK
+
+        create_mmt_result = await create_mmt()
+        if not create_mmt_result[0]:
+            self.close_create_captcha_send()
+            self.button.error.show()
+            TuiApp.notice("[red]获取Geetest行为验证任务数据失败！[/]")
+            return
+        else:
+            logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
+            CaptchaLoginInformation.radio_tuple.create_geetest.turn_on()
+            self.mmt_data = create_mmt_result[1]
+            self.set_address_manager.start()
+
+    async def on_input_submitted(self, _: Input.Submitted):
+        await self.create_captcha()
+
     async def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "create_captcha_send":
             # 按下“发送短信验证码”按钮时触发的事件
 
-            if not self.input.value:
-                TuiApp.notice("登录信息缺少 [bold red]手机号[/] ！")
-                return
-            elif not self.input.value.isdigit():
-                TuiApp.notice("登录信息 [bold red]手机号[/] 格式错误！")
-                return
-            [i.turn_off() for i in CaptchaLoginInformation.radio_tuple]
-            self.button.send.disabled = True
-            self.loading.display = BLOCK
-
-            create_mmt_result = await create_mmt()
-            if not create_mmt_result[0]:
-                self.close_create_captcha_send()
-                self.button.error.show()
-                TuiApp.notice("[red]获取Geetest行为验证任务数据失败！[/]")
-                return
-            else:
-                logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
-                CaptchaLoginInformation.radio_tuple.create_geetest.turn_on()
-                self.mmt_data = create_mmt_result[1]
-                self.set_address_manager.start()
+            await self.create_captcha()
 
         elif event.button.id == "create_captcha_stop_geetest":
             # 按下“放弃人机验证”按钮时触发的事件
@@ -630,6 +614,7 @@ class PhoneForm(LoginForm):
             self.geetest_manager.pipe[1].send(True)
             self.button.stop_geetest.hide()
             self.button.send.show()
+            self.before_create_captcha = True
             await self.geetest_manager.force_stop_later(10)
 
         elif event.button.id in ["create_captcha_success", "create_captcha_error"]:
@@ -640,6 +625,7 @@ class PhoneForm(LoginForm):
             self.button.success.hide()
             self.button.error.hide()
             self.button.send.show()
+            self.before_create_captcha = True
 
 
 class CaptchaForm(LoginForm):
@@ -732,6 +718,7 @@ class Notification(Static):
 
 class TuiApp(App[None]):
     TITLE = "Mys_Goods_Tool"
+    """textual TUI 标题"""
     BINDINGS = [
         ("ctrl+b", "toggle_sidebar", "侧栏"),
         ("ctrl+t", "app.toggle_dark", "暗黑模式切换"),
@@ -739,6 +726,7 @@ class TuiApp(App[None]):
         ("f1", "app.toggle_class('TextLog', '-hidden')", "日志"),
         Binding("ctrl+c,ctrl+q", "app.quit", "退出", show=True),
     ]
+    """按键绑定"""
 
     show_sidebar = reactive(False)
 
@@ -754,6 +742,11 @@ class TuiApp(App[None]):
         cls.app.screen.mount(Notification(renderable))
 
     def add_note(self, renderable: RenderableType) -> None:
+        """
+        输出至日志（仅textual TUI内，而不是loguru的Logger）
+
+        :param renderable: 日志内容
+        """
         self.query_one(TextLog).write(renderable)
 
     def compose(self) -> ComposeResult:
