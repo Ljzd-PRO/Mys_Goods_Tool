@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install flake8 pytest pytest-html
           curl -sSL https://install.python-poetry.org | python3 -
-          poetry env use system
+          poetry env use python
           poetry install
 
       - name: Lint with flake8
