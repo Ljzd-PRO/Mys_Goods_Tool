@@ -17,8 +17,8 @@ on:
       - stable
       - dev
     paths:
-      - './mys_goods_tool'
-      - './mys_goods_tool_v1'
+      - 'mys_goods_tool'
+      - 'mys_goods_tool_v1'
 
   pull_request:
     # The branches below must be a subset of the branches above
@@ -26,8 +26,8 @@ on:
       - stable
       - dev
     paths:
-      - './mys_goods_tool'
-      - './mys_goods_tool_v1'
+      - 'mys_goods_tool'
+      - 'mys_goods_tool_v1'
 
 permissions:
   contents: read
