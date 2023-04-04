@@ -387,14 +387,15 @@ class StaticStatus(Static):
         请求renderable属性（此处与文本相关）修改的事件
         """
 
-        def __init__(self, static_status: StaticStatus, renderable: RenderableType):
+        def __init__(self, static_status: StaticStatus, renderable: RenderableType, text_align: Optional[str] = None):
             self.static_status = static_status
             self.renderable = renderable
+            self.text_align = text_align
             super().__init__()
 
-    def change_renderable(self, renderable: RenderableType) -> None:
+    def change_text(self, renderable: RenderableType, text_align: Optional[str] = None) -> None:
         """修改renderable属性（此处与文本相关）"""
-        self.post_message(StaticStatus.ChangeRenderable(self, renderable))
+        self.post_message(StaticStatus.ChangeRenderable(self, renderable, text_align))
 
 
 class LoginInformation(Container):
@@ -406,7 +407,8 @@ class LoginInformation(Container):
             align: right middle;
             margin: 0 2 0 0;
             padding: 1;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: auto;
             border: round #666;
         }
     
@@ -416,7 +418,7 @@ class LoginInformation(Container):
         
         Tips>StaticStatus {
             width: 100%;
-            margin: 0 0 1 0;
+            align: center top;
             text-align: center;
         }
         """
@@ -432,6 +434,10 @@ class LoginInformation(Container):
             border: round #666;
         }
         
+        App.-light-mode StepSet {
+            border: round #CCC;
+        }
+        
         StepSet RadioStatus {
             margin: 1 2;
         }
@@ -440,7 +446,6 @@ class LoginInformation(Container):
     DEFAULT_CSS = """
     LoginInformation {
         height: auto;
-        width: 100%;
         margin: 1 0;
         overflow: hidden;
     }
@@ -448,8 +453,6 @@ class LoginInformation(Container):
     LoginInformation Horizontal {
         align: center middle;
     }
-    
-    
     """
     RadioTuple = NamedTuple("RadioTuple",
                             create_geetest=RadioStatus,
@@ -460,9 +463,9 @@ class LoginInformation(Container):
                             )
 
     StaticTuple = NamedTuple("StaticTuple",
-                             save_title=StaticStatus,
+                             save_title=Static,
                              save_text=StaticStatus,
-                             geetest_title=StaticStatus,
+                             geetest_title=Static,
                              geetest_text=StaticStatus
                              )
 
@@ -474,11 +477,14 @@ class LoginInformation(Container):
         login=RadioStatus("完成登录")
     )
 
+    SAVE_TEXT = "..."
+    GEETEST_TEXT = "- 暂无需要完成的人机验证任务 -"
+
     static_tuple = StaticTuple(
-        save_title=StaticStatus(Markdown("## 下一个账号将保存至")),
-        save_text=StaticStatus("..."),
-        geetest_title=StaticStatus(Markdown("## GEETEST人机验证链接")),
-        geetest_text=StaticStatus("- 暂无需要完成的人机验证任务 -")
+        save_title=Static(Markdown("## 下一个账号将保存至")),
+        save_text=StaticStatus(SAVE_TEXT),
+        geetest_title=Static(Markdown("## GEETEST人机验证链接")),
+        geetest_text=StaticStatus(GEETEST_TEXT)
     )
 
     radio_set = StepSet(*radio_tuple)
@@ -499,7 +505,9 @@ class LoginInformation(Container):
         elif isinstance(event, RadioStatus.TurnOff):
             event.radio_status.value = False
         elif isinstance(event, StaticStatus.ChangeRenderable):
-            event.static_status.renderable = event.renderable
+            event.static_status.update(event.renderable)
+            if event.text_align:
+                event.static_status.styles.text_align = event.text_align
         await super().on_event(event)
 
 
@@ -735,12 +743,12 @@ class CaptchaForm(LoginForm):
                 continue
             else:
                 logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
-                LoginInformation.radio_tuple.finish_geetest.value = True
+                LoginInformation.radio_tuple.finish_geetest.turn_on()
                 self.loading.display = BLOCK
                 if await create_mobile_captcha(int(self.input.value), self.mmt_data, geetest_result):
                     self.loading.display = NONE
                     logger.info(f"短信验证码已发送至 {self.input.value}")
-                    LoginInformation.radio_tuple.create_captcha.value = True
+                    LoginInformation.radio_tuple.create_captcha.turn_on()
                     self.geetest_manager.pipe[1].send(True)
                     await self.geetest_manager.force_stop_later(10)
                     self.button.success.show()
@@ -764,9 +772,11 @@ class CaptchaForm(LoginForm):
         self.close_create_captcha_send()
         self.button.stop_geetest.show()
         LoginInformation.radio_tuple.http_server.turn_on()
-        LoginInformation.static_tuple.geetest_text.change_renderable(f"http://{address[0]}:{address[1]}/index.html?"
-                                                                     f"gt={self.mmt_data.gt}&"
-                                                                     f"challenge={self.mmt_data.challenge}")
+        link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
+        LoginInformation.static_tuple.geetest_text.change_text(
+            renderable=f"\n- 请前往链接进行验证：\n"
+                       f"[@click=pass]{link}[/]",
+            text_align="left")
         self.listen_result_task = self.loop.create_task(self.listen_result())
 
     def set_address_error_callback(self, exception: BaseException):
@@ -778,6 +788,12 @@ class CaptchaForm(LoginForm):
 
     async def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "create_captcha_send":
+            if not self.input.value:
+                TuiApp.notice("登录信息缺少 [bold red]手机号[/] ！")
+                return
+            elif not self.input.value.isdigit():
+                TuiApp.notice("登录信息 [bold red]手机号[/] 格式错误！")
+                return
             self.button.send.disabled = True
             self.loading.display = BLOCK
 
@@ -793,6 +809,7 @@ class CaptchaForm(LoginForm):
                 self.set_address_manager.start()
 
         elif event.button.id == "create_captcha_stop_geetest":
+            LoginInformation.static_tuple.geetest_text.change_text(LoginInformation.GEETEST_TEXT, "center")
             LoginInformation.radio_tuple.create_geetest.turn_off()
             LoginInformation.radio_tuple.http_server.turn_off()
             LoginInformation.radio_tuple.finish_geetest.turn_off()
@@ -902,6 +919,17 @@ class TuiApp(App[None]):
 
     show_sidebar = reactive(False)
 
+    app: TuiApp
+
+    @classmethod
+    def notice(cls, renderable: RenderableType) -> None:
+        """
+        发出消息通知
+
+        :param renderable: 通知内容
+        """
+        cls.app.screen.mount(Notification(renderable))
+
     def add_note(self, renderable: RenderableType) -> None:
         self.query_one(TextLog).write(renderable)
 
@@ -958,6 +986,7 @@ class TuiApp(App[None]):
             sidebar.add_class("-hidden")
 
     def on_mount(self) -> None:
+        TuiApp.app = self
         logger.add(self.query_one(TextLog).write, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
