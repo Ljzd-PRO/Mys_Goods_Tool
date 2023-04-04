@@ -7,14 +7,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ "stable", "dev" ]
-    paths:
-      - 'mys_goods_tool/'
-      - 'pyproject.toml/'
+
   pull_request:
     branches: [ "stable", "dev" ]
-    paths:
-      - 'mys_goods_tool/'
-      - 'pyproject.toml/'
 
 permissions:
   contents: read

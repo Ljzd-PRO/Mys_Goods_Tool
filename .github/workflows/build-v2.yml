@@ -6,13 +6,11 @@ on:
     branches:
       - stable
       - dev
-    paths:
-      - 'mys_goods_tool_v2/'
-      - 'pyproject.toml'
+
   pull_request:
-    paths:
-      - 'mys_goods_tool_v2/'
-      - 'pyproject.toml'
+    branches:
+      - stable
+      - dev
 
 permissions:
   contents: read

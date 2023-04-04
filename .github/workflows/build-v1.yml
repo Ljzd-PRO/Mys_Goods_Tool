@@ -6,13 +6,11 @@ on:
     branches:
       - stable
       - dev
-    paths:
-      - 'mys_goods_tool_v1/'
-      - 'requirements.txt'
+
   pull_request:
-    paths:
-      - 'mys_goods_tool_v1/'
-      - 'requirements.txt'
+    branches:
+      - stable
+      - dev
 
 permissions:
   contents: read
