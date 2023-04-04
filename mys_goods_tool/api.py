@@ -204,6 +204,17 @@ IncorrectReturn = (KeyError, TypeError, AttributeError, ValidationError)
 """米游社API返回数据无效会触发的异常组合"""
 
 
+def is_incorrect_return(exception: Exception) -> bool:
+    """判断是否是米游社API返回数据无效的异常"""
+    """
+        return exception in IncorrectReturn or
+            exception.__cause__ in IncorrectReturn or
+            isinstance(exception, IncorrectReturn) or
+            isinstance(exception.__cause__, IncorrectReturn)
+    """
+    return isinstance(exception, IncorrectReturn) or isinstance(exception.__cause__, IncorrectReturn)
+
+
 async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[GameRecord]]]:
     """
     获取用户绑定的游戏账户信息，返回一个GameRecord对象的列表
@@ -217,7 +228,7 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_RECORD.format(account.bbs_uid), headers=HEADERS_GAME_RECORD,
-                                           cookies=account.cookies.dict(), timeout=conf.preference.time_out)
+                                           cookies=account.cookies.dict(), timeout=conf.preference.timeout)
                 if not check_login(res.text):
                     logger.info(
                         f"获取用户游戏数据(GameRecord) - 用户 {account.bbs_uid} 登录失效")
@@ -225,15 +236,16 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
                     return BaseApiStatus(login_failed=True), None
                 return BaseApiStatus(success=True), list(
                     map(GameRecord.parse_obj, res.json()["data"]["list"]))
-    except IncorrectReturn:
-        logger.error(f"获取用户游戏数据(GameRecord) - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"获取用户游戏数据(GameRecord) - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"获取用户游戏数据(GameRecord) - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"获取用户游戏数据(GameRecord) - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
 
 async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[GameInfo]]]:
@@ -250,7 +262,7 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
             with attempt:
                 headers["DS"] = generate_ds()
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_GAME_LIST, headers=headers, timeout=conf.preference.time_out)
+                    res = await client.get(URL_GAME_LIST, headers=headers, timeout=conf.preference.timeout)
                 if not check_ds(res.text):
                     logger.info(
                         f"获取游戏信息(GameInfo): DS无效，正在在线获取salt以重新生成...")
@@ -259,15 +271,16 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
                     headers["DS"] = generate_ds()
                 return BaseApiStatus(success=True), list(
                     map(GameInfo.parse_obj, res.json()["data"]["list"]))
-    except IncorrectReturn:
-        logger.error(f"获取游戏信息(GameInfo) - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"获取游戏信息(GameInfo) - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"获取游戏信息(GameInfo) - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"获取游戏信息(GameInfo) - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
 
 async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseApiStatus, Optional[int]]:
@@ -283,22 +296,23 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
-                                           timeout=conf.preference.time_out)
+                                           timeout=conf.preference.timeout)
                 if not check_login(res.text):
                     logger.info(
                         f"获取用户米游币 - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_failed=True), None
                 return BaseApiStatus(success=True), int(res.json()["data"]["points"])
-    except IncorrectReturn:
-        logger.error(f"获取用户米游币 - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"获取用户米游币 - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"获取用户米游币 - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"获取用户米游币 - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
 
 async def device_login(account: UserAccount, retry: bool = True):
@@ -327,7 +341,7 @@ async def device_login(account: UserAccount, retry: bool = True):
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data,
                                             cookies=account.cookies.dict(),
-                                            timeout=conf.preference.time_out)
+                                            timeout=conf.preference.timeout)
                 if not check_login(res.text):
                     logger.info(
                         f"设备登录(device_login) - 用户 {account.bbs_uid} 登录失效")
@@ -342,15 +356,16 @@ async def device_login(account: UserAccount, retry: bool = True):
                     raise ValueError
                 else:
                     return BaseApiStatus(success=True)
-    except IncorrectReturn:
-        logger.error(f"设备登录(device_login) - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True)
-    except Exception:
-        logger.error(f"设备登录(device_login) - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True)
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"设备登录(device_login) - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True)
+        else:
+            logger.error(f"设备登录(device_login) - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True)
 
 
 async def device_save(account: UserAccount, retry: bool = True):
@@ -378,7 +393,7 @@ async def device_save(account: UserAccount, retry: bool = True):
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies.dict(),
-                                            timeout=conf.preference.time_out)
+                                            timeout=conf.preference.timeout)
                 if not check_login(res.text):
                     logger.info(
                         f"设备保存(device_save) - 用户 {account.bbs_uid} 登录失效")
@@ -392,15 +407,16 @@ async def device_save(account: UserAccount, retry: bool = True):
                     raise ValueError
                 else:
                     return BaseApiStatus(success=True)
-    except IncorrectReturn:
-        logger.error(f"设备保存(device_save) - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True)
-    except Exception:
-        logger.error(f"设备保存(device_save) - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True)
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"设备保存(device_save) - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True)
+        else:
+            logger.error(f"设备保存(device_save) - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True)
 
 
 async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDetailStatus, Optional[Good]]:
@@ -416,19 +432,20 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_CHECK_GOOD.format(good_id), timeout=conf.preference.time_out)
+                    res = await client.get(URL_CHECK_GOOD.format(good_id), timeout=conf.preference.timeout)
                 if res.json()['message'] == '商品不存在' or res.json()['message'] == '商品已下架':
                     return GetGoodDetailStatus(good_not_existed=True), None
                 return GetGoodDetailStatus(success=True), Good.parse_obj(res.json()["data"])
-    except IncorrectReturn:
-        logger.error(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        GetGoodDetailStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"米游币商品兑换 - 获取商品详细信息: 网络请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        GetGoodDetailStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            GetGoodDetailStatus(incorrect_return=True), None
+        else:
+            logger.error(f"米游币商品兑换 - 获取商品详细信息: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            GetGoodDetailStatus(network_error=True), None
 
 
 async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: bool = True) -> Tuple[
@@ -461,7 +478,7 @@ async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: b
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GOOD_LIST.format(page=page,
                                                                 game=game), headers=HEADERS_GOOD_LIST,
-                                           timeout=conf.preference.time_out)
+                                           timeout=conf.preference.timeout)
                 goods = map(Good.parse_obj, res.json()["data"]["list"])
                 # 判断是否已经读完所有商品
                 if not goods:
@@ -469,15 +486,16 @@ async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: b
                 else:
                     good_list += goods
                 page += 1
-    except IncorrectReturn:
-        logger.error(f"米游币商品兑换 - 获取商品列表: 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"米游币商品兑换 - 获取商品列表: 网络请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"米游币商品兑换 - 获取商品列表: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"米游币商品兑换 - 获取商品列表: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
     # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
     # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
@@ -503,22 +521,23 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_ADDRESS.format(
                         round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies.dict(),
-                        timeout=conf.preference.time_out)
+                        timeout=conf.preference.timeout)
                     if not check_login(res.text):
                         logger.info(
                             f"获取地址数据 - 用户 {account.bbs_uid} 登录失效")
                         logger.debug(f"网络请求返回: {res.text}")
                         return BaseApiStatus(login_failed=True), None
                 address_list = list(map(Address.parse_obj, res.json()["data"]["list"]))
-    except KeyError:
-        logger.error(f"获取地址数据 - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"获取地址数据 - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"获取地址数据 - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"获取地址数据 - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
     return BaseApiStatus(success=True), address_list
 
 
@@ -539,15 +558,16 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
                     res = await client.get(URL_REGISTRABLE.format(mobile=phone_number, t=round(NtpTime.time() * 1000)),
                                            headers=headers, timeout=conf.preference.timeout)
                 return BaseApiStatus(success=True), bool(res.json()["data"]["is_registable"])
-    except IncorrectReturn:
-        logger.error(f"检查用户 {phone_number} 是否可以注册 - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except:
-        logger.error(f"检查用户 {phone_number} 是否可以注册 - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"检查用户 {phone_number} 是否可以注册 - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"检查用户 {phone_number} 是否可以注册 - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
 
 async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtData]]:
@@ -567,15 +587,16 @@ async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtDat
                     res = await client.get(URL_CREATE_MMT.format(now=time_now, t=time_now),
                                            headers=headers, timeout=conf.preference.timeout)
                 return BaseApiStatus(success=True), MmtData.parse_obj(res.json()["data"]["mmt_data"])
-    except IncorrectReturn:
-        logger.error(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(incorrect_return=True), None
-    except:
-        logger.error(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return BaseApiStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.error(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return BaseApiStatus(network_error=True), None
 
 
 async def create_mobile_captcha(phone_number: int, mmt_data: MmtData, geetest_result: GeetestResult,
@@ -607,15 +628,16 @@ async def create_mobile_captcha(phone_number: int, mmt_data: MmtData, geetest_re
                     return CreateMobileCaptchaStatus(success=True)
                 elif res.json()["data"]["msg"] == "图片验证码失败" or res.json()["data"]["status"] == -302:
                     return CreateMobileCaptchaStatus(incorrect_geetest=True)
-    except IncorrectReturn:
-        logger.error(f"发送短信验证码 - 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return CreateMobileCaptchaStatus(incorrect_return=True)
-    except:
-        logger.error(f"发送短信验证码 - 请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return CreateMobileCaptchaStatus(network_error=True)
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"发送短信验证码 - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return CreateMobileCaptchaStatus(incorrect_return=True)
+        else:
+            logger.error(f"发送短信验证码 - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return CreateMobileCaptchaStatus(network_error=True)
 
 
 async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult, retry: bool = True) -> Tuple[
@@ -637,7 +659,7 @@ async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult
                                             content=f"mobile={mobile_captcha_result.phone_number}"
                                                     f"&mobile_captcha={mobile_captcha_result.captcha}"
                                                     "&source=user.mihoyo.com",
-                                            timeout=conf.preference.time_out)
+                                            timeout=conf.preference.timeout)
                 res_json = res.json()
                 if res_json["data"]["msg"] == "验证码错误" or res_json["data"]["info"] == "Captcha not match Err":
                     logger.info(f"短信验证码获取 login_ticket - 验证码错误")
@@ -648,15 +670,16 @@ async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult
                     return GetCookieStatus(missing_login_ticket=True), None
                 else:
                     return GetCookieStatus(success=True), bbs_cookies
-    except IncorrectReturn:
-        logger.error(f"短信验证码获取 login_ticket: 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"短信验证码获取 login_ticket: 网络请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"短信验证码获取 login_ticket: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"短信验证码获取 login_ticket: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
 
 
 async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True) -> Tuple[
@@ -678,19 +701,20 @@ async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
                         URL_LOGIN_STOKEN.format(bbs_cookies.login_ticket, bbs_cookies.bbs_uid),
-                        timeout=conf.preference.time_out)
+                        timeout=conf.preference.timeout)
                 bbs_cookies.stoken = list(filter(
                     lambda data: data["name"] == "stoken", res.json()["data"]["list"]))[0]["token"]
                 return GetCookieStatus(success=True), bbs_cookies
-    except IncorrectReturn:
-        logger.error(f"登录米哈游账号 - 获取stoken: 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"登录米哈游账号 - 获取stoken: 网络请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"登录米哈游账号 - 获取stoken: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"登录米哈游账号 - 获取stoken: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
 
 
 async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult, retry: bool = True) -> Tuple[
@@ -712,7 +736,7 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                         "captcha": mobile_captcha_result.captcha,
                         "action_type": "login",
                         "token_type": 6
-                    }, timeout=conf.preference.time_out)
+                    }, timeout=conf.preference.timeout)
                 res_json = res.json()
                 if res_json["data"]["msg"] == "验证码错误" or res_json["data"]["info"] == "Captcha not match Err":
                     logger.info(f"登录米哈游账号 - 验证码错误")
@@ -723,15 +747,16 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                     return GetCookieStatus(missing_cookie_token=True), None
                 else:
                     return GetCookieStatus(success=True), bbs_cookies
-    except IncorrectReturn:
-        logger.error(f"登录米哈游账号 - 获取stoken: 服务器没有正确返回")
-        logger.debug(f"网络请求返回: {res.text}")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(incorrect_return=True), None
-    except Exception:
-        logger.error(f"登录米哈游账号 - 获取stoken: 网络请求失败")
-        logger.debug(f"{traceback.format_exc()}")
-        return GetCookieStatus(network_error=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"登录米哈游账号 - 获取cookie_token: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"登录米哈游账号 - 获取cookie_token: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
 
 
 class Exchange:
@@ -750,8 +775,15 @@ class Exchange:
         self.exchange_plan = exchange_plan
         if not account:
             account_in_plan = exchange_plan.account
-            if isinstance(account_in_plan, int):
-                self.account = conf.accounts[account_in_plan]
+            if isinstance(account_in_plan, str):
+                find_account = list(filter(lambda x: x.cookies.bbs_uid == account_in_plan, conf.accounts))
+                if find_account:
+                    self.account = find_account[0]
+                else:
+                    self.account = None
+                    logger.error(f"兑换计划的账户 {account_in_plan} 不存在")
+                    return
+
             else:
                 self.account = account_in_plan
         else:
@@ -765,19 +797,22 @@ class Exchange:
         if self.exchange_plan.address_id:
             self.content.setdefault("address_id", self.exchange_plan.address_id)
 
-    async def init_plan(self, retry: bool = True):
+    async def init_plan(self, retry: bool = True) -> ExchangeStatus:
         """
         初始化兑换任务
 
         :param retry: 是否重试
         """
+        if not self.account:
+            logger.error(f"米游币商品兑换 - 初始化兑换任务: 未找到兑换计划的账户（可能是对象初始化失败）")
+            return ExchangeStatus(account_not_found=True)
         try:
             async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
                                                         wait=tenacity.wait_fixed(conf.preference.retry_interval)):
                 with attempt:
                     async with httpx.AsyncClient() as client:
                         res = await client.get(
-                            URL_CHECK_GOOD.format(self.exchange_plan.good_id), timeout=conf.preference.time_out)
+                            URL_CHECK_GOOD.format(self.exchange_plan.good_id), timeout=conf.preference.timeout)
                     good_info = Good.parse_obj(res.json()["data"])
                     if good_info.type == 2 and good_info.game_biz != "bbs_cn":
                         if not self.account.cookies.stoken:
@@ -822,15 +857,16 @@ class Exchange:
 
                     self.initialized = True
                     return ExchangeStatus(success=True)
-        except IncorrectReturn:
-            logger.error(f"米游币商品兑换 - 初始化兑换任务: 服务器没有正确返回")
-            logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
-            return ExchangeStatus(incorrect_return=True)
-        except Exception:
-            logger.error(f"米游币商品兑换 - 初始化兑换任务: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
-            return ExchangeStatus(network_error=True)
+        except tenacity.RetryError as e:
+            if is_incorrect_return(e):
+                logger.error(f"米游币商品兑换 - 初始化兑换任务: 服务器没有正确返回")
+                logger.debug(f"网络请求返回: {res.text}")
+                logger.debug(f"{traceback.format_exc()}")
+                return ExchangeStatus(incorrect_return=True)
+            else:
+                logger.error(f"米游币商品兑换 - 初始化兑换任务: 网络请求失败")
+                logger.debug(f"{traceback.format_exc()}")
+                return ExchangeStatus(network_error=True)
 
     async def start(self) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:
         """
@@ -846,7 +882,7 @@ class Exchange:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(
                         URL_EXCHANGE, headers=headers, json=self.content, cookies=self.account.cookies.dict(),
-                        timeout=conf.preference.time_out)
+                        timeout=conf.preference.timeout)
                 if not check_login(res.text):
                     logger.info(
                         f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 登录失效")
@@ -862,14 +898,15 @@ class Exchange:
                         f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 兑换失败，可以自行确认。")
                     logger.debug(f"网络请求返回: {res.text}")
                     return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json())
-            except IncorrectReturn:
-                logger.error(
-                    f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 服务器没有正确返回")
-                logger.debug(f"网络请求返回: {res.text}")
-                logger.debug(f"{traceback.format_exc()}")
-                return ExchangeStatus(incorrect_return=True), None
-            except Exception:
-                logger.error(
-                    f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 请求失败")
-                logger.debug(f"{traceback.format_exc()}")
-                return ExchangeStatus(network_error=True), None
+            except tenacity.RetryError as e:
+                if is_incorrect_return(e):
+                    logger.error(
+                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 服务器没有正确返回")
+                    logger.debug(f"网络请求返回: {res.text}")
+                    logger.debug(f"{traceback.format_exc()}")
+                    return ExchangeStatus(incorrect_return=True), None
+                else:
+                    logger.error(
+                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 请求失败")
+                    logger.debug(f"{traceback.format_exc()}")
+                    return ExchangeStatus(network_error=True), None
