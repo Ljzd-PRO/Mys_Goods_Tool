@@ -6,10 +6,10 @@ import tenacity
 from pydantic import ValidationError
 from requests.utils import dict_from_cookiejar
 
-from .data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, GetCookieStatus, \
+from data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, GetCookieStatus, \
     CreateMobileCaptchaStatus, GetGoodDetailStatus, MobileCaptchaResult, ExchangeStatus, ExchangeResult
-from .user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
-from .utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, check_ds, \
+from user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
+from utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, check_ds, \
     NtpTime
 
 URL_LOGIN_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
@@ -217,7 +217,7 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_RECORD.format(account.bbs_uid), headers=HEADERS_GAME_RECORD,
-                                           cookies=account.cookies, timeout=conf.preference.time_out)
+                                           cookies=account.cookies.dict(), timeout=conf.preference.time_out)
                 if not check_login(res.text):
                     logger.info(
                         f"获取用户游戏数据(GameRecord) - 用户 {account.bbs_uid} 登录失效")
@@ -282,7 +282,7 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies,
+                    res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
                                            timeout=conf.preference.time_out)
                 if not check_login(res.text):
                     logger.info(
@@ -325,7 +325,8 @@ async def device_login(account: UserAccount, retry: bool = True):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data, cookies=account.cookies,
+                    res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data,
+                                            cookies=account.cookies.dict(),
                                             timeout=conf.preference.time_out)
                 if not check_login(res.text):
                     logger.info(
@@ -376,7 +377,7 @@ async def device_save(account: UserAccount, retry: bool = True):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies,
+                    res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies.dict(),
                                             timeout=conf.preference.time_out)
                 if not check_login(res.text):
                     logger.info(
@@ -501,7 +502,7 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_ADDRESS.format(
-                        round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies,
+                        round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies.dict(),
                         timeout=conf.preference.time_out)
                     if not check_login(res.text):
                         logger.info(
@@ -595,12 +596,12 @@ async def create_mobile_captcha(phone_number: int, mmt_data: MmtData, geetest_re
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_CREATE_MOBILE_CAPTCHA,
-                                            data=f"action_type=login&mmt_key={mmt_data.mmt_key}"
-                                                 f"&geetest_challenge={mmt_data.challenge}"
-                                                 f"&geetest_validate={geetest_result.validate}"
-                                                 f"&geetest_seccode={geetest_result.seccode}"
-                                                 f"&mobile={phone_number}"
-                                                 f"&t={round(NtpTime.time() * 1000)}",
+                                            content=f"action_type=login&mmt_key={mmt_data.mmt_key}"
+                                                    f"&geetest_challenge={mmt_data.challenge}"
+                                                    f"&geetest_validate={geetest_result.validate}"
+                                                    f"&geetest_seccode={geetest_result.seccode}"
+                                                    f"&mobile={phone_number}"
+                                                    f"&t={round(NtpTime.time() * 1000)}",
                                             headers=headers, timeout=conf.preference.timeout)
                 if res.json()["data"]["msg"] == "成功" or res.json()["data"]["status"] == 1:
                     return CreateMobileCaptchaStatus(success=True)
@@ -844,7 +845,7 @@ class Exchange:
             try:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(
-                        URL_EXCHANGE, headers=headers, json=self.content, cookies=self.account.cookies,
+                        URL_EXCHANGE, headers=headers, json=self.content, cookies=self.account.cookies.dict(),
                         timeout=conf.preference.time_out)
                 if not check_login(res.text):
                     logger.info(
