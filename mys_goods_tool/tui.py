@@ -728,6 +728,7 @@ class CaptchaForm(LoginForm):
         """
         logger.error("用于Geetest验证的HTTP服务器启动失败")
         logger.debug(exception)
+        LoginInformation.radio_tuple.http_server.turn_off()
         self.button.stop_geetest.hide()
         self.button.error.show()
 
@@ -744,17 +745,26 @@ class CaptchaForm(LoginForm):
             else:
                 logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
                 LoginInformation.radio_tuple.finish_geetest.turn_on()
+                self.button.success.show()
+                self.button.stop_geetest.hide()
                 self.loading.display = BLOCK
                 if await create_mobile_captcha(int(self.input.value), self.mmt_data, geetest_result):
                     self.loading.display = NONE
                     logger.info(f"短信验证码已发送至 {self.input.value}")
                     LoginInformation.radio_tuple.create_captcha.turn_on()
-                    self.geetest_manager.pipe[1].send(True)
-                    await self.geetest_manager.force_stop_later(10)
+                    TuiApp.notice("短信验证码已发送至 [green]" + self.input.value + "[/]")
+                    LoginInformation.static_tuple.geetest_text.change_text(LoginInformation.GEETEST_TEXT, "center")
                     self.button.success.show()
                     self.button.stop_geetest.hide()
+                    self.geetest_manager.pipe[1].send(True)
+                    await self.geetest_manager.force_stop_later(10)
                     break
-                self.loading.display = NONE
+                else:
+                    self.loading.display = NONE
+                    self.button.error.show()
+                    self.button.stop_geetest.hide()
+                    LoginInformation.static_tuple.geetest_text.change_text(LoginInformation.GEETEST_TEXT, "center")
+                    TuiApp.notice("[red]短信验证码发送失败[/]")
 
     def set_address_callback(self, address: Tuple[str, int]):
         """
@@ -772,18 +782,23 @@ class CaptchaForm(LoginForm):
         self.close_create_captcha_send()
         self.button.stop_geetest.show()
         LoginInformation.radio_tuple.http_server.turn_on()
+
+        self.listen_result_task = self.loop.create_task(self.listen_result())
         link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
+        link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
         LoginInformation.static_tuple.geetest_text.change_text(
             renderable=f"\n- 请前往链接进行验证：\n"
-                       f"[@click=pass]{link}[/]",
+                       f"[@click=app.open_link('{link}')]{link}[/]"
+                       f"\n- 如果页面加载慢或者出错，尝试：\n"
+                       f"[@click=app.open_link('{link_localized}')]{link_localized}[/]",
             text_align="left")
-        self.listen_result_task = self.loop.create_task(self.listen_result())
 
     def set_address_error_callback(self, exception: BaseException):
-        logger.error("尝试异步获取可用HTTP监听地址失败")
+        logger.error("尝试获取可用HTTP监听地址失败")
         logger.debug(exception)
         self.close_create_captcha_send()
         self.button.error.show()
+        TuiApp.notice("[red]尝试获取可用HTTP监听地址失败！[/]")
         return
 
     async def on_button_pressed(self, event: Button.Pressed):
@@ -794,6 +809,7 @@ class CaptchaForm(LoginForm):
             elif not self.input.value.isdigit():
                 TuiApp.notice("登录信息 [bold red]手机号[/] 格式错误！")
                 return
+            [i.turn_off() for i in LoginInformation.radio_tuple]
             self.button.send.disabled = True
             self.loading.display = BLOCK
 
@@ -801,6 +817,7 @@ class CaptchaForm(LoginForm):
             if not create_mmt_result[0]:
                 self.close_create_captcha_send()
                 self.button.error.show()
+                TuiApp.notice("[red]获取Geetest行为验证任务数据失败！[/]")
                 return
             else:
                 logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
@@ -810,16 +827,15 @@ class CaptchaForm(LoginForm):
 
         elif event.button.id == "create_captcha_stop_geetest":
             LoginInformation.static_tuple.geetest_text.change_text(LoginInformation.GEETEST_TEXT, "center")
-            LoginInformation.radio_tuple.create_geetest.turn_off()
-            LoginInformation.radio_tuple.http_server.turn_off()
-            LoginInformation.radio_tuple.finish_geetest.turn_off()
-            LoginInformation.radio_tuple.create_captcha.turn_off()
+            [i.turn_off() for i in LoginInformation.radio_tuple]
             self.geetest_manager.pipe[1].send(True)
             self.button.stop_geetest.hide()
             self.button.send.show()
             await self.geetest_manager.force_stop_later(10)
 
         elif event.button.id in ["create_captcha_success", "create_captcha_error"]:
+            if event.button.id == "create_captcha_error":
+                [i.turn_off() for i in LoginInformation.radio_tuple]
             self.button.success.hide()
             self.button.error.hide()
             self.button.send.show()
