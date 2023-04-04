@@ -11,9 +11,6 @@
   </a>
 </div>
 
-### 紧急修复 2（基于v1.4.4）
-https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/runs/4583909169
-
 **🎉 iOS
 iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
