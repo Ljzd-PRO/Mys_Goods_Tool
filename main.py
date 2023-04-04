@@ -18,7 +18,7 @@ import ntplib
 import requests
 from ping3 import ping
 
-VERSION = "v1.4.4"
+VERSION = "v1.4.5"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
