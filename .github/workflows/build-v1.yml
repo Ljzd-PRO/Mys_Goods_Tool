@@ -45,12 +45,16 @@ jobs:
         run: |
           pyinstaller -F ${{ vars.V1_PATH }}main.py
           move dist\main.exe .\
+          move ${{ vars.V1_PATH }}config.ini .\config.ini
+          move ${{ vars.V1_PATH }}logs .\logs
 
       - name: Build main
         if: ${{ runner.os != 'Windows' }}
         run: |
           pyinstaller -F ${{ vars.V1_PATH }}main.py
           mv ./dist/main ./
+          mv ${{ vars.V1_PATH }}config.ini ./config.ini
+          mv ${{ vars.V1_PATH }}logs ./logs
 
       - name: Cleaning up build(Windows)
         if: ${{ runner.os == 'Windows' }}
@@ -83,5 +87,5 @@ jobs:
           path: |
             main*
             tool*
-            ${{ vars.V1_PATH }}config.ini
-            ${{ vars.V1_PATH }}logs
+            config.ini
+            logs
