@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import queue
+from importlib.metadata import version
 from typing import NamedTuple, Tuple, Optional, Set
 
-from importlib_metadata import version
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.pretty import Pretty
@@ -22,10 +22,11 @@ from textual.widgets import (
     LoadingIndicator, RadioButton
 )
 
-from api import create_mobile_captcha, create_mmt
+from api import create_mobile_captcha, create_mmt, get_cookie_token_by_captcha
 from custom_css import *
-from data_model import GeetestResult, MmtData
+from data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
 from geetest import GeetestProcessManager, SetAddressProcessManager
+from user_data import config as conf, UserAccount
 from utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -69,7 +70,6 @@ Here are some examples:
 
 
 """
-
 
 DATA = {
     "foo": [
@@ -420,7 +420,6 @@ class LocationLink(Static):
 
     def on_click(self) -> None:
         self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
-        self.app.add_note(f"Scrolling to [b]{self.reveal}[/b]")
 
 
 class PhoneForm(LoginForm):
@@ -515,7 +514,7 @@ class PhoneForm(LoginForm):
                     await self.geetest_manager.force_stop_later(10)
 
                     # 目前通知无效，且该语句需要在最后执行，似乎执行该语句后会导致函数结束。待解决
-                    TuiApp.notice("短信验证码已发送至 [green]" + self.input.value + "[/]")
+                    self.app.notice("短信验证码已发送至 [green]" + self.input.value + "[/]")
                     break
                 else:
                     self.loading.display = NONE
@@ -525,7 +524,7 @@ class PhoneForm(LoginForm):
                                                                                   "center")
 
                     # 目前通知无效，且该语句需要在最后执行，似乎执行该语句后会导致函数结束。待解决
-                    TuiApp.notice("[red]短信验证码发送失败[/]")
+                    self.app.notice("[red]短信验证码发送失败[/]")
 
     def set_address_callback(self, address: Tuple[str, int]):
         """
@@ -566,17 +565,20 @@ class PhoneForm(LoginForm):
         logger.debug(exception)
         self.close_create_captcha_send()
         self.button.error.show()
-        TuiApp.notice("[red]尝试获取可用HTTP监听地址失败！[/]")
+        self.app.notice("[red]尝试获取可用HTTP监听地址失败！[/]")
         return
 
     async def create_captcha(self):
+        """
+        发送验证码的完整操作
+        """
         if not self.before_create_captcha:
             return
         elif not self.input.value:
-            TuiApp.notice("登录信息缺少 [bold red]手机号[/] ！")
+            self.app.notice("登录信息缺少 [bold red]手机号[/] ！")
             return
         elif not self.input.value.isdigit():
-            TuiApp.notice("登录信息 [bold red]手机号[/] 格式错误！")
+            self.app.notice("登录信息 [bold red]手机号[/] 格式错误！")
             return
         self.before_create_captcha = False
 
@@ -588,13 +590,15 @@ class PhoneForm(LoginForm):
         if not create_mmt_result[0]:
             self.close_create_captcha_send()
             self.button.error.show()
-            TuiApp.notice("[red]获取Geetest行为验证任务数据失败！[/]")
+            self.app.notice("[red]获取Geetest行为验证任务数据失败！[/]")
             return
         else:
             logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
             CaptchaLoginInformation.radio_tuple.create_geetest.turn_on()
             self.mmt_data = create_mmt_result[1]
             self.set_address_manager.start()
+
+        return create_mmt_result[0]
 
     async def on_input_submitted(self, _: Input.Submitted):
         await self.create_captcha()
@@ -632,21 +636,23 @@ class CaptchaForm(LoginForm):
     """
     验证码 表单
     """
-    ButtonTuple = NamedTuple("ButtonTuple", login_1=ButtonDisplay, login_2=ButtonDisplay, login_3=ButtonDisplay,
-                             error=ButtonDisplay)
+    ButtonTuple = NamedTuple("ButtonTuple", login=ButtonDisplay, success=ButtonDisplay, error=ButtonDisplay)
 
     def __init__(self):
         super().__init__()
+        self.login_result: Optional[GetCookieStatus] = None
+        """登录操作返回值"""
+        self.before_login: bool = True
+        """当前状态是否在登录操作之前（不处于正在登录的状态）"""
 
-        self.input = Input(placeholder="短信验证码", id="captcha")
+        self.input = Input(placeholder="短信验证码", id="login_captcha")
 
         self.loading = LoadingIndicator()
         self.loading.display = NONE
 
         self.button = self.ButtonTuple(
-            login_1=ButtonDisplay("第一次登录 - 获取 A", variant="primary", id="login_1"),
-            login_2=ButtonDisplay("第二次登录 - 获取 B", variant="primary", id="login_2"),
-            login_3=ButtonDisplay("登录绑定下一个账号", variant="success", id="login_3"),
+            login=ButtonDisplay("登录", variant="primary", id="login"),
+            success=ButtonDisplay("完成", variant="success", id="login_success"),
             error=ButtonDisplay("返回", variant="error", id="login_error")
         )
         [i.hide() for i in self.button[1:]]
@@ -659,37 +665,83 @@ class CaptchaForm(LoginForm):
         yield Static()
         yield self.loading
 
+    def close_login(self):
+        self.button.login.hide()
+        self.button.login.disabled = False
+
+    async def login(self):
+        """
+        登录的完整操作
+        """
+        if not self.before_login:
+            return
+        elif not PhoneForm.input.value:
+            self.app.notice("登录信息缺少 [bold red]手机号[/] ！")
+            return
+        elif not PhoneForm.input.value.isdigit():
+            self.app.notice("登录信息 [bold red]手机号[/] 格式错误！")
+            return
+        elif not self.input.value:
+            self.app.notice("登录信息缺少 [bold red]验证码[/] ！")
+            return
+        elif not self.input.value.isdigit():
+            self.app.notice("登录信息 [bold red]验证码[/] 格式错误！")
+            return
+        self.before_login = False
+
+        self.button.login.disabled = True
+        captcha_result = MobileCaptchaResult(int(PhoneForm.input.value), int(self.input.value))
+        self.loading.display = BLOCK
+        cookie_token_result = await get_cookie_token_by_captcha(captcha_result)
+        self.loading.display = NONE
+        cookie_token_status = cookie_token_result[0]
+        cookies = cookie_token_result[1]
+        if cookie_token_status:
+            logger.debug(f"已成功登录 {cookie_token_result[1].json()}")
+            conf.accounts.update({
+                cookies.bbs_uid: UserAccount(phone_number=captcha_result.phone_number, cookies=cookies)
+            })
+            conf.save()
+            self.app.notice("[green]登录成功！[/]")
+            CaptchaLoginInformation.radio_tuple.login.turn_on()
+            self.button.success.show()
+        else:
+            notice_text = "登录失败：[bold red]"
+            if cookie_token_status.incorrect_captcha:
+                notice_text += "验证码错误！"
+            elif cookie_token_status.login_failed:
+                notice_text += "其他错误"
+            elif cookie_token_status.incorrect_return:
+                notice_text += "服务器返回错误！"
+            elif cookie_token_status.network_error:
+                notice_text += "网络连接失败！"
+            elif cookie_token_status.missing_bbs_uid:
+                notice_text += "Cookies缺少 bbs_uid（例如 ltuid, stuid）"
+            elif cookie_token_status.missing_login_ticket:
+                notice_text += "Cookies缺少 login_ticket！"
+            elif cookie_token_status.missing_cookie_token:
+                notice_text += "Cookies缺少 cookie_token！"
+            notice_text += "[/]"
+            self.button.error.show()
+            self.app.notice(notice_text)
+
+        self.close_login()
+        return cookie_token_status
+
+    async def on_input_submitted(self, _: Input.Submitted) -> None:
+        await self.login()
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "login_1":
-            logger.info(f"phone: {PhoneForm.input.value}, captcha: {self.input.value}")
-            self.loading.display = BLOCK
-            self.button.login_1.display = NONE
-            self.button.login_2.display = BLOCK
-            self.button.login_2.disabled = True
-            await asyncio.sleep(1)
-            self.loading.display = NONE
-            await asyncio.sleep(2)
-            self.input.value = ""
-            self.button.login_2.disabled = False
+        if event.button.id == "login":
+            await self.login()
 
-        elif event.button.id == "login_2":
-            logger.info(f"phone: {PhoneForm.input.value}, captcha: {self.input.value}")
-            self.loading.display = BLOCK
-            self.button.login_2.display = NONE
-            self.button.login_3.display = BLOCK
-            self.button.login_3.disabled = True
-            await asyncio.sleep(1)
-            self.loading.display = NONE
-            await asyncio.sleep(2)
-            self.button.login_3.disabled = False
-
-        elif event.button.id == "login_3":
-            logger.info(f"phone: {PhoneForm.input.value}, captcha: {self.input.value}")
-            self.input.value = ""
-            self.input_phone.value = ""
-            self.loading.display = NONE
-            self.button.login_3.display = NONE
-            self.button.login_1.display = BLOCK
+        elif event.button.id in ["login_error", "login_success"]:
+            if event.button.id == "login_success":
+                [i.turn_off() for i in CaptchaLoginInformation.radio_tuple]
+            self.button.login.show()
+            self.button.error.hide()
+            self.button.success.hide()
+            self.before_login = True
 
 
 class Notification(Static):
