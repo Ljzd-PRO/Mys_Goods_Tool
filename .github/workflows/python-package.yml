@@ -8,13 +8,13 @@ on:
   push:
     branches: [ "stable", "dev" ]
     paths:
-      - 'mys_goods_tool'
-      - 'pyproject.toml'
+      - 'mys_goods_tool/'
+      - 'pyproject.toml/'
   pull_request:
     branches: [ "stable", "dev" ]
     paths:
-      - 'mys_goods_tool'
-      - 'pyproject.toml'
+      - 'mys_goods_tool/'
+      - 'pyproject.toml/'
 
 permissions:
   contents: read
