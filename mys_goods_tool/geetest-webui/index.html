@@ -31,6 +31,16 @@
             display: none;
         }
 
+        #successText {
+            color: green;
+            display: none;
+        }
+
+        #geetestResultDiv {
+            color: green;
+            display: none;
+        }
+
         #errorText {
             color: crimson;
             display: none;
@@ -50,6 +60,14 @@
     <div>
         <div id="captcha">
             <p class="hidden" id="wait">正在加载验证码...</p>
+            <p class="hidden" id="successText">成功</p>
+            <div class="hidden" id="geetestResultDiv">
+                <h2>人机验证结果数据：</h2>
+                <h3>validate: </h3>
+                <p id="geetestValidate"></p>
+                <h3>seccode: </h3>
+                <p id="geetestSeccode"></p>
+            </div>
             <p class="hidden" id="errorText">出现了错误</p>
             <div class="hidden" id="errorDiv">
                 <h2>返回信息：</h2>
@@ -69,12 +87,12 @@
 <!-- 引入 gt.js，既可以使用其中提供的 initGeetest 初始化函数 -->
 <script src="//static.geetest.com/static/tools/gt.js"></script>
 <script>
-    let alerted = false;
+    let success = false;
 
     /**
      * 显示错误信息
-     * @param {Error} error GeetestError 错误对象
      * @param {string} text 提示文本
+     * @param {Error} error GeetestError 错误对象
      */
     function displayError(text, error = null) {
         $("#wait").hide();
@@ -89,11 +107,41 @@
         errorText.show();
     }
 
+    /**
+     * 显示成功信息
+     * @param {string} text 提示文本
+     */
+    function displaySuccess(text) {
+        $("#wait").hide();
+        const successText = $("#successText");
+        successText.text(text);
+        successText.show();
+    }
+
+    /**
+     * 显示验证结果
+     * @param {string} text 提示文本
+     * @param {string} validate 验证码验证结果 validate
+     * @param {string} seccode 验证码验证结果 seccode
+     */
+    function displayGeetestResult(text, validate, seccode) {
+        displaySuccess(text);
+        $("#geetestValidate").text(validate);
+        $("#geetestSeccode").text(seccode);
+        $("#geetestResultDiv").show();
+    }
+
     const handler = function (captchaObj) {
 
         captchaObj.appendTo('#captcha');
         captchaObj.onError(function (error) {
-            displayError("生成验证任务失败", error);
+            if (error.code === "error_02") {
+                displayError("使用了旧的验证任务数据，请尝试重新申请人机验证任务", error);
+            } else if (error.code === "error_21") {
+                displayError("生成验证任务失败，可能是已经成功完成了验证", error);
+            } else {
+                displayError("生成验证任务失败", error);
+            }
         });
         captchaObj.onReady(function () {
             $("#wait").hide();
@@ -102,10 +150,16 @@
 
         setInterval(function () {
             const result = captchaObj.getValidate();
-            if (result && !alerted) {
-                const result_str = `${result.geetest_validate}\n${result.geetest_seccode}`
-                alerted = true;
-                return alert(result_str);
+            if (result && !success) {
+                success = true;
+                displayGeetestResult("已成功获取验证结果", result.geetest_validate, result.geetest_seccode);
+                $.get("/result", {validate: result.geetest_validate, seccode: result.geetest_seccode})
+                    .done(function (_) {
+                        displaySuccess("已成功将验证结果发送至服务器");
+                    })
+                    .fail(function (error) {
+                        displayError("发送验证结果至服务器失败", error);
+                    });
             }
         }, 1000);
     };
