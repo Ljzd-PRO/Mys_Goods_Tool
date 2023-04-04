@@ -81,7 +81,7 @@ jobs:
         with:
           name: Mys_Goods_Tool-${{ runner.os }}-x86_64
           path: |
-            ${{ vars.V1_PATH }}main*
-            ${{ vars.V1_PATH }}tool*
+            main*
+            tool*
             ${{ vars.V1_PATH }}config.ini
             ${{ vars.V1_PATH }}logs

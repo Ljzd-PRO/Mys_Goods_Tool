@@ -58,4 +58,4 @@ jobs:
         with:
           name: Mys_Goods_Tool-${{ runner.os }}-x86_64
           path: |
-            ${{ vars.V2_PATH }}__init__*
+            __init__*
