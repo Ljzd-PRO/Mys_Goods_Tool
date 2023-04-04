@@ -254,13 +254,15 @@ class ExchangeStatus(BaseApiStatus):
     """获取用户 GameRecord 失败"""
     init_required = False
     """未进行兑换任务初始化"""
+    account_not_found = False
+    """账号不存在"""
 
 
 GeetestResult = NamedTuple("GeetestResult", validate=str, seccode=str)
 """人机验证结果数据"""
 
 MobileCaptchaResult = NamedTuple("MobileCaptchaResult", phone_number=int, captcha=int)
-"""人机验证结果数据"""
+"""手机号与对应的短信验证码"""
 
 ExchangeResult = NamedTuple("ExchangeResult", result=bool, return_data=dict)
 """兑换结果数据"""
