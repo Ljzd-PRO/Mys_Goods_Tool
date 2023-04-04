@@ -56,14 +56,14 @@ jobs:
           mv ${{ vars.V1_PATH }}config.ini ./config.ini
           mv ${{ vars.V1_PATH }}logs ./logs
 
-      - name: Cleaning up build(Windows)
+      - name: Cleaning up main build(Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
           del dist
           del *.spec
           move build build_main
 
-      - name: Cleaning up build
+      - name: Cleaning up main build
         if: ${{ runner.os != 'Windows' }}
         run: |
           rm -rf dist/ __pycache__/ build/ *.spec
@@ -79,6 +79,17 @@ jobs:
         run: |
           pyinstaller -F ${{ vars.V1_PATH }}tool.py
           mv ./dist/tool ./
+
+      - name: Cleaning up tool build(Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          del dist
+          del *.spec
+
+      - name: Cleaning up tool build
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          rm -rf dist/ __pycache__/ build/ *.spec
 
       - name: Upload build
         uses: actions/upload-artifact@v3
