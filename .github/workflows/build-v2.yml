@@ -77,22 +77,6 @@ jobs:
         run: |
           ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ env.executable-file-name }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui;mys_goods_tool/geetest-webui"
 
-      - name: Clean up (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-
-      - name: Clean up (macOS)
-        if: ${{ runner.os == 'macOS' }}
-        run: |
-          export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-
-      - name: Clean up (Windows)
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          ${{ env.windows-poetry-path }} run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-
       - name: Upload build
         uses: actions/upload-artifact@v3
         with:
