@@ -6,10 +6,12 @@ import tenacity
 from pydantic import ValidationError
 from requests.utils import dict_from_cookiejar
 
-from .data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, GetCookieStatus, \
+from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
+    GetCookieStatus, \
     CreateMobileCaptchaStatus, GetGoodDetailStatus, MobileCaptchaResult, ExchangeStatus, ExchangeResult
-from .user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
-from .utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, check_ds, \
+from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
+from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, \
+    check_ds, \
     NtpTime
 
 URL_LOGIN_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
