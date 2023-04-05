@@ -875,6 +875,6 @@ class TuiApp(App[None]):
         """
         self.bell()
         path = self.save_screenshot(filename, path)
-        message = Text.assemble("截屏保存至 ", (f"'{path}'", "bold green"))
+        message = Text.assemble("截屏已保存至 ", (f"'{path}'", "bold green"))
         self.add_note(message)
         self.screen.mount(Notification(message))
