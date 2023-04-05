@@ -60,7 +60,7 @@ jobs:
 
       - name: Clean up
         run: |
-          poetry run pyinstaller --clean
+          poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
 
       - name: Upload build
         uses: actions/upload-artifact@v3
