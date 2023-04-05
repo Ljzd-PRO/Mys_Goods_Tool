@@ -99,3 +99,4 @@ jobs:
           name: Mys_Goods_Tool_v2-${{ runner.os }}-x86_64
           path: |
             dist/${{ env.executable-file-name }}*
+            README.md
