@@ -70,7 +70,7 @@ jobs:
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*;.\geetest-webui
+          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name main.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;geetest-webui"
           move dist\main.exe .\
 
       - name: Clean up (Linux)
