@@ -11,15 +11,6 @@
   </a>
 </div>
 
-### 🎉 更新 [🔗v1.4.4](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/tag/v1.4.4)
-
-修复获取**米游社**uid失败导致检查游戏账户失败的问题  
-如报错：
-
-```
-2023-01-18 15:46:13  DEBUG  checkGame_response: {"data":null,"message":"Invalid uid","retcode":-1}
-```
-
 **🎉 iOS
 iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
 可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
