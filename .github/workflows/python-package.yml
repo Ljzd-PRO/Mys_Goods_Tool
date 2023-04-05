@@ -42,7 +42,7 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry add flake8 pytest pytest-html
-          poetry install --only main
+          poetry install --only test
 
       - name: Lint with flake8
         run: |
