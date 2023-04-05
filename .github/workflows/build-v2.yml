@@ -18,6 +18,7 @@ permissions:
 env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
+  windows-poetry-path: C:\Users\runneradmin\AppData\Roaming\Python\Scripts\poetry
 
 jobs:
   build:
@@ -50,7 +51,7 @@ jobs:
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          ${{ env.windows-poetry-path }} run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           move dist\main.exe .\
 
       - name: Build
@@ -60,8 +61,14 @@ jobs:
           mv ./dist/main ./
 
       - name: Clean up
+        if: ${{ runner.os != 'Windows' }}
         run: |
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
+
+      - name: Clean up (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          ${{ env.windows-poetry-path }} run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
 
       - name: Upload build
         uses: actions/upload-artifact@v3
