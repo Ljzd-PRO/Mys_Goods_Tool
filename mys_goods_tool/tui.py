@@ -814,7 +814,7 @@ class TuiApp(App[None]):
             Body(
                 QuickAccess(
                     LocationLink("主页", ".location-top"),
-                    LocationLink("登录绑定", ".location-widgets"),
+                    LocationLink("登录绑定", ".location-login"),
                     LocationLink("管理兑换计划", ".location-rich"),
                     LocationLink("进入兑换模式", ".location-css"),
                 ),
@@ -827,7 +827,7 @@ class TuiApp(App[None]):
                         CaptchaForm(),
                         DataTable(),
                     ),
-                    classes="location-widgets location-first",
+                    classes="location-login location-first",
                 ),
                 Column(
                     Section(
