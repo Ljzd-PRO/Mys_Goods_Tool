@@ -35,8 +35,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        if: ${{ runner.os != 'macOS' }}
+      - name: Install dependencies (Linux)
+        if: ${{ runner.os == 'Linux' }}
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry install --with pyinstaller
@@ -48,17 +48,23 @@ jobs:
           export PATH="/Users/runner/.local/bin:$PATH"
           poetry install --with pyinstaller
 
-      - name: Build (Windows)
+      - name: Install dependencies (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
-          move dist\main.exe .\
+          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+          poetry install --with pyinstaller
 
       - name: Build
         if: ${{ runner.os != 'Windows' }}
         run: |
           poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
+
+      - name: Build (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          ${{ env.windows-poetry-path }} run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          move dist\main.exe .\
 
       - name: Clean up
         if: ${{ runner.os != 'Windows' }}
