@@ -761,12 +761,12 @@ async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: 
                                                 )
                     res_json = res.json()
                     if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
-                        bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(
+                        cookies = BBSCookies.parse_obj(dict_from_cookiejar(
                             res.cookies.jar))
-                        if not bbs_cookies.login_ticket:
+                        if not cookies.login_ticket:
                             return GetCookieStatus(missing_login_ticket=True), None
                         else:
-                            return GetCookieStatus(success=True), bbs_cookies
+                            return GetCookieStatus(success=True), cookies
                     elif res_json["data"]["status"] == -201 \
                             or res_json["data"]["msg"] == "验证码错误" \
                             or res_json["data"]["info"] == "Captcha not match Err":
@@ -787,17 +787,17 @@ async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: 
                 return GetCookieStatus(network_error=True), None
 
 
-async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True) -> Tuple[
+async def get_stoken_by_login_ticket(cookies: BBSCookies, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过 login_ticket 获取 stoken
 
-    :param bbs_cookies: 米游社Cookies，需要包含 login_ticket 和 bbs_uid
+    :param cookies: 米游社Cookies，需要包含 login_ticket 和 bbs_uid
     :param retry: 是否允许重试
     """
-    if not bbs_cookies.login_ticket:
+    if not cookies.login_ticket:
         return GetCookieStatus(missing_login_ticket=True), None
-    elif not bbs_cookies.bbs_uid:
+    elif not cookies.bbs_uid:
         return GetCookieStatus(missing_bbs_uid=True), None
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
@@ -805,11 +805,11 @@ async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
-                        URL_MULTI_TOKEN_BY_LOGIN_TICKET.format(bbs_cookies.login_ticket, bbs_cookies.bbs_uid),
+                        URL_MULTI_TOKEN_BY_LOGIN_TICKET.format(cookies.login_ticket, cookies.bbs_uid),
                         timeout=conf.preference.timeout)
-                bbs_cookies.stoken = list(filter(
+                cookies.stoken = list(filter(
                     lambda data: data["name"] == "stoken", res.json()["data"]["list"]))[0]["token"]
-                return GetCookieStatus(success=True), bbs_cookies
+                return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"通过 login_ticket 获取 stoken: 服务器没有正确返回")
@@ -852,13 +852,13 @@ async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bo
                 if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
                     logger.info(f"登录米哈游账号 - 验证码错误")
                     return GetCookieStatus(incorrect_captcha=True), None
-                bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
-                if not bbs_cookies.cookie_token:
+                cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
+                if not cookies.cookie_token:
                     return GetCookieStatus(missing_cookie_token=True), None
-                elif not bbs_cookies.bbs_uid:
+                elif not cookies.bbs_uid:
                     return GetCookieStatus(missing_bbs_uid=True), None
                 else:
-                    return GetCookieStatus(success=True), bbs_cookies
+                    return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"通过短信验证码获取 cookie_token: 服务器没有正确返回")
@@ -907,10 +907,10 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
-                bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
+                cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
                 res_json = res.json()
                 if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
-                    return GetCookieStatus(success=True), bbs_cookies
+                    return GetCookieStatus(success=True), cookies
                 elif res_json["data"]["status"] == -302 or res_json["data"]["msg"] == "图片验证码失败":
                     return GetCookieStatus(incorrect_captcha=True), None
     except tenacity.RetryError as e:
@@ -925,15 +925,15 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
             return GetCookieStatus(network_error=True), None
 
 
-async def get_cookie_token_by_stoken(bbs_cookies: BBSCookies, retry: bool = True) -> Tuple[
+async def get_cookie_token_by_stoken(cookies: BBSCookies, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过 stoken 获取 cookie_token
 
-    :param bbs_cookies: 米游社Cookies，需要包含 stoken
+    :param cookies: 米游社Cookies，需要包含 stoken
     :param retry: 是否允许重试
     """
-    if not bbs_cookies.stoken:
+    if not cookies.stoken:
         return GetCookieStatus(missing_stoken=True), None
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
@@ -942,14 +942,14 @@ async def get_cookie_token_by_stoken(bbs_cookies: BBSCookies, retry: bool = True
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
                         URL_COOKIE_TOKEN_BY_STOKEN,
-                        cookies=bbs_cookies.dict(),
+                        cookies=cookies.dict(),
                         timeout=conf.preference.timeout
                     )
                 res_json = res.json()
-                bbs_cookies.cookie_token = res_json["data"]["cookie_token"]
-                if not bbs_cookies.bbs_uid:
-                    bbs_cookies.bbs_uid = res_json["data"]["uid"]
-                return GetCookieStatus(success=True), bbs_cookies
+                cookies.cookie_token = res_json["data"]["cookie_token"]
+                if not cookies.bbs_uid:
+                    cookies.bbs_uid = res_json["data"]["uid"]
+                return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"通过 stoken 获取 cookie_token: 服务器没有正确返回")
