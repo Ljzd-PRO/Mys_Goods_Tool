@@ -64,7 +64,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name mys_goods_tool --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
 
       - name: Build (Windows)
