@@ -175,12 +175,12 @@ class Preference(BaseModel, extra=Extra.ignore):
     """最大网络请求重试次数"""
     retry_interval: float = 2
     """网络请求重试间隔（单位：秒）（除兑换请求外）"""
-    enable_ntp_sync: bool = True
+    enable_ntp_sync: Optional[bool] = True
     """是否开启NTP时间同步（将调整实际发出兑换请求的时间，而不是修改系统时间）"""
     ntp_server: Optional[str] = "ntp.aliyun.com"
     """NTP服务器地址"""
-    geetest_localized: bool = False
-    """登录时使用的 GEETEST行为验证 WEB服务 加载本地JS资源"""
+    geetest_statics_path: Optional[Path] = None
+    """GEETEST行为验证 网站静态文件目录（默认读取本地包自带的静态文件）"""
     geetest_listen_address: Optional[Tuple[str, int]] = ("localhost", 0)
     """登录时使用的 GEETEST行为验证 WEB服务 本地监听地址"""
     exchange_thread_count: int = 3
@@ -191,7 +191,7 @@ class Preference(BaseModel, extra=Extra.ignore):
     """兑换时间延迟（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
     enable_log_output: bool = True
     """是否保存日志"""
-    log_path: Path = ROOT_PATH / "logs" / "mys_goods_tool.log"
+    log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
     """日志保存路径"""
 
 
@@ -237,4 +237,5 @@ if os.path.isfile(CONFIG_PATH):
         exit(1)
 else:
     write_config_file(config)
-    logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
+    # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
+    # 由于会输出到标准输出流，影响TUI观感，因此暂时取消

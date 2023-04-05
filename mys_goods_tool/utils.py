@@ -28,7 +28,8 @@ LOG_FORMAT: str = (
 """默认日志格式"""
 
 logger.remove()
-logger.add(conf.preference.log_path, diagnose=True, format=LOG_FORMAT, level="DEBUG")
+if conf.preference.log_path:
+    logger.add(conf.preference.log_path, diagnose=True, format=LOG_FORMAT, level="DEBUG")
 
 
 def custom_attempt_times(retry: bool):

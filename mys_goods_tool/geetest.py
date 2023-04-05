@@ -5,18 +5,18 @@ import threading
 import traceback
 from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from multiprocessing import Pipe, Manager, connection
-from multiprocessing.connection import Connection
+from pathlib import Path
 from queue import Queue
 from threading import Thread
 from typing import Any, Optional, Callable, Tuple
 from urllib import parse
 
 from mys_goods_tool.data_model import GeetestResult
-from mys_goods_tool.user_data import ROOT_PATH
 from mys_goods_tool.user_data import config as conf
 from mys_goods_tool.utils import logger, get_free_port, ProcessManager
 
-STATIC_DIRECTORY = ROOT_PATH / "geetest-webui"
+STATIC_DIRECTORY = Path(__file__).resolve().parent / "geetest-webui" \
+    if not conf.preference.geetest_statics_path else conf.preference.geetest_statics_path
 
 
 class GeetestHandler(SimpleHTTPRequestHandler):
@@ -44,10 +44,11 @@ class GeetestHandler(SimpleHTTPRequestHandler):
         logger.debug(f"HttpServer: {self.address_string()} - - {format % args}")
 
     def do_GET(self):
+        file_path = self.path
         try:
             if self.path == "/" or not self.path:
                 # 重定向到默认文件
-                self.path = "/index.html" if not conf.preference.geetest_localized else "/localized.html"
+                self.path = "/index.html"
             elif self.path.startswith("/result"):
                 # 接收验证结果
                 params = parse.parse_qs(parse.urlparse(self.path).query)
@@ -72,8 +73,10 @@ class GeetestHandler(SimpleHTTPRequestHandler):
             file_path = STATIC_DIRECTORY / parse.urlparse(self.path).path[1:]
 
             # 检查文件是否存在并且可读
-            if not os.path.isfile(file_path) or not os.access(file_path, os.R_OK):
-                raise FileNotFoundError
+            if not os.path.isfile(file_path):
+                raise FileNotFoundError(f"文件 {file_path} 不存在")
+            if not os.access(file_path, os.R_OK):
+                raise FileNotFoundError(f"文件 {file_path} 不可读")
 
             # 发送响应头
             self.send_response(200)
@@ -84,10 +87,10 @@ class GeetestHandler(SimpleHTTPRequestHandler):
             with open(file_path, "rb") as file:
                 self.wfile.write(file.read())
         except FileNotFoundError:
-            logger.warning(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但请求文件 {self.path} 不存在或不可读")
+            logger.warning(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但请求文件 {file_path} 不存在或不可读")
             logger.debug(traceback.format_exc())
             self.send_error(404)
-        except:
+        except Exception:
             logger.error(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但处理请求时发生错误")
             logger.debug(traceback.format_exc())
             self.send_error(500)
@@ -121,7 +124,7 @@ class GeetestProcess:
     """
     httpd: ThreadingHTTPServer
     """GEETEST行为验证HTTP服务器实例"""
-    pipe: Tuple[Connection]
+    pipe: Tuple[connection.Connection]
     """进程间通信管道，用于终止HTTP服务器"""
     geetest_result_queue: Queue[GeetestResult]
     """由Manager管理的验证结果数据"""
@@ -141,7 +144,8 @@ class GeetestProcess:
         logger.info(f"HTTP服务器 - 运行于 {cls.httpd.server_address} 的服务器已停止")
 
     @classmethod
-    def run(cls, listen_address: Tuple[str, int], pipe: Tuple[Connection], geetest_result_queue: Queue[GeetestResult]):
+    def run(cls, listen_address: Tuple[str, int], pipe: Tuple[connection.Connection],
+            geetest_result_queue: Queue[GeetestResult]):
         """
         进程所执行的任务，被阻塞（启动HTTP服务器）
 
@@ -175,7 +179,7 @@ class GeetestProcessManager(ProcessManager):
         :param error_httpd_callback: HTTP服务器发生错误后的回调函数
         """
         self.listen_address = listen_address
-        self.pipe: Tuple[Connection] = Pipe(duplex=False)
+        self.pipe: Tuple[connection.Connection] = Pipe(duplex=False)
         self.result_queue: Queue[GeetestResult] = Manager().Queue()
 
         super().__init__(httpd_close_callback, error_httpd_callback)
@@ -217,7 +221,7 @@ class GeetestServerThread(Thread):
             logger.info(
                 f"HTTP服务器 - 监听地址：http://{listen_address[0]}:{listen_address[1]}")
             self.httpd.serve_forever()
-        except:
+        except Exception:
             logger.error("HTTP服务器 - 启动失败")
             logger.debug(traceback.format_exc())
 
