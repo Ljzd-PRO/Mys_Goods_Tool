@@ -37,8 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          poetry install
-          poetry add pyinstaller
+          poetry install --only pyinstaller
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
