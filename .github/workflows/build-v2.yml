@@ -58,7 +58,7 @@ jobs:
           poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
 
-      - name: Clean up
+      - name: Clean up build
         run: |
           poetry run pyinstaller --clean
 
