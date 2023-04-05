@@ -213,8 +213,6 @@ class CaptchaLoginInformation(Container):
                             )
 
     StaticTuple = NamedTuple("StaticTuple",
-                             save_title=Static,
-                             save_text=StaticStatus,
                              geetest_title=Static,
                              geetest_text=StaticStatus
                              )
@@ -231,8 +229,6 @@ class CaptchaLoginInformation(Container):
     GEETEST_TEXT = "- 暂无需要完成的人机验证任务 -"
 
     static_tuple = StaticTuple(
-        save_title=Static(Markdown("## 账号数据将保存至")),
-        save_text=StaticStatus(SAVE_TEXT),
         geetest_title=Static(Markdown("## GEETEST人机验证链接")),
         geetest_text=StaticStatus(GEETEST_TEXT)
     )
