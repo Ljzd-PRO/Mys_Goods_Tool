@@ -19,7 +19,6 @@ httpx = "~=0.23.3"
 rich = "~=13.3.3"
 textual = "~=0.18.0"
 charset_normalizer = ">=2.0.0,<4.0.0"
-pyinstaller = "^5.9.0"
 
 [tool.poetry.group.pyinstaller.dependencies]
 pyinstaller = "~=5.9.0"
