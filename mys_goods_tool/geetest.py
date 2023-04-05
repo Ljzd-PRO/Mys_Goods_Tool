@@ -15,8 +15,8 @@ from mys_goods_tool.data_model import GeetestResult
 from mys_goods_tool.user_data import config as conf
 from mys_goods_tool.utils import logger, get_free_port, ProcessManager
 
-STATIC_DIRECTORY = Path(__file__).resolve().parent / "geetest-webui" \
-    if not conf.preference.geetest_statics_path else conf.preference.geetest_statics_path
+STATIC_DIRECTORY = Path(__file__).resolve().with_name(
+    "geetest-webui") if not conf.preference.geetest_statics_path else conf.preference.geetest_statics_path
 
 
 class GeetestHandler(SimpleHTTPRequestHandler):

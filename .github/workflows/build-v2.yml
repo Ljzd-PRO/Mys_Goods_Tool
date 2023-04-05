@@ -57,44 +57,38 @@ jobs:
       - name: Build (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
-          poetry run pyinstaller __init__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
-          mv ./dist/main ./
+          poetry run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
 
       - name: Build (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller __init__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
-          mv ./dist/main ./
+          poetry run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name main.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;geetest-webui"
-          move dist\main.exe .\
+          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;mys_goods_tool/geetest-webui"
 
       - name: Clean up (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-          rm *.spec
 
       - name: Clean up (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-          rm *.spec
 
       - name: Clean up (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
           ${{ env.windows-poetry-path }} run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
-          del *.spec
 
       - name: Upload build
         uses: actions/upload-artifact@v3
         with:
           name: Mys_Goods_Tool_v2-${{ runner.os }}-x86_64
           path: |
-            main*
+            dist
