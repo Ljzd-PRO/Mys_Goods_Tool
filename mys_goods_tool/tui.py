@@ -734,9 +734,13 @@ class CaptchaForm(LoginForm):
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "login":
+            # 按下“登录”按钮时触发的事件
+
             await self.login()
 
         elif event.button.id in ["login_error", "login_success"]:
+            # 按下“完成（成功）”或“返回（出错）”按钮时触发的事件
+
             if event.button.id == "login_success":
                 [i.turn_off() for i in CaptchaLoginInformation.radio_tuple]
             self.button.login.show()
