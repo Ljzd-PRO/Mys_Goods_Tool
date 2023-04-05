@@ -42,8 +42,8 @@ jobs:
       - name: Install dependencies (macOS)
         if: ${{ runner.os == 'Darwin' }}
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="/Users/runner/.local/bin:$PATH"
+          python -m pip install --upgrade pip
+          python -m pip install poetry
           poetry install --with pyinstaller
 
       - name: Build (Windows)
