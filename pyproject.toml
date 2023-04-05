@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mys-goods-tool"
-version = "2.0.0"
-description = ""
+version = "2.0.0-dev"
+description = "米游社商品兑换工具"
 authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
 readme = "README.md"
 packages = [{ include = "mys_goods_tool" }]
