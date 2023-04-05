@@ -41,8 +41,7 @@ def guide_mode():
     app = TuiApp()
     app.run()
 
-
-if __name__ == "__main__":
+def main():
     if len(sys.argv) == 1:
         guide_mode()
     elif sys.argv[1] == "-h":
@@ -56,3 +55,8 @@ if __name__ == "__main__":
             ...
         else:
             print_help()
+
+
+if __name__ == "__main__":
+    main() 
+

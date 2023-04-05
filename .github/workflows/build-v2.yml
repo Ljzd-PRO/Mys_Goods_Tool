@@ -57,20 +57,20 @@ jobs:
       - name: Build (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          poetry run pyinstaller __init__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
 
       - name: Build (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          poetry run pyinstaller __init__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*;geetest-webui
+          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name main.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;geetest-webui"
           move dist\main.exe .\
 
       - name: Clean up (Linux)
