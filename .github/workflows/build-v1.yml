@@ -17,7 +17,7 @@ on:
     path:
       - 'mys_goods_tool_v1/**'
       - '.github/workflows/build-v1.yml'
-      -
+
 permissions:
   contents: read
 
