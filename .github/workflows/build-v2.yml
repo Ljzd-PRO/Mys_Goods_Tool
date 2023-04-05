@@ -85,6 +85,7 @@ jobs:
       - name: Clean up (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
+          ls dist
           export PATH="/Users/runner/.local/bin:$PATH"
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
 
@@ -98,4 +99,4 @@ jobs:
         with:
           name: Mys_Goods_Tool_v2-${{ runner.os }}-x86_64
           path: |
-            dist
+            ./dist
