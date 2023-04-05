@@ -18,7 +18,6 @@ permissions:
 env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
-  windows-poetry-path: C:\Users\runneradmin\AppData\Roaming\Python\Scripts\poetry
 
 jobs:
   build:
@@ -54,28 +53,42 @@ jobs:
           (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
           poetry install --with pyinstaller
 
-      - name: Build
-        if: ${{ runner.os != 'Windows' }}
+      - name: Build (Linux)
+        if: ${{ runner.os == 'Linux' }}
         run: |
+          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          mv ./dist/main ./
+
+      - name: Build (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          export PATH="/Users/runner/.local/bin:$PATH"
           poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           mv ./dist/main ./
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
+          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:geetest-webui
           move dist\main.exe .\
 
-      - name: Clean up
-        if: ${{ runner.os != 'Windows' }}
+      - name: Clean up (Linux)
+        if: ${{ runner.os == 'Linux' }}
         run: |
+          poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
+          rm *.spec
+
+      - name: Clean up (macOS)
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          export PATH="/Users/runner/.local/bin:$PATH"
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
           rm *.spec
 
       - name: Clean up (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
+          poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
           del *.spec
 
       - name: Upload build
