@@ -409,6 +409,8 @@ class PhoneForm(LoginForm):
                        f"\n- 如果页面加载慢或者出错，尝试：\n"
                        f"[@click=app.open_link('{link_localized}')]{link_localized}[/]",
             text_align="left")
+        logger.info(f"请前往链接进行人机验证：{link}")
+        logger.info(f"如果页面加载慢或者出错，尝试：{link_localized}")
 
     def set_address_error_callback(self, exception: BaseException):
         """
