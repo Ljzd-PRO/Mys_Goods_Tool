@@ -6,11 +6,17 @@ on:
     branches:
       - stable
       - dev
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/build-v2.yml'
 
   pull_request:
     branches:
       - stable
       - dev
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/build-v2.yml'
 
 permissions:
   contents: read
@@ -19,6 +25,7 @@ env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
   windows-poetry-path: C:\Users\runneradmin\AppData\Roaming\Python\Scripts\poetry
+  executable-file-name: Mys_Goods_Tool
 
 jobs:
   build:
@@ -57,18 +64,18 @@ jobs:
       - name: Build (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
-          poetry run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
+          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
 
       - name: Build (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
+          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ vars.V2_EXECUTABLE_FILE_NAME }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;mys_goods_tool/geetest-webui"
+          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ env.executable-file-name }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;mys_goods_tool/geetest-webui"
 
       - name: Clean up (Linux)
         if: ${{ runner.os == 'Linux' }}

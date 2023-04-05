@@ -4,9 +4,15 @@ on:
   workflow_dispatch:
   push:
     branches: [ "stable", "dev" ]
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/python-package.yml'
 
   pull_request:
     branches: [ "stable", "dev" ]
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/python-package.yml'
 
 permissions:
   contents: read
