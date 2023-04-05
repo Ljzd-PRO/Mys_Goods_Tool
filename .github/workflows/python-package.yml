@@ -41,10 +41,10 @@ jobs:
           python -m pip install flake8 pytest pytest-html
           curl -sSL https://install.python-poetry.org | python3 -
           poetry install
+          source $(poetry env info --path)/bin/activate
 
       - name: Lint with flake8
         run: |
-          source $(poetry env info --path)/bin/activate
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -52,7 +52,6 @@ jobs:
 
       - name: Test with pytest
         run: |
-          source $(poetry env info --path)/bin/activate
           pytest -v --doctest-modules --capture=sys --html=report.html --self-contained-html ${{ vars.V2_PATH }}
 
       - name: Upload pytest HTML result
