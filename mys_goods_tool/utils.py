@@ -17,7 +17,7 @@ import tenacity
 from loguru import logger
 from pydantic import ValidationError
 
-from user_data import config as conf
+from .user_data import config as conf
 
 LOG_FORMAT: str = (
     "<g>{time:MM-DD HH:mm:ss}</g> "

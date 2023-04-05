@@ -11,10 +11,10 @@ from threading import Thread
 from typing import Any, Optional, Callable, Tuple
 from urllib import parse
 
-from data_model import GeetestResult
-from user_data import ROOT_PATH
-from user_data import config as conf
-from utils import logger, get_free_port, ProcessManager
+from .data_model import GeetestResult
+from .user_data import ROOT_PATH
+from .user_data import config as conf
+from .utils import logger, get_free_port, ProcessManager
 
 STATIC_DIRECTORY = ROOT_PATH / "geetest-webui"
 

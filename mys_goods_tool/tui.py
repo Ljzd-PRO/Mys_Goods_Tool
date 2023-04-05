@@ -22,12 +22,12 @@ from textual.widgets import (
     LoadingIndicator, RadioButton
 )
 
-from api import create_mobile_captcha, create_mmt, get_cookie_token_by_captcha
-from custom_css import *
-from data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
-from geetest import GeetestProcessManager, SetAddressProcessManager
-from user_data import config as conf, UserAccount, CONFIG_PATH
-from utils import LOG_FORMAT, logger
+from .api import create_mobile_captcha, create_mmt, get_cookie_token_by_captcha
+from .custom_css import *
+from .data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
+from .geetest import GeetestProcessManager, SetAddressProcessManager
+from .user_data import config as conf, UserAccount, CONFIG_PATH
+from .utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
 # 米游社商品兑换工具

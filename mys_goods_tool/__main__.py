@@ -1,7 +1,6 @@
 import sys
 
-from mys_goods_tool.tui import TuiApp
-from user_data import config as conf
+from .tui import TuiApp
 
 pyperclip_import_result = True
 try:
