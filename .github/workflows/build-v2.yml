@@ -70,11 +70,13 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         run: |
           poetry run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
+          rm *.spec
 
       - name: Clean up (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
           ${{ env.windows-poetry-path }} run pyinstaller --clean ${{ vars.V2_PATH }}__main__.py
+          del *.spec
 
       - name: Upload build
         uses: actions/upload-artifact@v3
