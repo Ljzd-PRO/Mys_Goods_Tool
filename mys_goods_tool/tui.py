@@ -26,7 +26,7 @@ from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_cookie_tok
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
-from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH
+from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH, ROOT_PATH
 from mys_goods_tool.utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -273,150 +273,6 @@ class ButtonDisplay(Button):
         隐藏
         """
         self.display = NONE
-
-
-class DarkSwitch(Horizontal):
-    DEFAULT_CSS = """
-    DarkSwitch {
-        background: $panel;
-        padding: 1;
-        dock: bottom;
-        height: auto;
-        border-right: vkey $background;
-    }
-    
-    DarkSwitch .label {
-        width: 1fr;
-        padding: 1 2;
-        color: $text-muted;
-    }
-    
-    DarkSwitch Switch {
-        background: $boost;
-        dock: left;
-    }
-    """
-
-    def compose(self) -> ComposeResult:
-        yield Switch(value=self.app.dark)
-        yield Static("暗黑模式切换", classes="label")
-
-    def on_mount(self) -> None:
-        self.watch(self.app, "dark", self.on_dark_change, init=False)
-
-    def on_dark_change(self) -> None:
-        self.query_one(Switch).value = self.app.dark
-
-    def on_switch_changed(self, event: Switch.Changed) -> None:
-        self.app.dark = event.value
-
-
-class Welcome(Container):
-    DEFAULT_CSS = """
-    Welcome {
-        background: $boost;
-        height: auto;
-        max-width: 100;
-        min-width: 40;
-        border: wide $primary;
-        padding: 1 2;
-        margin: 1 2;
-        box-sizing: border-box;
-    }
-    
-    Welcome Button {
-        width: 100%;
-        margin-top: 1;
-    }
-    """
-
-    def compose(self) -> ComposeResult:
-        yield Static(Markdown(WELCOME_MD))
-        yield Button("开始使用", variant="success")
-
-    def on_button_pressed(self) -> None:
-        self.app.add_note("[b magenta]Start!")
-        self.app.query_one(".location-first").scroll_visible(duration=0.5, top=True)
-
-
-class Version(Static):
-    DEFAULT_CSS = """
-    Version {
-        color: $text-disabled;
-        dock: bottom;
-        text-align: center;
-        padding: 1;
-    }
-    """
-
-    def render(self) -> RenderableType:
-        return f"[b]v{version('textual')}"
-
-
-class Sidebar(Container):
-    DEFAULT_CSS = """
-    Sidebar {
-        width: 40;
-        background: $panel;
-        transition: offset 500ms in_out_cubic;
-        layer: overlay;
-    }
-    
-    Sidebar:focus-within {
-        offset: 0 0 !important;
-    }
-    
-    Sidebar.-hidden {
-        offset-x: -100%;
-    }
-    
-    Sidebar Title {
-        background: $boost;
-        color: $secondary;
-        padding: 2 4;
-        border-right: vkey $background;
-        dock: top;
-        text-align: center;
-        text-style: bold;
-    }
-    """
-
-    def compose(self) -> ComposeResult:
-        yield Title("Mys_Goods_Tool")
-        yield OptionGroup(Message("MESSAGE"), Version())
-        yield DarkSwitch()
-
-
-class LocationLink(Static):
-    DEFAULT_CSS = """
-    LocationLink {
-        margin: 1 0 0 1;
-        height: 1;
-        padding: 1 2;
-        background: $boost;
-        color: $text;
-        box-sizing: content-box;
-        content-align: center middle;
-    }
-    
-    LocationLink:hover {
-        background: $accent;
-        color: $text;
-        text-style: bold;
-    }
-    
-    .pad {
-        margin: 1 0;
-    }
-    """
-
-    def __init__(self, label: str, reveal: str) -> None:
-        super().__init__(label)
-        self.reveal = reveal
-
-    def on_click(self) -> None:
-        # 跳转到指定位置
-        self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
 
 
 class PhoneForm(LoginForm):
@@ -745,6 +601,150 @@ class CaptchaForm(LoginForm):
             self.before_login = True
 
 
+class Welcome(Container):
+    DEFAULT_CSS = """
+    Welcome {
+        background: $boost;
+        height: auto;
+        max-width: 100;
+        min-width: 40;
+        border: wide $primary;
+        padding: 1 2;
+        margin: 1 2;
+        box-sizing: border-box;
+    }
+
+    Welcome Button {
+        width: 100%;
+        margin-top: 1;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Static(Markdown(WELCOME_MD))
+        yield Button("开始使用", variant="success")
+
+    def on_button_pressed(self) -> None:
+        self.app.add_note("[b magenta]Start!")
+        self.app.query_one(".location-first").scroll_visible(duration=0.5, top=True)
+
+
+class Version(Static):
+    DEFAULT_CSS = """
+    Version {
+        color: $text-disabled;
+        dock: bottom;
+        text-align: center;
+        padding: 1;
+    }
+    """
+
+    def render(self) -> RenderableType:
+        return f"[b]v{version('textual')}"
+
+
+class Sidebar(Container):
+    DEFAULT_CSS = """
+    Sidebar {
+        width: 40;
+        background: $panel;
+        transition: offset 500ms in_out_cubic;
+        layer: overlay;
+    }
+
+    Sidebar:focus-within {
+        offset: 0 0 !important;
+    }
+
+    Sidebar.-hidden {
+        offset-x: -100%;
+    }
+
+    Sidebar Title {
+        background: $boost;
+        color: $secondary;
+        padding: 2 4;
+        border-right: vkey $background;
+        dock: top;
+        text-align: center;
+        text-style: bold;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Title("Mys_Goods_Tool")
+        yield OptionGroup(Message("MESSAGE"), Version())
+        yield DarkSwitch()
+
+
+class LocationLink(Static):
+    DEFAULT_CSS = """
+    LocationLink {
+        margin: 1 0 0 1;
+        height: 1;
+        padding: 1 2;
+        background: $boost;
+        color: $text;
+        box-sizing: content-box;
+        content-align: center middle;
+    }
+
+    LocationLink:hover {
+        background: $accent;
+        color: $text;
+        text-style: bold;
+    }
+
+    .pad {
+        margin: 1 0;
+    }
+    """
+
+    def __init__(self, label: str, reveal: str) -> None:
+        super().__init__(label)
+        self.reveal = reveal
+
+    def on_click(self) -> None:
+        # 跳转到指定位置
+        self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
+
+
+class DarkSwitch(Horizontal):
+    DEFAULT_CSS = """
+    DarkSwitch {
+        background: $panel;
+        padding: 1;
+        dock: bottom;
+        height: auto;
+        border-right: vkey $background;
+    }
+
+    DarkSwitch .label {
+        width: 1fr;
+        padding: 1 2;
+        color: $text-muted;
+    }
+
+    DarkSwitch Switch {
+        background: $boost;
+        dock: left;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Switch(value=self.app.dark)
+        yield Static("暗黑模式切换", classes="label")
+
+    def on_mount(self) -> None:
+        self.watch(self.app, "dark", self.on_dark_change, init=False)
+
+    def on_dark_change(self) -> None:
+        self.query_one(Switch).value = self.app.dark
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        self.app.dark = event.value
+
+
 class Notification(Static):
     """
     通知消息框
@@ -866,7 +866,7 @@ class TuiApp(App[None]):
         logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
 
-    def action_screenshot(self, filename: str | None = None, path: str = "./") -> None:
+    def action_screenshot(self, filename: str | None = None, path: str = str(ROOT_PATH)) -> None:
         """Save an SVG "screenshot". This action will save an SVG file containing the current contents of the screen.
 
         Args:
