@@ -227,6 +227,8 @@ class GetCookieStatus(BaseApiStatus):
     """Cookies 缺少 bbs_uid (stuid, ltuid, ...)"""
     missing_cookie_token = False
     """Cookies 缺少 cookie_token"""
+    missing_stoken = False
+    """Cookies 缺少 stoken"""
 
 
 class GetGoodDetailStatus(BaseApiStatus):
@@ -260,9 +262,6 @@ class ExchangeStatus(BaseApiStatus):
 
 GeetestResult = NamedTuple("GeetestResult", validate=str, seccode=str)
 """人机验证结果数据"""
-
-MobileCaptchaResult = NamedTuple("MobileCaptchaResult", phone_number=str, captcha=int)
-"""手机号与对应的短信验证码"""
 
 ExchangeResult = NamedTuple("ExchangeResult", result=bool, return_data=dict)
 """兑换结果数据"""

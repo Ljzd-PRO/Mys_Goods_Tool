@@ -1,22 +1,26 @@
 import traceback
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, overload, Union
+from urllib.parse import urlencode
 
 import httpx
 import tenacity
+from httpx import Cookies
 from pydantic import ValidationError
 from requests.utils import dict_from_cookiejar
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
-    CreateMobileCaptchaStatus, GetGoodDetailStatus, MobileCaptchaResult, ExchangeStatus, ExchangeResult
+    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, ExchangeResult
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
 from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, \
     check_ds, \
     NtpTime
 
-URL_LOGIN_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
-URL_LOGIN_STOKEN = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}"
-URL_LOGIN_COOKIE_TOKEN = "https://api-takumi.mihoyo.com/account/auth/api/webLoginByMobile"
+URL_LOGIN_TICKET_BY_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
+URL_LOGIN_TICKET_BY_PASSWORD = "https://webapi.account.mihoyo.com/Api/login_by_password"
+URL_MULTI_TOKEN_BY_LOGIN_TICKET = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}"
+URL_COOKIE_TOKEN_BY_CAPTCHA = "https://api-takumi.mihoyo.com/account/auth/api/webLoginByMobile"
+URL_COOKIE_TOKEN_BY_STOKEN = "https://passport-api.mihoyo.com/account/auth/api/getCookieAccountInfoBySToken"
 URL_ACTION_TICKET = "https://api-takumi.mihoyo.com/auth/api/getActionTicketBySToken?action_type=game_role&stoken={stoken}&uid={bbs_uid}"
 URL_GAME_RECORD = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
 URL_GAME_LIST = "https://bbs-api.mihoyo.com/apihub/api/getGameList"
@@ -54,7 +58,28 @@ HEADERS_WEBAPI = {
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6"
 }
-HEADERS_LOGIN_STOKEN = {
+HEADERS_COOKIE_TOKEN_BY_STOKEN = {
+    "Host": "passport-api.mihoyo.com",
+    "Content-Type": "application/json",
+    "Accept": "*/*",
+    # "x-rpc-device_fp": "",
+    "x-rpc-client_type": "1",
+    "x-rpc-device_id": None,
+    # "x-rpc-app_id": "bll8iq97cem8",
+    "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+    "x-rpc-game_biz": "bbs_cn",
+    "Accept-Encoding": "gzip, deflate, br",
+    "x-rpc-device_model": conf.device_config.X_RPC_DEVICE_MODEL_MOBILE,
+    "User-Agent": conf.device_config.USER_AGENT_OTHER,
+    "x-rpc-device_name": conf.device_config.X_RPC_DEVICE_NAME_MOBILE,
+    "x-rpc-app_version": conf.device_config.X_RPC_APP_VERSION,
+    # 抓包时 "2.47.1"
+
+    "x-rpc-sdk_version": "1.6.1",
+    "Connection": "keep-alive",
+    "x-rpc-sys_version": conf.device_config.X_RPC_SYS_VERSION
+}
+HEADERS_MULTI_TOKEN_BY_LOGIN_TICKET = {
     "Host": "api-takumi.mihoyo.com",
     "Content-Type": "application/json;charset=utf-8",
     "Origin": "https://bbs.mihoyo.com",
@@ -572,7 +597,7 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
             return BaseApiStatus(network_error=True), None
 
 
-async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtData]]:
+async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtData], Optional[Cookies]]:
     """
     发送短信验证前所需的人机验证任务申请
 
@@ -588,110 +613,184 @@ async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtDat
                     time_now = round(NtpTime.time() * 1000)
                     res = await client.get(URL_CREATE_MMT.format(now=time_now, t=time_now),
                                            headers=headers, timeout=conf.preference.timeout)
-                return BaseApiStatus(success=True), MmtData.parse_obj(res.json()["data"]["mmt_data"])
+                return BaseApiStatus(success=True), MmtData.parse_obj(res.json()["data"]["mmt_data"]), res.cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
             logger.debug(f"{traceback.format_exc()}")
-            return BaseApiStatus(incorrect_return=True), None
+            return BaseApiStatus(incorrect_return=True), None, res.cookies
         else:
             logger.error(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
             logger.debug(f"{traceback.format_exc()}")
-            return BaseApiStatus(network_error=True), None
+            return BaseApiStatus(network_error=True), None, None
 
 
-async def create_mobile_captcha(phone_number: int, mmt_data: MmtData, geetest_result: GeetestResult,
-                                retry: bool = True):
+async def create_mobile_captcha(phone_number: int,
+                                mmt_data: MmtData,
+                                geetest_result: GeetestResult,
+                                cookies: Union[Cookies, BBSCookies, None] = None,
+                                retry: bool = True
+                                ) -> Tuple[CreateMobileCaptchaStatus, Optional[Cookies]]:
     """
     发送短信验证码
 
     :param phone_number: 手机号
     :param mmt_data: 人机验证任务数据
     :param geetest_result: 人机验证结果数据
+    :param cookies: 先前获取人机验证任务时的 cookies
     :param retry: 是否允许重试
     """
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
+    if isinstance(cookies, BBSCookies):
+        cookies = cookies.json()
+    params = {
+        "action_type": "login",
+        "mmt_key": mmt_data.mmt_key,
+        "geetest_challenge": mmt_data.challenge,
+        "geetest_validate": geetest_result.validate,
+        "geetest_seccode": geetest_result.seccode,
+        "mobile": phone_number,
+        "t": round(NtpTime.time() * 1000)
+    }
+    encoded_params = urlencode(params)
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_CREATE_MOBILE_CAPTCHA,
-                                            content=f"action_type=login&mmt_key={mmt_data.mmt_key}"
-                                                    f"&geetest_challenge={mmt_data.challenge}"
-                                                    f"&geetest_validate={geetest_result.validate}"
-                                                    f"&geetest_seccode={geetest_result.seccode}"
-                                                    f"&mobile={phone_number}"
-                                                    f"&t={round(NtpTime.time() * 1000)}",
-                                            headers=headers, timeout=conf.preference.timeout)
-                if res.json()["data"]["msg"] == "成功" or res.json()["data"]["status"] == 1:
-                    return CreateMobileCaptchaStatus(success=True)
-                elif res.json()["data"]["msg"] == "图片验证码失败" or res.json()["data"]["status"] == -302:
-                    return CreateMobileCaptchaStatus(incorrect_geetest=True)
+                                            content=encoded_params,
+                                            headers=headers,
+                                            cookies=cookies,
+                                            timeout=conf.preference.timeout)
+                if res.json()["data"]["status"] == 1 or res.json()["data"]["msg"] == "成功":
+                    return CreateMobileCaptchaStatus(success=True), res.cookies
+                elif res.json()["data"]["status"] == -302 or res.json()["data"]["msg"] == "图片验证码失败":
+                    return CreateMobileCaptchaStatus(incorrect_geetest=True), res.cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"发送短信验证码 - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
             logger.debug(f"{traceback.format_exc()}")
-            return CreateMobileCaptchaStatus(incorrect_return=True)
+            return CreateMobileCaptchaStatus(incorrect_return=True), res.cookies
         else:
             logger.error(f"发送短信验证码 - 请求失败")
             logger.debug(f"{traceback.format_exc()}")
-            return CreateMobileCaptchaStatus(network_error=True)
+            return CreateMobileCaptchaStatus(network_error=True), None
 
 
-async def get_login_ticket_by_captcha(mobile_captcha_result: MobileCaptchaResult, retry: bool = True) -> Tuple[
-    GetCookieStatus, Optional[BBSCookies]]:
+@overload
+async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: Union[Cookies, BBSCookies, None] = None,
+                                      use_new: Literal[False] = False,
+                                      retry: bool = True) -> \
+        Tuple[
+            GetCookieStatus, Optional[BBSCookies]]:
     """
     通过短信验证码获取 login_ticket
 
-    :param mobile_captcha_result: 短信验证结果数据
+    :param phone_number: 手机号
+    :param captcha: 短信验证码
+    :param cookies: 先前人机验证、发送验证码的 cookies
+    :param use_new: 是否使用新API
+    :param retry: 是否允许重试
+    """
+
+
+@overload
+async def get_login_ticket_by_captcha(phone_number: str, captcha: int, use_new: Literal[True] = True,
+                                      retry: bool = True) -> \
+        Tuple[
+            GetCookieStatus, Optional[BBSCookies]]:
+    """
+    通过短信验证码获取 login_ticket（新API）
+
+    :param phone_number: 手机号
+    :param captcha: 短信验证码
+    :param use_new: 是否使用新API
+    :param retry: 是否允许重试
+    """
+
+
+async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: Union[Cookies, BBSCookies, None] = None,
+                                      use_new: bool = True, retry: bool = True) -> \
+        Tuple[
+            GetCookieStatus, Optional[BBSCookies]]:
+    """
+    通过短信验证码获取 login_ticket
+
+    :param phone_number: 手机号
+    :param captcha: 短信验证码
+    :param cookies: 先前人机验证、发送验证码的 cookies
+    :param use_new: 是否使用新API
     :param retry: 是否允许重试
 
     >>> import asyncio
-    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number=12345678910, captcha=123456))
+    >>> coroutine = get_cookie_token_by_captcha("12345678910", 123456, use_new=False)
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
+
+    # >>> coroutine = get_cookie_token_by_captcha("12345678910", 123456, use_new=True)
+    # >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
-    headers = HEADERS_WEBAPI.copy()
-    headers["x-rpc-device_id"] = generate_device_id()
-    try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
-            with attempt:
-                async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_LOGIN_CAPTCHA, headers=headers,
-                                            content=f"mobile={mobile_captcha_result.phone_number}"
-                                                    f"&mobile_captcha={mobile_captcha_result.captcha}"
-                                                    "&source=user.mihoyo.com",
-                                            timeout=conf.preference.timeout)
-                res_json = res.json()
-                if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
-                    logger.info(f"短信验证码获取 login_ticket - 验证码错误")
-                    return GetCookieStatus(incorrect_captcha=True), None
-                bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(
-                    res.cookies.jar))
-                if not bbs_cookies.login_ticket:
-                    return GetCookieStatus(missing_login_ticket=True), None
-                else:
-                    return GetCookieStatus(success=True), bbs_cookies
-    except tenacity.RetryError as e:
-        if is_incorrect_return(e):
-            logger.error(f"短信验证码获取 login_ticket: 服务器没有正确返回")
-            logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
-            return GetCookieStatus(incorrect_return=True), None
-        else:
-            logger.error(f"短信验证码获取 login_ticket: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
-            return GetCookieStatus(network_error=True), None
+    if use_new:
+        # Plan: 手机端
+        ...
+    else:
+        headers = HEADERS_WEBAPI.copy()
+        headers["x-rpc-device_id"] = generate_device_id()
+        if isinstance(cookies, BBSCookies):
+            cookies = cookies.json()
+        params = {
+            "mobile": phone_number,
+            "mobile_captcha": captcha,
+            "source": "user.mihoyo.com",
+            "t": round(NtpTime.time() * 1000),
+        }
+        encoded_params = urlencode(params)
+        try:
+            async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
+                                                        wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+                with attempt:
+                    async with httpx.AsyncClient() as client:
+                        res = await client.post(URL_LOGIN_TICKET_BY_CAPTCHA,
+                                                headers=headers,
+                                                content=encoded_params,
+                                                cookies=cookies,
+                                                timeout=conf.preference.timeout
+                                                )
+                    res_json = res.json()
+                    if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
+                        bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(
+                            res.cookies.jar))
+                        if not bbs_cookies.login_ticket:
+                            return GetCookieStatus(missing_login_ticket=True), None
+                        else:
+                            return GetCookieStatus(success=True), bbs_cookies
+                    elif res_json["data"]["status"] == -201 \
+                            or res_json["data"]["msg"] == "验证码错误" \
+                            or res_json["data"]["info"] == "Captcha not match Err":
+                        logger.info(
+                            f"通过短信验证码获取 login_ticket - 验证码错误，也可能是未传入之前人机验证时的Cookies")
+                        return GetCookieStatus(incorrect_captcha=True), None
+                    else:
+                        raise IncorrectReturn
+        except tenacity.RetryError as e:
+            if is_incorrect_return(e):
+                logger.error(f"通过短信验证码获取 login_ticket: 服务器没有正确返回")
+                logger.debug(f"网络请求返回: {res.text}")
+                logger.debug(f"{traceback.format_exc()}")
+                return GetCookieStatus(incorrect_return=True), None
+            else:
+                logger.error(f"通过短信验证码获取 login_ticket: 网络请求失败")
+                logger.debug(f"{traceback.format_exc()}")
+                return GetCookieStatus(network_error=True), None
 
 
 async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
-    获取stoken
+    通过 login_ticket 获取 stoken
 
     :param bbs_cookies: 米游社Cookies，需要包含 login_ticket 和 bbs_uid
     :param retry: 是否允许重试
@@ -706,33 +805,34 @@ async def get_stoken_by_login_ticket(bbs_cookies: BBSCookies, retry: bool = True
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
-                        URL_LOGIN_STOKEN.format(bbs_cookies.login_ticket, bbs_cookies.bbs_uid),
+                        URL_MULTI_TOKEN_BY_LOGIN_TICKET.format(bbs_cookies.login_ticket, bbs_cookies.bbs_uid),
                         timeout=conf.preference.timeout)
                 bbs_cookies.stoken = list(filter(
                     lambda data: data["name"] == "stoken", res.json()["data"]["list"]))[0]["token"]
                 return GetCookieStatus(success=True), bbs_cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"登录米哈游账号 - 获取stoken: 服务器没有正确返回")
+            logger.error(f"通过 login_ticket 获取 stoken: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
             logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"登录米哈游账号 - 获取stoken: 网络请求失败")
+            logger.error(f"通过 login_ticket 获取 stoken: 网络请求失败")
             logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(network_error=True), None
 
 
-async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult, retry: bool = True) -> Tuple[
+async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过短信验证码获取 cookie_token
 
-    :param mobile_captcha_result: 短信验证结果数据
+    :param phone_number: 手机号
+    :param captcha: 验证码
     :param retry: 是否允许重试
 
     >>> import asyncio
-    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number="12345678910", captcha=123456))
+    >>> coroutine = get_cookie_token_by_captcha("12345678910", 123456)
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
     try:
@@ -740,19 +840,19 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_LOGIN_COOKIE_TOKEN, headers=HEADERS_LOGIN_STOKEN, json={
-                        "is_bh2": False,
-                        "mobile": mobile_captcha_result.phone_number,
-                        "captcha": str(mobile_captcha_result.captcha),
-                        "action_type": "login",
-                        "token_type": 6
-                    }, timeout=conf.preference.timeout)
+                    res = await client.post(URL_COOKIE_TOKEN_BY_CAPTCHA, headers=HEADERS_MULTI_TOKEN_BY_LOGIN_TICKET,
+                                            json={
+                                                "is_bh2": False,
+                                                "mobile": phone_number,
+                                                "captcha": str(captcha),
+                                                "action_type": "login",
+                                                "token_type": 6
+                                            }, timeout=conf.preference.timeout)
                 res_json = res.json()
                 if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
                     logger.info(f"登录米哈游账号 - 验证码错误")
                     return GetCookieStatus(incorrect_captcha=True), None
-                bbs_cookies = BBSCookies.parse_obj(
-                    dict_from_cookiejar(res.cookies.jar))
+                bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
                 if not bbs_cookies.cookie_token:
                     return GetCookieStatus(missing_cookie_token=True), None
                 elif not bbs_cookies.bbs_uid:
@@ -761,12 +861,103 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                     return GetCookieStatus(success=True), bbs_cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"登录米哈游账号 - 获取cookie_token: 服务器没有正确返回")
+            logger.error(f"通过短信验证码获取 cookie_token: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
             logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"登录米哈游账号 - 获取cookie_token: 网络请求失败")
+            logger.error(f"通过短信验证码获取 cookie_token: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
+
+
+async def get_login_ticket_by_password(account: str, password: str, mmt_data: MmtData, geetest_result: GeetestResult,
+                                       retry: bool = True) -> Tuple[GetCookieStatus, Optional[BBSCookies]]:
+    """
+    使用密码登录获取login_ticket
+
+    :param account: 账号
+    :param password: 密码
+    :param mmt_data: GEETEST验证任务数据
+    :param geetest_result: GEETEST验证结果数据
+    :param retry: 是否允许重试
+    """
+    headers = HEADERS_WEBAPI.copy()
+    headers["x-rpc-device_id"] = generate_device_id()
+    params = {
+        "account": account,
+        "password": password,
+        "is_crypto": False,
+        "mmt_key": mmt_data.mmt_key,
+        "geetest_challenge": mmt_data.challenge,
+        "geetest_validate": geetest_result.validate,
+        "geetest_seccode": geetest_result.seccode,
+        "source": "user.mihoyo.com",
+        "t": round(NtpTime.time() * 1000)
+    }
+    encoded_params = urlencode(params)
+    try:
+        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
+                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.post(
+                        URL_LOGIN_TICKET_BY_PASSWORD,
+                        content=encoded_params,
+                        headers=headers,
+                        timeout=conf.preference.timeout
+                    )
+                bbs_cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
+                res_json = res.json()
+                if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
+                    return GetCookieStatus(success=True), bbs_cookies
+                elif res_json["data"]["status"] == -302 or res_json["data"]["msg"] == "图片验证码失败":
+                    return GetCookieStatus(incorrect_captcha=True), None
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"使用密码登录获取login_ticket - 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"使用密码登录获取login_ticket - 请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
+
+
+async def get_cookie_token_by_stoken(bbs_cookies: BBSCookies, retry: bool = True) -> Tuple[
+    GetCookieStatus, Optional[BBSCookies]]:
+    """
+    通过 stoken 获取 cookie_token
+
+    :param bbs_cookies: 米游社Cookies，需要包含 stoken
+    :param retry: 是否允许重试
+    """
+    if not bbs_cookies.stoken:
+        return GetCookieStatus(missing_stoken=True), None
+    try:
+        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
+                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.get(
+                        URL_COOKIE_TOKEN_BY_STOKEN,
+                        cookies=bbs_cookies.dict(),
+                        timeout=conf.preference.timeout
+                    )
+                res_json = res.json()
+                bbs_cookies.cookie_token = res_json["data"]["cookie_token"]
+                if not bbs_cookies.bbs_uid:
+                    bbs_cookies.bbs_uid = res_json["data"]["uid"]
+                return GetCookieStatus(success=True), bbs_cookies
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"通过 stoken 获取 cookie_token: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"通过 stoken 获取 cookie_token: 网络请求失败")
             logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(network_error=True), None
 

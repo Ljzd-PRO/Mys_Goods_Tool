@@ -110,6 +110,12 @@ class BBSCookies(BaseModel):
                 break
         return uid if uid else None
 
+    @bbs_uid.setter
+    def bbs_uid(self, value):
+        self.stuid = value
+        self.ltuid = value
+        self.account_id = value
+
 
 class UserAccount(BaseModel, extra=Extra.ignore):
     """

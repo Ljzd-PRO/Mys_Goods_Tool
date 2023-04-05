@@ -5,6 +5,7 @@ import queue
 from importlib.metadata import version
 from typing import NamedTuple, Tuple, Optional, Set
 
+from httpx import Cookies
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.pretty import Pretty
@@ -22,9 +23,9 @@ from textual.widgets import (
     LoadingIndicator, RadioButton
 )
 
-from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_cookie_token_by_captcha
+from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha
 from mys_goods_tool.custom_css import *
-from mys_goods_tool.data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
+from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
 from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH, ROOT_PATH
 from mys_goods_tool.utils import LOG_FORMAT, logger
@@ -281,6 +282,8 @@ class PhoneForm(LoginForm):
     """
     input = Input(placeholder="手机号", id="login_phone")
     """手机号输入框"""
+    cookies: Optional[Cookies] = None
+    """人机验证过程产生的Cookies，可供登录用"""
 
     ButtonTuple = NamedTuple("ButtonTuple", send=ButtonDisplay, stop_geetest=ButtonDisplay, success=ButtonDisplay,
                              error=ButtonDisplay)
@@ -353,9 +356,13 @@ class PhoneForm(LoginForm):
                 logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
                 CaptchaLoginInformation.radio_tuple.finish_geetest.turn_on()
                 self.loading.display = BLOCK
-                if await create_mobile_captcha(int(self.input.value), self.mmt_data, geetest_result):
+                create_captcha_return = await create_mobile_captcha(int(self.input.value), self.mmt_data,
+                                                                    geetest_result)
+                if create_captcha_return[0]:
                     self.loading.display = NONE
+
                     logger.info(f"短信验证码已发送至 {self.input.value}")
+                    PhoneForm.cookies.update(create_captcha_return[1])
 
                     CaptchaLoginInformation.radio_tuple.create_captcha.turn_on()
                     CaptchaLoginInformation.static_tuple.geetest_text.change_text(CaptchaLoginInformation.GEETEST_TEXT,
@@ -366,7 +373,6 @@ class PhoneForm(LoginForm):
                     self.geetest_manager.pipe[1].send(True)
                     await self.geetest_manager.force_stop_later(10)
 
-                    # 目前通知无效，且该语句需要在最后执行，似乎执行该语句后会导致函数结束。待解决
                     self.app.notice("短信验证码已发送至 [green]" + self.input.value + "[/]")
                     break
                 else:
@@ -375,8 +381,6 @@ class PhoneForm(LoginForm):
                     self.button.stop_geetest.hide()
                     CaptchaLoginInformation.static_tuple.geetest_text.change_text(CaptchaLoginInformation.GEETEST_TEXT,
                                                                                   "center")
-
-                    # 目前通知无效，且该语句需要在最后执行，似乎执行该语句后会导致函数结束。待解决
                     self.app.notice("[red]短信验证码发送失败[/]")
 
     def set_address_callback(self, address: Tuple[str, int]):
@@ -438,19 +442,20 @@ class PhoneForm(LoginForm):
         self.button.send.disabled = True
         self.loading.display = BLOCK
 
-        create_mmt_result = await create_mmt()
-        if not create_mmt_result[0]:
+        create_mmt_return = await create_mmt()
+        if not create_mmt_return[0]:
             self.close_create_captcha_send()
             self.button.error.show()
             self.app.notice("[red]获取Geetest行为验证任务数据失败！[/]")
             return
         else:
-            logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_result[1]}")
+            logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_return[1]}")
+            PhoneForm.cookies = create_mmt_return[2]
             CaptchaLoginInformation.radio_tuple.create_geetest.turn_on()
-            self.mmt_data = create_mmt_result[1]
+            self.mmt_data = create_mmt_return[1]
             self.set_address_manager.start()
 
-        return create_mmt_result[0]
+        return create_mmt_return[0]
 
     async def on_input_submitted(self, _: Input.Submitted):
         await self.create_captcha()
@@ -539,17 +544,25 @@ class CaptchaForm(LoginForm):
         self.before_login = False
 
         self.button.login.disabled = True
-        captcha_result = MobileCaptchaResult(PhoneForm.input.value, int(self.input.value))
         self.loading.display = BLOCK
-        cookie_token_result = await get_cookie_token_by_captcha(captcha_result)
+
+        phone_number = PhoneForm.input.value
+        captcha = int(self.input.value)
+        cookie_token_result = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies, use_new=False)
         self.loading.display = NONE
         cookie_token_status = cookie_token_result[0]
         cookies = cookie_token_result[1]
         if cookie_token_status:
             logger.debug(f"已成功登录 {cookie_token_result[1].json()}")
-            conf.accounts.update({
-                cookies.bbs_uid: UserAccount(phone_number=captcha_result.phone_number, cookies=cookies)
-            })
+            account = conf.accounts.get(cookies.bbs_uid)
+            if not account or not account.cookies:
+                conf.accounts.update({
+                    cookies.bbs_uid: UserAccount(phone_number=phone_number, cookies=cookies)
+                })
+            else:
+                cookies_dict = conf.accounts[cookies.bbs_uid].cookies.dict()
+                cookies_dict.update(cookies.dict())
+                conf.accounts[cookies.bbs_uid].cookies.parse_obj(cookies_dict)
             conf.save()
             self.app.notice("[green]登录成功！[/]")
             CaptchaLoginInformation.radio_tuple.login.turn_on()
@@ -570,6 +583,8 @@ class CaptchaForm(LoginForm):
                 notice_text += "Cookies缺少 login_ticket！"
             elif cookie_token_status.missing_cookie_token:
                 notice_text += "Cookies缺少 cookie_token！"
+            else:
+                notice_text += "未知错误！"
             notice_text += "[/]"
             self.button.error.show()
             self.app.notice(notice_text)
@@ -621,7 +636,6 @@ class Welcome(Container):
         yield Button("开始使用", variant="success")
 
     def on_button_pressed(self) -> None:
-        self.app.add_note("[b magenta]Start!")
         self.app.query_one(".location-first").scroll_visible(duration=0.5, top=True)
 
 
