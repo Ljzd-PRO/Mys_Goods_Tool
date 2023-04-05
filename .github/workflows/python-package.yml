@@ -52,6 +52,7 @@ jobs:
       - name: Upload pytest HTML result
         uses: actions/upload-artifact@v3
         with:
+          name: pytest-html-${{ matrix.python-version }}
           path: report-${{ matrix.python-version }}.html
 
       - name: Build package with Poetry
