@@ -115,7 +115,7 @@ class UserAccount(BaseModel, extra=Extra.ignore):
     """
     米游社账户数据
     """
-    phone_number: Optional[int]
+    phone_number: Optional[str]
     """手机号"""
     cookies: BBSCookies
     """Cookies"""

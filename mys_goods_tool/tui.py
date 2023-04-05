@@ -430,9 +430,6 @@ class PhoneForm(LoginForm):
         elif not self.input.value:
             self.app.notice("登录信息缺少 [bold red]手机号[/] ！")
             return
-        elif not self.input.value.isdigit():
-            self.app.notice("登录信息 [bold red]手机号[/] 格式错误！")
-            return
         self.before_create_captcha = False
 
         [i.turn_off() for i in CaptchaLoginInformation.radio_tuple]
@@ -531,19 +528,16 @@ class CaptchaForm(LoginForm):
         elif not PhoneForm.input.value:
             self.app.notice("登录信息缺少 [bold red]手机号[/] ！")
             return
-        elif not PhoneForm.input.value.isdigit():
-            self.app.notice("登录信息 [bold red]手机号[/] 格式错误！")
-            return
         elif not self.input.value:
             self.app.notice("登录信息缺少 [bold red]验证码[/] ！")
             return
         elif not self.input.value.isdigit():
-            self.app.notice("登录信息 [bold red]验证码[/] 格式错误！")
+            self.app.notice("登录信息 [bold red]验证码[/] 需要是数字！")
             return
         self.before_login = False
 
         self.button.login.disabled = True
-        captcha_result = MobileCaptchaResult(int(PhoneForm.input.value), int(self.input.value))
+        captcha_result = MobileCaptchaResult(PhoneForm.input.value, int(self.input.value))
         self.loading.display = BLOCK
         cookie_token_result = await get_cookie_token_by_captcha(captcha_result)
         self.loading.display = NONE
@@ -784,6 +778,10 @@ class TuiApp(App[None]):
     show_sidebar = reactive(False)
 
     app: TuiApp
+    """当前App实例"""
+
+    text_log = TextLog(classes="-hidden", wrap=False, highlight=True, markup=True)
+    """textual日志输出界面"""
 
     @classmethod
     def notice(cls, renderable: RenderableType) -> None:
@@ -806,7 +804,7 @@ class TuiApp(App[None]):
         yield Container(
             Sidebar(classes="-hidden"),
             Header(show_clock=False),
-            TextLog(classes="-hidden", wrap=False, highlight=True, markup=True),
+            self.text_log,
             Body(
                 QuickAccess(
                     LocationLink("主页", ".location-top"),
@@ -862,7 +860,7 @@ class TuiApp(App[None]):
 
     def on_mount(self) -> None:
         TuiApp.app = self
-        logger.add(self.query_one(TextLog).write, diagnose=False, level="DEBUG", format=LOG_FORMAT)
+        logger.add(TuiApp.text_log.write, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
 

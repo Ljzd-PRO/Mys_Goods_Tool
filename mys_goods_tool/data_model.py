@@ -261,7 +261,7 @@ class ExchangeStatus(BaseApiStatus):
 GeetestResult = NamedTuple("GeetestResult", validate=str, seccode=str)
 """人机验证结果数据"""
 
-MobileCaptchaResult = NamedTuple("MobileCaptchaResult", phone_number=int, captcha=int)
+MobileCaptchaResult = NamedTuple("MobileCaptchaResult", phone_number=str, captcha=int)
 """手机号与对应的短信验证码"""
 
 ExchangeResult = NamedTuple("ExchangeResult", result=bool, return_data=dict)

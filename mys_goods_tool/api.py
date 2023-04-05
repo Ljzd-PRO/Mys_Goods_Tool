@@ -732,7 +732,7 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
     :param retry: 是否允许重试
 
     >>> import asyncio
-    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number=12345678910, captcha=123456))
+    >>> coroutine = get_cookie_token_by_captcha(MobileCaptchaResult(phone_number="12345678910", captcha=123456))
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
     try:
@@ -742,7 +742,7 @@ async def get_cookie_token_by_captcha(mobile_captcha_result: MobileCaptchaResult
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_LOGIN_COOKIE_TOKEN, headers=HEADERS_LOGIN_STOKEN, json={
                         "is_bh2": False,
-                        "mobile": str(mobile_captcha_result.phone_number),
+                        "mobile": mobile_captcha_result.phone_number,
                         "captcha": str(mobile_captcha_result.captcha),
                         "action_type": "login",
                         "token_type": 6
