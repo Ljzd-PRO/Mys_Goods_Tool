@@ -26,7 +26,7 @@ from api import create_mobile_captcha, create_mmt, get_cookie_token_by_captcha
 from custom_css import *
 from data_model import GeetestResult, MmtData, MobileCaptchaResult, GetCookieStatus
 from geetest import GeetestProcessManager, SetAddressProcessManager
-from user_data import config as conf, UserAccount
+from user_data import config as conf, UserAccount, CONFIG_PATH
 from utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -177,7 +177,7 @@ class CaptchaLoginInformation(Container):
             border: round #CCC;
         }
         
-        Tips>StaticStatus {
+        Tips StaticStatus {
             width: 100%;
             align: center top;
             text-align: center;
@@ -227,11 +227,11 @@ class CaptchaLoginInformation(Container):
         login=RadioStatus("完成登录")
     )
 
-    SAVE_TEXT = "..."
+    SAVE_TEXT = str(CONFIG_PATH)
     GEETEST_TEXT = "- 暂无需要完成的人机验证任务 -"
 
     static_tuple = StaticTuple(
-        save_title=Static(Markdown("## 下一个账号将保存至")),
+        save_title=Static(Markdown("## 账号数据将保存至")),
         save_text=StaticStatus(SAVE_TEXT),
         geetest_title=Static(Markdown("## GEETEST人机验证链接")),
         geetest_text=StaticStatus(GEETEST_TEXT)
