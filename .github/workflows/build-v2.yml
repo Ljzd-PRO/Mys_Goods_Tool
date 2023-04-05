@@ -64,18 +64,18 @@ jobs:
       - name: Build (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
-          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
+          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui:mys_goods_tool/geetest-webui
 
       - name: Build (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui/*:mys_goods_tool/geetest-webui
+          poetry run pyinstaller __init__.py --name ${{ env.executable-file-name }} --onefile --add-data ${{ vars.V2_PATH }}geetest-webui:mys_goods_tool/geetest-webui
 
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ env.executable-file-name }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui/*;mys_goods_tool/geetest-webui"
+          ${{ env.windows-poetry-path }} run pyinstaller __init__.py --name ${{ env.executable-file-name }}.exe --onefile --add-data "${{ vars.V2_PATH }}geetest-webui;mys_goods_tool/geetest-webui"
 
       - name: Clean up (Linux)
         if: ${{ runner.os == 'Linux' }}
