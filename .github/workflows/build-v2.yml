@@ -42,13 +42,13 @@ jobs:
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-binary ${{ vars.V2_PATH }}geetest-webui;
+          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main.exe --onefile --add-data ${{ vars.V2_PATH }}geetest-webui
           move dist\main.exe .\
 
       - name: Build
         if: ${{ runner.os != 'Windows' }}
         run: |
-          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-binary ${{ vars.V2_PATH }}geetest-webui;
+          poetry run pyinstaller ${{ vars.V2_PATH }}__main__.py --name main --onefile --add-data ${{ vars.V2_PATH }}geetest-webui
           mv ./dist/main ./
 
       - name: Upload build

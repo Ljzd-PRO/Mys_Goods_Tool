@@ -7,7 +7,6 @@ readme = "README.md"
 packages = [{ include = "mys_goods_tool" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
 tenacity = "~=8.2.2"
 requests = "~=2.28.2"
 ping3 = "~=4.0.4"
