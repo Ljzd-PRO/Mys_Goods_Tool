@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          poetry install --only test
+          poetry install --with test
 
       - name: Lint with flake8
         run: |
