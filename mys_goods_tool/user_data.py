@@ -127,11 +127,11 @@ class BBSCookies(BaseModel):
         更新Cookies
         """
         if isinstance(cookies, BBSCookies):
-            cookies = cookies.dict()
-        self_dict: Dict[str, str] = self.dict()
-        self_dict.update(cookies)
-        self.parse_obj(self_dict)
-        return self_dict
+            [setattr(self, key, value) for key, value in cookies.dict().items() if value]
+        else:
+            self_dict: Dict[str, str] = self.dict()
+            self_dict.update(cookies)
+            self.parse_obj(self_dict)
 
 
 class UserAccount(BaseModel, extra=Extra.ignore):
