@@ -808,10 +808,14 @@ async def get_multi_token_by_login_ticket(cookies: BBSCookies, retry: bool = Tru
                         URL_MULTI_TOKEN_BY_LOGIN_TICKET.format(cookies.login_ticket, cookies.bbs_uid),
                         headers=HEADERS_API_TAKUMI_PC,
                         timeout=conf.preference.timeout)
+                res_json = res.json()
+                if res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                    logger.warning(f"通过 login_ticket 获取 stoken: 登录失效")
+                    return GetCookieStatus(login_expired=True), None
                 cookies.stoken = list(filter(
-                    lambda data: data["name"] == "stoken", res.json()["data"]["list"]))[0]["token"]
+                    lambda data: data["name"] == "stoken", res_json["data"]["list"]))[0]["token"]
                 cookies.ltoken = list(filter(
-                    lambda data: data["name"] == "ltoken", res.json()["data"]["list"]))[0]["token"]
+                    lambda data: data["name"] == "ltoken", res_json["data"]["list"]))[0]["token"]
                 return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
