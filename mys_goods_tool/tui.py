@@ -593,7 +593,7 @@ class CaptchaForm(LoginForm):
 
                     # Plan: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
                     CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
-
+                    self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
                     self.button.success.show()
 
         self.loading.display = NONE
@@ -619,6 +619,7 @@ class CaptchaForm(LoginForm):
                 notice_text += "未知错误！"
             notice_text += "[/] 如果部分步骤成功，你仍然可以尝试获取收货地址、兑换等功能"
             self.button.error.show()
+            logger.info(notice_text)
             self.app.notice(notice_text)
 
         self.close_login()
