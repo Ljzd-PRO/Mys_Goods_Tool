@@ -4,6 +4,7 @@ import traceback
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict
 
+from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError
 
@@ -85,15 +86,19 @@ class BBSCookies(BaseModel):
     """米游社UID"""
     account_id: Optional[str]
     """米游社UID"""
+    login_uid: Optional[str]
+    """米游社UID"""
+
     stoken: Optional[str]
     cookie_token: Optional[str]
     login_ticket: Optional[str]
+    ltoken: Optional[str]
     mid: Optional[str]
 
     @property
     def is_correct(self) -> bool:
         """判断是否为正确的Cookies"""
-        if (self.stuid or self.ltuid or self.account_id) and self.stoken and self.cookie_token:
+        if self.bbs_uid and self.stoken and self.cookie_token:
             return True
         else:
             return False
@@ -104,17 +109,29 @@ class BBSCookies(BaseModel):
         获取米游社UID
         """
         uid = None
-        for value in [self.stuid, self.ltuid, self.account_id]:
+        for value in [self.stuid, self.ltuid, self.account_id, self.login_uid]:
             if value:
                 uid = value
                 break
         return uid if uid else None
 
     @bbs_uid.setter
-    def bbs_uid(self, value):
+    def bbs_uid(self, value: str):
         self.stuid = value
         self.ltuid = value
         self.account_id = value
+        self.login_uid = value
+
+    def update(self, cookies: Union[Dict[str, str], Cookies, "BBSCookies"]):
+        """
+        更新Cookies
+        """
+        if isinstance(cookies, BBSCookies):
+            cookies = cookies.dict()
+        self_dict: Dict[str, str] = self.dict()
+        self_dict.update(cookies)
+        self.parse_obj(self_dict)
+        return self_dict
 
 
 class UserAccount(BaseModel, extra=Extra.ignore):
@@ -149,6 +166,10 @@ class UserAccount(BaseModel, extra=Extra.ignore):
         获取米游社UID
         """
         return self.cookies.bbs_uid
+
+    @bbs_uid.setter
+    def bbs_uid(self, value: str):
+        self.cookies.bbs_uid = value
 
 
 class ExchangePlan(BaseModel, extra=Extra.ignore):

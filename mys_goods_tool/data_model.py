@@ -197,8 +197,8 @@ class BaseApiStatus(BaseModel):
     """连接失败"""
     incorrect_return = False
     """服务器返回数据不正确"""
-    login_failed = False
-    """登录失败"""
+    login_expired = False
+    """登录失效"""
 
     def __bool__(self):
         if self.success:

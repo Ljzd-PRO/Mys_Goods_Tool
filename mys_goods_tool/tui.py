@@ -23,7 +23,8 @@ from textual.widgets import (
     LoadingIndicator, RadioButton
 )
 
-from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha
+from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
@@ -208,9 +209,12 @@ class CaptchaLoginInformation(Container):
     RadioTuple = NamedTuple("RadioTuple",
                             create_geetest=RadioStatus,
                             http_server=RadioStatus,
-                            finish_geetest=RadioStatus,
+                            geetest_finished=RadioStatus,
                             create_captcha=RadioStatus,
-                            login=RadioStatus
+                            login_ticket_by_captcha=RadioStatus,
+                            multi_token_by_login_ticket=RadioStatus,
+                            cookie_token_by_stoken=RadioStatus,
+                            login_finished=RadioStatus
                             )
 
     StaticTuple = NamedTuple("StaticTuple",
@@ -221,9 +225,12 @@ class CaptchaLoginInformation(Container):
     radio_tuple = RadioTuple(
         create_geetest=RadioStatus("短信验证码 - 申请人机验证任务"),
         http_server=RadioStatus("开启人机验证网页服务器"),
-        finish_geetest=RadioStatus("完成人机验证"),
+        geetest_finished=RadioStatus("完成人机验证"),
         create_captcha=RadioStatus("发出短信验证码"),
-        login=RadioStatus("完成登录")
+        login_ticket_by_captcha=RadioStatus("通过验证码获取 login_ticket"),
+        multi_token_by_login_ticket=RadioStatus("通过 login_ticket 获取 stoken 和 ltoken"),
+        cookie_token_by_stoken=RadioStatus("通过 stoken 获取 cookie_token"),
+        login_finished=RadioStatus("完成登录")
     )
 
     SAVE_TEXT = str(CONFIG_PATH)
@@ -354,7 +361,7 @@ class PhoneForm(LoginForm):
                 continue
             else:
                 logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
-                CaptchaLoginInformation.radio_tuple.finish_geetest.turn_on()
+                CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.display = BLOCK
                 create_captcha_return = await create_mobile_captcha(int(self.input.value), self.mmt_data,
                                                                     geetest_result)
@@ -546,43 +553,68 @@ class CaptchaForm(LoginForm):
         self.button.login.disabled = True
         self.loading.display = BLOCK
 
+        # 1. 通过短信验证码获取 login_ticket
         phone_number = PhoneForm.input.value
         captcha = int(self.input.value)
-        cookie_token_result = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies, use_new=False)
-        self.loading.display = NONE
-        cookie_token_status = cookie_token_result[0]
-        cookies = cookie_token_result[1]
-        if cookie_token_status:
-            logger.debug(f"已成功登录 {cookie_token_result[1].json()}")
+        login_ticket_return = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies, use_new=False)
+        login_status = login_ticket_return[0]
+        cookies = login_ticket_return[1]
+        if login_status:
+            logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
             account = conf.accounts.get(cookies.bbs_uid)
             if not account or not account.cookies:
                 conf.accounts.update({
                     cookies.bbs_uid: UserAccount(phone_number=phone_number, cookies=cookies)
                 })
             else:
-                cookies_dict = conf.accounts[cookies.bbs_uid].cookies.dict()
-                cookies_dict.update(cookies.dict())
-                conf.accounts[cookies.bbs_uid].cookies.parse_obj(cookies_dict)
+                conf.accounts[cookies.bbs_uid].cookies.update(cookies)
             conf.save()
-            self.app.notice("[green]登录成功！[/]")
-            CaptchaLoginInformation.radio_tuple.login.turn_on()
-            self.button.success.show()
-        else:
+            CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
+
+            # 2. 通过 login_ticket 获取 stoken 和 ltoken
+            multi_token_return = await get_multi_token_by_login_ticket(cookies)
+            login_status = multi_token_return[0]
+            cookies = multi_token_return[1]
+            if login_status:
+                logger.info(f"用户 {phone_number} 成功获取 stoken: {cookies.stoken} 和 ltoken: {cookies.ltoken}")
+                conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                conf.save()
+                CaptchaLoginInformation.radio_tuple.multi_token_by_login_ticket.turn_on()
+
+                # 3. 通过 stoken 获取 cookie_token
+                cookie_token_return = await get_cookie_token_by_stoken(cookies)
+                login_status = cookie_token_return[0]
+                cookies = cookie_token_return[1]
+                if login_status:
+                    logger.info(f"用户 {phone_number} 成功获取 cookie_token: {cookies.cookie_token}")
+                    conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                    conf.save()
+                    CaptchaLoginInformation.radio_tuple.cookie_token_by_stoken.turn_on()
+
+                    # Plan: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
+                    CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
+
+                    self.button.success.show()
+
+        self.loading.display = NONE
+        if not login_status:
             notice_text = "登录失败：[bold red]"
-            if cookie_token_status.incorrect_captcha:
+            if login_status.incorrect_captcha:
                 notice_text += "验证码错误！"
-            elif cookie_token_status.login_failed:
-                notice_text += "其他错误"
-            elif cookie_token_status.incorrect_return:
+            elif login_status.login_expired:
+                notice_text += "登录失效！"
+            elif login_status.incorrect_return:
                 notice_text += "服务器返回错误！"
-            elif cookie_token_status.network_error:
+            elif login_status.network_error:
                 notice_text += "网络连接失败！"
-            elif cookie_token_status.missing_bbs_uid:
+            elif login_status.missing_bbs_uid:
                 notice_text += "Cookies缺少 bbs_uid（例如 ltuid, stuid）"
-            elif cookie_token_status.missing_login_ticket:
+            elif login_status.missing_login_ticket:
                 notice_text += "Cookies缺少 login_ticket！"
-            elif cookie_token_status.missing_cookie_token:
+            elif login_status.missing_cookie_token:
                 notice_text += "Cookies缺少 cookie_token！"
+            elif login_status.missing_stoken:
+                notice_text += "Cookies缺少 stoken！"
             else:
                 notice_text += "未知错误！"
             notice_text += "[/]"
@@ -590,7 +622,7 @@ class CaptchaForm(LoginForm):
             self.app.notice(notice_text)
 
         self.close_login()
-        return cookie_token_status
+        return login_status
 
     async def on_input_submitted(self, _: Input.Submitted) -> None:
         await self.login()
