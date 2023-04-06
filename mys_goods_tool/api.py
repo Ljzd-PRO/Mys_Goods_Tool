@@ -611,6 +611,8 @@ async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtDat
             with attempt:
                 async with httpx.AsyncClient() as client:
                     time_now = round(NtpTime.time() * 1000)
+                    await client.options(URL_CREATE_MMT.format(now=time_now, t=time_now),
+                                         headers=headers, timeout=conf.preference.timeout)
                     res = await client.get(URL_CREATE_MMT.format(now=time_now, t=time_now),
                                            headers=headers, timeout=conf.preference.timeout)
                 return BaseApiStatus(success=True), MmtData.parse_obj(res.json()["data"]["mmt_data"]), res.cookies
@@ -660,6 +662,10 @@ async def create_mobile_captcha(phone_number: int,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
+                    # res = await client.options(URL_CREATE_MOBILE_CAPTCHA,
+                    #                            headers=headers,
+                    #                            timeout=conf.preference.timeout)
+                    # cookies.update(res.cookies)
                     res = await client.post(URL_CREATE_MOBILE_CAPTCHA,
                                             content=encoded_params,
                                             headers=headers,
@@ -753,6 +759,11 @@ async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: 
                                                         wait=tenacity.wait_fixed(conf.preference.retry_interval)):
                 with attempt:
                     async with httpx.AsyncClient() as client:
+                        res = await client.options(URL_LOGIN_TICKET_BY_CAPTCHA,
+                                                   headers=headers,
+                                                   timeout=conf.preference.timeout
+                                                   )
+                        cookies.update(res.cookies)
                         res = await client.post(URL_LOGIN_TICKET_BY_CAPTCHA,
                                                 headers=headers,
                                                 content=encoded_params,
