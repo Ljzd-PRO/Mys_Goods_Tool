@@ -617,7 +617,7 @@ class CaptchaForm(LoginForm):
                 notice_text += "Cookies缺少 stoken！"
             else:
                 notice_text += "未知错误！"
-            notice_text += "[/]"
+            notice_text += "[/] 如果部分步骤成功，你仍然可以尝试获取收货地址、兑换等功能"
             self.button.error.show()
             self.app.notice(notice_text)
 
