@@ -217,6 +217,23 @@ class Preference(BaseSettings):
         env_prefix = "MYS_GOODS_TOOL_"  # 环境变量前缀
 
 
+class SaltConfig(BaseSettings):
+    """
+    生成Headers - DS所用salt值
+    """
+    SALT_IOS: str = "ulInCDohgEs557j0VsPDYnQaaz6KJcv5"
+    '''生成Headers iOS DS所需的salt'''
+    SALT_ANDROID: str = "n0KjuIrKgLHh08LWSCYP0WXlVXaYvV64"
+    '''生成Headers Android DS所需的salt'''
+    SALT_DATA: str = "t0qEgfub6cvueAPgR5m9aQWWVciEer7v"
+    '''Android 设备传入content生成 DS 所需的 salt'''
+    SALT_PARAMS: str = "xV8v4Qu54lUKrEYFZkJhB8cuOh9Asafs"
+    '''Android 设备传入url参数生成 DS 所需的 salt'''
+
+    class Config(Preference.Config):
+        pass
+
+
 class DeviceConfig(BaseSettings):
     """
     设备信息
@@ -280,6 +297,8 @@ class Config(BaseModel, extra=Extra.ignore):
     """兑换计划列表"""
     preference: Preference = Preference()
     """偏好设置"""
+    salt_config: SaltConfig = SaltConfig()
+    """生成Headers - DS所用salt值"""
     device_config: DeviceConfig = DeviceConfig()
     """设备信息"""
     accounts: Dict[str, UserAccount] = {}
