@@ -1,6 +1,32 @@
-from typing import Optional, Tuple, Literal, Dict, NamedTuple
+import inspect
+from typing import Optional, Tuple, Literal, Dict, NamedTuple, no_type_check
 
 from pydantic import BaseModel
+
+
+class BaseModelWithSetter(BaseModel):
+    """
+    可以使用@property.setter的BaseModel
+
+    目前pydantic 1.10.7 无法使用@property.setter
+    issue: https://github.com/pydantic/pydantic/issues/1577#issuecomment-790506164
+    """
+
+    @no_type_check
+    def __setattr__(self, name, value):
+        try:
+            super().__setattr__(name, value)
+        except ValueError as e:
+            setters = inspect.getmembers(
+                self.__class__,
+                predicate=lambda x: isinstance(x, property) and x.fset is not None
+            )
+            for setter_name, func in setters:
+                if setter_name == name:
+                    object.__setattr__(self, name, value)
+                    break
+            else:
+                raise e
 
 
 class Good(BaseModel):

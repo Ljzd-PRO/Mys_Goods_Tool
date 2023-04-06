@@ -8,6 +8,8 @@ from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError
 
+from mys_goods_tool.data_model import BaseModelWithSetter
+
 ROOT_PATH = Path(sys.argv[0]).parent.absolute()
 """程序所在目录"""
 
@@ -70,15 +72,18 @@ class DeviceConfig(BaseModel, extra=Extra.ignore):
     '''Headers所用的 sec-ch-ua-platform'''
 
 
-class BBSCookies(BaseModel):
+class BBSCookies(BaseModelWithSetter):
     """
     米游社Cookies数据
 
     >>> assert BBSCookies().is_correct is False
     >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct is True
 
-    >>> assert not BBSCookies().bbs_uid
+    >>> bbs_cookies = BBSCookies()
+    >>> assert not bbs_cookies.bbs_uid
     >>> assert BBSCookies(stuid="123").bbs_uid == "123"
+    >>> bbs_cookies.bbs_uid = "123"
+    >>> assert bbs_cookies.bbs_uid == "123"
     """
     stuid: Optional[str]
     """米游社UID"""
@@ -134,9 +139,14 @@ class BBSCookies(BaseModel):
             self.parse_obj(self_dict)
 
 
-class UserAccount(BaseModel, extra=Extra.ignore):
+class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
     """
     米游社账户数据
+
+    >>> user_account = UserAccount(cookies=BBSCookies())
+    >>> assert isinstance(user_account, UserAccount)
+    >>> user_account.bbs_uid = "123"
+    >>> assert user_account.bbs_uid == "123"
     """
     phone_number: Optional[str]
     """手机号"""
@@ -149,9 +159,6 @@ class UserAccount(BaseModel, extra=Extra.ignore):
     """安卓设备用 deviceID"""
 
     def __init__(self, **data: Any):
-        """
-        >>> assert isinstance(UserAccount(cookies=BBSCookies()), UserAccount)
-        """
         if not data.get("device_id_ios") or not data.get("device_id_android"):
             from utils import generate_device_id
             if not data.get("device_id_ios"):
