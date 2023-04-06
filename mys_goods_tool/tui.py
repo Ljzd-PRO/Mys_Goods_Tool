@@ -556,7 +556,7 @@ class CaptchaForm(LoginForm):
         # 1. 通过短信验证码获取 login_ticket
         phone_number = PhoneForm.input.value
         captcha = int(self.input.value)
-        login_ticket_return = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies, use_new=False)
+        login_ticket_return = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies)
         login_status = login_ticket_return[0]
         cookies = login_ticket_return[1]
         if login_status:
