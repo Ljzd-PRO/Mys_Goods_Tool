@@ -6,7 +6,7 @@ from typing import List, Union, Optional, Tuple, Any, Dict
 
 from httpx import Cookies
 from loguru import logger
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra, ValidationError, BaseSettings
 
 from mys_goods_tool.data_model import BaseModelWithSetter
 
@@ -18,58 +18,6 @@ if len(sys.argv) == 4 or len(sys.argv) == 2:
 else:
     CONFIG_PATH = ROOT_PATH / "config.json"
     """配置文件默认路径"""
-
-
-class DeviceConfig(BaseModel, extra=Extra.ignore):
-    """
-    设备信息
-    DS算法与设备信息有关联，非必要请勿修改
-    """
-    USER_AGENT_MOBILE: str = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.42.1"
-    '''移动端 User-Agent(Mozilla UA)'''
-    USER_AGENT_PC: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
-    '''桌面端 User-Agent(Mozilla UA)'''
-    USER_AGENT_OTHER: str = "Hyperion/275 CFNetwork/1402.0.8 Darwin/22.2.0"
-    '''获取用户 ActionTicket 时Headers所用的 User-Agent'''
-    USER_AGENT_ANDROID: str = "Mozilla/5.0 (Linux; Android 11; MI 8 SE Build/RQ3A.211001.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/104.0.5112.97 Mobile Safari/537.36 miHoYoBBS/2.36.1"
-    '''安卓端 User-Agent(Mozilla UA)'''
-    USER_AGENT_ANDROID_OTHER: str = "okhttp/4.9.3"
-    '''安卓端 User-Agent(专用于米游币任务等)'''
-    USER_AGENT_WIDGET: str = "WidgetExtension/231 CFNetwork/1390 Darwin/22.0.0"
-    '''iOS 小组件 User-Agent(原神实时便笺)'''
-
-    X_RPC_DEVICE_MODEL_MOBILE: str = "iPhone10,2"
-    '''移动端 x-rpc-device_model'''
-    X_RPC_DEVICE_MODEL_PC: str = "OS X 10.15.7"
-    '''桌面端 x-rpc-device_model'''
-    X_RPC_DEVICE_MODEL_ANDROID: str = "MI 8 SE"
-    '''安卓端 x-rpc-device_model'''
-
-    X_RPC_DEVICE_NAME_MOBILE: str = "iPhone"
-    '''移动端 x-rpc-device_name'''
-    X_RPC_DEVICE_NAME_PC: str = "Microsoft Edge 103.0.1264.62"
-    '''桌面端 x-rpc-device_name'''
-    X_RPC_DEVICE_NAME_ANDROID: str = "Xiaomi MI 8 SE"
-    '''安卓端 x-rpc-device_name'''
-
-    X_RPC_SYS_VERSION: str = "15.4"
-    '''Headers所用的 x-rpc-sys_version'''
-    X_RPC_SYS_VERSION_ANDROID: str = "11"
-    '''安卓端 x-rpc-sys_version'''
-
-    X_RPC_CHANNEL: str = "appstore"
-    '''Headers所用的 x-rpc-channel'''
-    X_RPC_CHANNEL_ANDROID: str = "miyousheluodi"
-    '''安卓端 x-rpc-channel'''
-
-    X_RPC_APP_VERSION: str = "2.28.1"
-    '''Headers所用的 x-rpc-app_version'''
-    X_RPC_PLATFORM: str = "ios"
-    '''Headers所用的 x-rpc-platform'''
-    UA: str = "\".Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"103\", \"Chromium\";v=\"103\""
-    '''Headers所用的 sec-ch-ua'''
-    UA_PLATFORM: str = "\"macOS\""
-    '''Headers所用的 sec-ch-ua-platform'''
 
 
 class BBSCookies(BaseModelWithSetter):
@@ -230,7 +178,7 @@ class ExchangePlan(BaseModel, extra=Extra.ignore):
     """商品对应的游戏的玩家账户UID"""
 
 
-class Preference(BaseModel, extra=Extra.ignore):
+class Preference(BaseSettings):
     """
     偏好设置
     """
@@ -264,6 +212,64 @@ class Preference(BaseModel, extra=Extra.ignore):
     """是否保存日志"""
     log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
     """日志保存路径"""
+
+    class Config:
+        env_prefix = "MYS_GOODS_TOOL_"  # 环境变量前缀
+
+
+class DeviceConfig(BaseSettings):
+    """
+    设备信息
+    DS算法与设备信息有关联，非必要请勿修改
+    """
+    USER_AGENT_MOBILE: str = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.42.1"
+    '''移动端 User-Agent(Mozilla UA)'''
+    USER_AGENT_PC: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
+    '''桌面端 User-Agent(Mozilla UA)'''
+    USER_AGENT_OTHER: str = "Hyperion/275 CFNetwork/1402.0.8 Darwin/22.2.0"
+    '''获取用户 ActionTicket 时Headers所用的 User-Agent'''
+    USER_AGENT_ANDROID: str = "Mozilla/5.0 (Linux; Android 11; MI 8 SE Build/RQ3A.211001.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/104.0.5112.97 Mobile Safari/537.36 miHoYoBBS/2.36.1"
+    '''安卓端 User-Agent(Mozilla UA)'''
+    USER_AGENT_ANDROID_OTHER: str = "okhttp/4.9.3"
+    '''安卓端 User-Agent(专用于米游币任务等)'''
+    USER_AGENT_WIDGET: str = "WidgetExtension/231 CFNetwork/1390 Darwin/22.0.0"
+    '''iOS 小组件 User-Agent(原神实时便笺)'''
+
+    X_RPC_DEVICE_MODEL_MOBILE: str = "iPhone10,2"
+    '''移动端 x-rpc-device_model'''
+    X_RPC_DEVICE_MODEL_PC: str = "OS X 10.15.7"
+    '''桌面端 x-rpc-device_model'''
+    X_RPC_DEVICE_MODEL_ANDROID: str = "MI 8 SE"
+    '''安卓端 x-rpc-device_model'''
+
+    X_RPC_DEVICE_NAME_MOBILE: str = "iPhone"
+    '''移动端 x-rpc-device_name'''
+    X_RPC_DEVICE_NAME_PC: str = "Microsoft Edge 103.0.1264.62"
+    '''桌面端 x-rpc-device_name'''
+    X_RPC_DEVICE_NAME_ANDROID: str = "Xiaomi MI 8 SE"
+    '''安卓端 x-rpc-device_name'''
+
+    X_RPC_SYS_VERSION: str = "15.4"
+    '''Headers所用的 x-rpc-sys_version'''
+    X_RPC_SYS_VERSION_ANDROID: str = "11"
+    '''安卓端 x-rpc-sys_version'''
+
+    X_RPC_CHANNEL: str = "appstore"
+    '''Headers所用的 x-rpc-channel'''
+    X_RPC_CHANNEL_ANDROID: str = "miyousheluodi"
+    '''安卓端 x-rpc-channel'''
+
+    X_RPC_APP_VERSION: str = "2.28.1"
+    '''Headers所用的 x-rpc-app_version'''
+    X_RPC_PLATFORM: str = "ios"
+    '''Headers所用的 x-rpc-platform'''
+    UA: str = "\".Not/A)Brand\";v=\"99\", \"Microsoft Edge\";v=\"103\", \"Chromium\";v=\"103\""
+    '''Headers所用的 sec-ch-ua'''
+    UA_PLATFORM: str = "\"macOS\""
+    '''Headers所用的 sec-ch-ua-platform'''
+
+    class Config(Preference.Config):
+        pass
 
 
 class Config(BaseModel, extra=Extra.ignore):
