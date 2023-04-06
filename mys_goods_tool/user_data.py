@@ -76,14 +76,23 @@ class BBSCookies(BaseModelWithSetter):
     """
     米游社Cookies数据
 
-    >>> assert BBSCookies().is_correct is False
-    >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct is True
+    >>> assert BBSCookies().is_correct() is False
+    >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct() is True
 
     >>> bbs_cookies = BBSCookies()
     >>> assert not bbs_cookies.bbs_uid
     >>> assert BBSCookies(stuid="123").bbs_uid == "123"
+
     >>> bbs_cookies.bbs_uid = "123"
     >>> assert bbs_cookies.bbs_uid == "123"
+
+    >>> bbs_cookies = BBSCookies(stoken="abcd1234")
+    >>> assert bbs_cookies.stoken_v1 and not bbs_cookies.stoken_v2
+    >>> bbs_cookies = BBSCookies(stoken="v2_abcd1234==")
+    >>> assert bbs_cookies.stoken_v2 and not bbs_cookies.stoken_v1
+    >>> assert bbs_cookies.stoken == "v2_abcd1234=="
+    >>> bbs_cookies.stoken = "v2_abcd=="
+    >>> assert bbs_cookies.stoken_v2 == "v2_abcd=="
     """
     stuid: Optional[str]
     """米游社UID"""
@@ -94,13 +103,22 @@ class BBSCookies(BaseModelWithSetter):
     login_uid: Optional[str]
     """米游社UID"""
 
-    stoken: Optional[str]
+    stoken_v1: Optional[str]
+    """保存stoken_v1，方便后续使用"""
+    stoken_v2: Optional[str]
+    """保存stoken_v2，方便后续使用"""
+
     cookie_token: Optional[str]
     login_ticket: Optional[str]
     ltoken: Optional[str]
     mid: Optional[str]
 
-    @property
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        stoken = data.get("stoken")
+        if stoken:
+            self.stoken = stoken
+
     def is_correct(self) -> bool:
         """判断是否为正确的Cookies"""
         if self.bbs_uid and self.stoken and self.cookie_token:
@@ -126,6 +144,25 @@ class BBSCookies(BaseModelWithSetter):
         self.ltuid = value
         self.account_id = value
         self.login_uid = value
+
+    @property
+    def stoken(self):
+        """
+        获取stoken
+        """
+        if self.stoken_v1:
+            return self.stoken_v1
+        elif self.stoken_v2:
+            return self.stoken_v2
+        else:
+            return None
+
+    @stoken.setter
+    def stoken(self, value):
+        if value.startswith("v2_"):
+            self.stoken_v2 = value
+        else:
+            self.stoken_v1 = value
 
     def update(self, cookies: Union[Dict[str, str], Cookies, "BBSCookies"]):
         """
