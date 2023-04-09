@@ -229,6 +229,7 @@ class SaltConfig(BaseSettings):
     '''Android 设备传入content生成 DS 所需的 salt'''
     SALT_PARAMS: str = "xV8v4Qu54lUKrEYFZkJhB8cuOh9Asafs"
     '''Android 设备传入url参数生成 DS 所需的 salt'''
+    SALT_PROD: str = "JwYDpKvLj6MrMqqYU6jTKF17KNO2PXoS"
 
     class Config(Preference.Config):
         pass

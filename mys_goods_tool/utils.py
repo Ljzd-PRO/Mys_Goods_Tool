@@ -166,20 +166,21 @@ def cookie_dict_to_str(cookie_dict: Dict[str, str]) -> str:
     return cookie_str
 
 
-def generate_ds(data: Union[str, dict, list] = "", params: Union[str, dict] = "",
-                platform: Literal["ios", "android"] = "ios"):
+def generate_ds(data: Union[str, dict, list, None] = None, params: Union[str, dict, None] = None,
+                platform: Literal["ios", "android"] = "ios", salt: Optional[str] = None):
     """
     获取Headers中所需DS
 
     :param data: 可选，网络请求中需要发送的数据
     :param params: 可选，URL参数
     :param platform: 可选，平台，ios或android
+    :param salt: 可选，自定义salt
     """
-    if data == "" and params == "":
+    if data is None and params is None or salt != conf.salt_config.SALT_PROD:
         if platform == "ios":
-            salt = conf.salt_config.SALT_IOS
+            salt = conf.salt_config.SALT_IOS if not salt else salt
         else:
-            salt = conf.salt_config.SALT_ANDROID
+            salt = conf.salt_config.SALT_ANDROID if not salt else salt
         t = str(int(NtpTime.time()))
         a = "".join(random.sample(
             string.ascii_lowercase + string.digits, 6))
@@ -187,12 +188,24 @@ def generate_ds(data: Union[str, dict, list] = "", params: Union[str, dict] = ""
             f"salt={salt}&t={t}&r={a}".encode()).hexdigest()
         return f"{t},{a},{re}"
     else:
-        salt = conf.salt_config.SALT_DATA
+        if params:
+            salt = conf.salt_config.SALT_PARAMS if not salt else salt
+        else:
+            salt = conf.salt_config.SALT_DATA if not salt else salt
+
+        if not data:
+            if salt == conf.salt_config.SALT_PROD:
+                data = {}
+            else:
+                data = ""
+        if not params:
+            params = ""
+
         if not isinstance(data, str):
             data = json.dumps(data)
         if not isinstance(params, str):
             params = urlencode(params)
-            salt = conf.salt_config.SALT_PARAMS
+
         t = str(int(time.time()))
         r = str(random.randint(100000, 200000))
         c = hashlib.md5(
