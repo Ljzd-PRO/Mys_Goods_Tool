@@ -14,17 +14,17 @@ ping3 = "~=4.0.4"
 ntplib = "~=0.4.0"
 pyperclip = "~=1.8.2"
 pydantic = "~=1.10.6"
-loguru = "~=0.6.0"
-httpx = "~=0.23.3"
+loguru = "~=0.7.0"
+httpx = "~=0.24.0"
 rich = "~=13.3.3"
-textual = "~=0.18.0"
+textual = "~=0.19.1"
 charset_normalizer = ">=2.0.0,<4.0.0"
 
 [tool.poetry.group.pyinstaller.dependencies]
 pyinstaller = "~=5.9.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "~=7.2.2"
+pytest = "~=7.3.0"
 pytest-html = "~=3.2.0"
 flake8 = "~=6.0.0"
 
