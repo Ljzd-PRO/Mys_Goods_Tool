@@ -1,5 +1,5 @@
 import traceback
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union, Dict, Any
 from urllib.parse import urlencode
 
 import httpx
@@ -12,8 +12,7 @@ from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseA
     GetCookieStatus, \
     CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, ExchangeResult
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
-from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, check_login, Subscribe, \
-    check_ds, \
+from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, Subscribe, \
     NtpTime
 
 URL_LOGIN_TICKET_BY_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
@@ -244,6 +243,68 @@ def is_incorrect_return(exception: Exception) -> bool:
     return isinstance(exception, IncorrectReturn) or isinstance(exception.__cause__, IncorrectReturn)
 
 
+class ApiResultHandler:
+    """
+    API返回的数据处理器
+    """
+    content: Dict[str, Any]
+    """API返回的JSON对象序列化以后的Dict对象"""
+    data: Optional[Dict[str, Any]]
+    """API返回的数据体"""
+    message: Optional[str]
+    """API返回的消息内容"""
+    retcode: Optional[int]
+    """API返回的状态码"""
+
+    def __init__(self, content: Dict[str, Any]):
+        self.content = content
+
+        self.data = self.content.get("data")
+
+        for key in ["retcode", "status"]:
+            if not self.retcode:
+                self.retcode = self.content.get(key)
+                if not self.retcode:
+                    self.retcode = self.data.get(key) if self.data else None
+
+        self.message: Optional[str] = None
+        for key in ["message", "msg"]:
+            if not self.message:
+                self.message = self.content.get(key)
+                if not self.message:
+                    self.message = self.data.get(key) if self.data else None
+
+    @property
+    def success(self):
+        """
+        是否成功
+        """
+        return True if self.retcode == 0 or self.message in ["成功", "OK"] else False
+
+    @property
+    def wrong_captcha(self):
+        """
+        是否返回验证码错误
+        """
+        return True if self.retcode == -201 or self.message in ["验证码错误", "Captcha not match Err"] else False
+
+    @property
+    def login_expired(self):
+        """
+        是否返回登录失效
+        """
+        return True if self.retcode == -100 or self.message in ["登录失效，请重新登录"] else False
+
+    @property
+    def invalid_ds(self):
+        """
+        Headers里的DS是否无效
+        """
+        # TODO 2023/4/13: 待补充状态码
+        #  return True if self.retcode == -... or self.message in ["invalid request"] else False
+        return True if self.message in ["invalid request"] else False
+
+
 async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[GameRecord]]]:
     """
     获取用户绑定的游戏账户信息，返回一个GameRecord对象的列表
@@ -258,13 +319,14 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_RECORD.format(account.bbs_uid), headers=HEADERS_GAME_RECORD,
                                            cookies=account.cookies.dict(), timeout=conf.preference.timeout)
-                if not check_login(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.info(
                         f"获取用户游戏数据(GameRecord) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True), None
                 return BaseApiStatus(success=True), list(
-                    map(GameRecord.parse_obj, res.json()["data"]["list"]))
+                    map(GameRecord.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取用户游戏数据(GameRecord) - 服务器没有正确返回")
@@ -292,14 +354,15 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
                 headers["DS"] = generate_ds()
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_LIST, headers=headers, timeout=conf.preference.timeout)
-                if not check_ds(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.invalid_ds:
                     logger.info(
                         f"获取游戏信息(GameInfo): DS无效，正在在线获取salt以重新生成...")
                     await subscribe.load()
                     headers["User-Agent"] = conf.device_config.USER_AGENT_MOBILE
                     headers["DS"] = generate_ds()
                 return BaseApiStatus(success=True), list(
-                    map(GameInfo.parse_obj, res.json()["data"]["list"]))
+                    map(GameInfo.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取游戏信息(GameInfo) - 服务器没有正确返回")
@@ -326,12 +389,13 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
                                            timeout=conf.preference.timeout)
-                if not check_login(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.info(
                         f"获取用户米游币 - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True), None
-                return BaseApiStatus(success=True), int(res.json()["data"]["points"])
+                return BaseApiStatus(success=True), int(api_result.data["points"])
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取用户米游币 - 服务器没有正确返回")
@@ -371,12 +435,13 @@ async def device_login(account: UserAccount, retry: bool = True):
                     res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data,
                                             cookies=account.cookies.dict(),
                                             timeout=conf.preference.timeout)
-                if not check_login(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.info(
                         f"设备登录(device_login) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if not check_ds(res.text):
+                if api_result.invalid_ds:
                     logger.info(
                         f"设备登录(device_login): DS无效，正在在线获取salt以重新生成...")
                     await subscribe.load()
@@ -423,12 +488,13 @@ async def device_save(account: UserAccount, retry: bool = True):
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies.dict(),
                                             timeout=conf.preference.timeout)
-                if not check_login(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.info(
                         f"设备保存(device_save) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if not check_ds(res.text):
+                if api_result.invalid_ds:
                     logger.info(
                         f"设备保存(device_save): DS无效，正在在线获取salt以重新生成...")
                     await subscribe.load()
@@ -462,9 +528,11 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_CHECK_GOOD.format(good_id), timeout=conf.preference.timeout)
-                if res.json()['message'] == '商品不存在' or res.json()['message'] == '商品已下架':
+                api_result = ApiResultHandler(res.json())
+                # TODO 2023/4/13: 待改成对象方法判断
+                if api_result.message == '商品不存在' or api_result.message == '商品已下架':
                     return GetGoodDetailStatus(good_not_existed=True), None
-                return GetGoodDetailStatus(success=True), Good.parse_obj(res.json()["data"])
+                return GetGoodDetailStatus(success=True), Good.parse_obj(api_result.data)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
@@ -508,7 +576,8 @@ async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: b
                     res = await client.get(URL_GOOD_LIST.format(page=page,
                                                                 game=game), headers=HEADERS_GOOD_LIST,
                                            timeout=conf.preference.timeout)
-                goods = map(Good.parse_obj, res.json()["data"]["list"])
+                api_result = ApiResultHandler(res.json())
+                goods = map(Good.parse_obj, api_result.data["list"])
                 # 判断是否已经读完所有商品
                 if not goods:
                     break
@@ -551,12 +620,13 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
                     res = await client.get(URL_ADDRESS.format(
                         round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies.dict(),
                         timeout=conf.preference.timeout)
-                    if not check_login(res.text):
+                    api_result = ApiResultHandler(res.json())
+                    if api_result.login_expired:
                         logger.info(
                             f"获取地址数据 - 用户 {account.bbs_uid} 登录失效")
                         logger.debug(f"网络请求返回: {res.text}")
                         return BaseApiStatus(login_expired=True), None
-                address_list = list(map(Address.parse_obj, res.json()["data"]["list"]))
+                address_list = list(map(Address.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取地址数据 - 服务器没有正确返回")
@@ -586,7 +656,8 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_REGISTRABLE.format(mobile=phone_number, t=round(NtpTime.time() * 1000)),
                                            headers=headers, timeout=conf.preference.timeout)
-                return BaseApiStatus(success=True), bool(res.json()["data"]["is_registable"])
+                    api_result = ApiResultHandler(res.json())
+                return BaseApiStatus(success=True), bool(api_result.data["is_registable"])
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"检查用户 {phone_number} 是否可以注册 - 服务器没有正确返回")
@@ -617,7 +688,8 @@ async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtDat
                                          headers=headers, timeout=conf.preference.timeout)
                     res = await client.get(URL_CREATE_MMT.format(now=time_now, t=time_now),
                                            headers=headers, timeout=conf.preference.timeout)
-                return BaseApiStatus(success=True), MmtData.parse_obj(res.json()["data"]["mmt_data"]), res.cookies
+                api_result = ApiResultHandler(res.json())
+                return BaseApiStatus(success=True), MmtData.parse_obj(api_result.data["mmt_data"]), res.cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
@@ -668,18 +740,20 @@ async def create_mobile_captcha(phone_number: int,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    # res = await client.options(URL_CREATE_MOBILE_CAPTCHA,
+                    # FIXME 2023/4/13: 似乎会导致卡在连接状态，暂时弃用
+                    #   res = await client.options(URL_CREATE_MOBILE_CAPTCHA,
                     #                            headers=headers,
                     #                            timeout=conf.preference.timeout)
-                    # cookies.update(res.cookies)
+                    #   cookies.update(res.cookies)
                     res = await client.post(URL_CREATE_MOBILE_CAPTCHA,
                                             content=encoded_params,
                                             headers=headers,
                                             cookies=cookies,
                                             timeout=conf.preference.timeout)
-                if res.json()["data"]["status"] == 1 or res.json()["data"]["msg"] == "成功":
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
                     return CreateMobileCaptchaStatus(success=True), res.cookies
-                elif res.json()["data"]["status"] == -302 or res.json()["data"]["msg"] == "图片验证码失败":
+                elif api_result.wrong_captcha:
                     return CreateMobileCaptchaStatus(incorrect_geetest=True), res.cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
@@ -737,17 +811,15 @@ async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: 
                                             cookies=cookies,
                                             timeout=conf.preference.timeout
                                             )
-                res_json = res.json()
-                if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
                     cookies = BBSCookies.parse_obj(dict_from_cookiejar(
                         res.cookies.jar))
                     if not cookies.login_ticket:
                         return GetCookieStatus(missing_login_ticket=True), None
                     else:
                         return GetCookieStatus(success=True), cookies
-                elif res_json["data"]["status"] == -201 \
-                        or res_json["data"]["msg"] == "验证码错误" \
-                        or res_json["data"]["info"] == "Captcha not match Err":
+                elif api_result.wrong_captcha:
                     logger.info(
                         f"通过短信验证码获取 login_ticket - 验证码错误，也可能是未传入之前人机验证时的Cookies")
                     return GetCookieStatus(incorrect_captcha=True), None
@@ -786,15 +858,16 @@ async def get_multi_token_by_login_ticket(cookies: BBSCookies, retry: bool = Tru
                         URL_MULTI_TOKEN_BY_LOGIN_TICKET.format(cookies.login_ticket, cookies.bbs_uid),
                         headers=HEADERS_API_TAKUMI_PC,
                         timeout=conf.preference.timeout)
-                res_json = res.json()
-                if res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.warning(f"通过 login_ticket 获取 stoken: 登录失效")
                     return GetCookieStatus(login_expired=True), None
-                cookies.stoken = list(filter(
-                    lambda data: data["name"] == "stoken", res_json["data"]["list"]))[0]["token"]
-                cookies.ltoken = list(filter(
-                    lambda data: data["name"] == "ltoken", res_json["data"]["list"]))[0]["token"]
-                return GetCookieStatus(success=True), cookies
+                else:
+                    cookies.stoken = list(filter(
+                        lambda x: x["name"] == "stoken", api_result.data["list"]))[0]["token"]
+                    cookies.ltoken = list(filter(
+                        lambda x: x["name"] == "ltoken", api_result.data["list"]))[0]["token"]
+                    return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"通过 login_ticket 获取 stoken: 服务器没有正确返回")
@@ -836,17 +909,18 @@ async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bo
                                             },
                                             timeout=conf.preference.timeout
                                             )
-                res_json = res.json()
-                if res_json["retcode"] == -201 or res_json["message"] == "验证码错误":
+                api_result = ApiResultHandler(res.json())
+                if api_result.wrong_captcha:
                     logger.info(f"登录米哈游账号 - 验证码错误")
                     return GetCookieStatus(incorrect_captcha=True), None
-                cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
-                if not cookies.cookie_token:
-                    return GetCookieStatus(missing_cookie_token=True), None
-                elif not cookies.bbs_uid:
-                    return GetCookieStatus(missing_bbs_uid=True), None
                 else:
-                    return GetCookieStatus(success=True), cookies
+                    cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
+                    if not cookies.cookie_token:
+                        return GetCookieStatus(missing_cookie_token=True), None
+                    elif not cookies.bbs_uid:
+                        return GetCookieStatus(missing_bbs_uid=True), None
+                    else:
+                        return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(f"通过短信验证码获取 cookie_token: 服务器没有正确返回")
@@ -896,10 +970,10 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
                         timeout=conf.preference.timeout
                     )
                 cookies = BBSCookies.parse_obj(dict_from_cookiejar(res.cookies.jar))
-                res_json = res.json()
-                if res_json["data"]["status"] == 1 or res_json["data"]["msg"] == "成功":
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
                     return GetCookieStatus(success=True), cookies
-                elif res_json["data"]["status"] == -302 or res_json["data"]["msg"] == "图片验证码失败":
+                elif api_result.wrong_captcha:
                     logger.warning(f"使用密码登录获取login_ticket - 图片验证码失败")
                     return GetCookieStatus(incorrect_captcha=True), None
     except tenacity.RetryError as e:
@@ -942,13 +1016,13 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
-                res_json = res.json()
-                if res_json["retcode"] == 0 or res_json["message"] == "OK":
-                    cookies.cookie_token = res_json["data"]["cookie_token"]
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
+                    cookies.cookie_token = api_result.data["cookie_token"]
                     if not cookies.bbs_uid:
-                        cookies.bbs_uid = res_json["data"]["uid"]
+                        cookies.bbs_uid = api_result.data["uid"]
                     return GetCookieStatus(success=True), cookies
-                elif res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                elif api_result.login_expired:
                     logger.warning(f"通过 stoken 获取 cookie_token: 登录失效")
                     return GetCookieStatus(login_expired=True), None
                 else:
@@ -998,14 +1072,14 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
-                res_json = res.json()
-                if res_json["retcode"] == 0 or res_json["message"] == "OK":
-                    cookies.stoken_v2 = res_json["data"]["token"]["token"]
-                    cookies.mid = res_json["data"]["user_info"]["mid"]
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
+                    cookies.stoken_v2 = api_result.data["token"]["token"]
+                    cookies.mid = api_result.data["user_info"]["mid"]
                     if not cookies.bbs_uid:
-                        cookies.bbs_uid = res_json["data"]["user_info"]["aid"]
+                        cookies.bbs_uid = api_result.data["user_info"]["aid"]
                     return GetCookieStatus(success=True), cookies
-                elif res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                elif api_result.login_expired:
                     logger.warning(f"通过 stoken_v1 获取 stoken_v2: 登录失效")
                     return GetCookieStatus(login_expired=True), None
                 else:
@@ -1051,11 +1125,11 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
-                res_json = res.json()
-                if res_json["retcode"] == 0 or res_json["message"] == "OK":
-                    cookies.ltoken = res_json["data"]["ltoken"]
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
+                    cookies.ltoken = api_result.data["ltoken"]
                     return GetCookieStatus(success=True), cookies
-                elif res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                elif api_result.login_expired:
                     logger.warning(f"通过 stoken 获取 ltoken: 登录失效")
                     return GetCookieStatus(login_expired=True), None
                 else:
@@ -1127,7 +1201,8 @@ class Exchange:
                     async with httpx.AsyncClient() as client:
                         res = await client.get(
                             URL_CHECK_GOOD.format(self.exchange_plan.good_id), timeout=conf.preference.timeout)
-                    good_info = Good.parse_obj(res.json()["data"])
+                    api_result = ApiResultHandler(res.json())
+                    good_info = Good.parse_obj(api_result.data)
                     if good_info.type == 2 and good_info.game_biz != "bbs_cn":
                         if not self.account.cookies.stoken:
                             logger.error(
@@ -1197,12 +1272,13 @@ class Exchange:
                     res = await client.post(
                         URL_EXCHANGE, headers=headers, json=self.content, cookies=self.account.cookies.dict(),
                         timeout=conf.preference.timeout)
-                if not check_login(res.text):
+                api_result = ApiResultHandler(res.json())
+                if api_result.login_expired:
                     logger.info(
                         f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return ExchangeStatus(login_expired=True), None
-                if res.json()["message"] == "OK":
+                if api_result.success:
                     logger.info(
                         f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 兑换成功！可以自行确认。")
                     logger.debug(f"网络请求返回: {res.text}")
