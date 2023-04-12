@@ -561,82 +561,80 @@ class CaptchaForm(LoginForm):
         # 1. 通过短信验证码获取 login_ticket
         phone_number = PhoneForm.input.value
         captcha = int(self.input.value)
-        login_ticket_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies)
-        if login_ticket_status:
+        login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies)
+        if login_status:
             logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
             account = conf.accounts.get(cookies.bbs_uid)
+            """当前的账户数据对象"""
             if not account or not account.cookies:
                 conf.accounts.update({
                     cookies.bbs_uid: UserAccount(phone_number=phone_number, cookies=cookies)
                 })
+                account = conf.accounts[cookies.bbs_uid]
             else:
-                conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                account.cookies.update(cookies)
             conf.save()
             CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
 
             # 2. 通过 login_ticket 获取 stoken 和 ltoken
-            multi_token_status, cookies = await get_multi_token_by_login_ticket(cookies)
-            if multi_token_status:
-                logger.info(f"用户 {phone_number} 成功获取 stoken: {cookies.stoken} 和 ltoken: {cookies.ltoken}")
-                conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+            login_status, cookies = await get_multi_token_by_login_ticket(cookies)
+            if login_status:
+                logger.info(f"用户 {phone_number} 成功获取 stoken: {cookies.stoken}")
+                account.cookies.update(cookies)
                 conf.save()
                 CaptchaLoginInformation.radio_tuple.multi_token_by_login_ticket.turn_on()
 
                 # 3. 通过 stoken_v1 获取 stoken_v2 和 mid
-                stoken_v2_status, cookies = await get_stoken_v2_by_v1(conf.accounts[cookies.bbs_uid].cookies)
-                if stoken_v2_status:
+                login_status, cookies = await get_stoken_v2_by_v1(account.cookies)
+                if login_status:
                     logger.info(f"用户 {phone_number} 成功获取 stoken_v2: {cookies.stoken_v2}")
-                    conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                    account.cookies.update(cookies)
                     conf.save()
                     CaptchaLoginInformation.radio_tuple.get_stoken_v2.turn_on()
 
                     # 4. 通过 stoken_v2 获取 ltoken
-                    ltoken_status, cookies = await get_ltoken_by_stoken(conf.accounts[cookies.bbs_uid].cookies,
-                                                               conf.accounts[cookies.bbs_uid].device_id_ios
-                                                               )
-                    if ltoken_status:
+                    login_status, cookies = await get_ltoken_by_stoken(account.cookies, account.device_id_ios)
+                    if login_status:
                         logger.info(f"用户 {phone_number} 成功获取 ltoken: {cookies.ltoken}")
-                        conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                        account.cookies.update(cookies)
                         conf.save()
                         CaptchaLoginInformation.radio_tuple.get_ltoken_by_stoken.turn_on()
 
                         # 5. 通过 stoken_v2 获取 cookie_token
-                        cookie_token_return = await get_cookie_token_by_stoken(cookies)
-                        multi_token_status = cookie_token_return[0]
-                        cookies = cookie_token_return[1]
-                        if multi_token_status:
+                        login_status, cookies = await get_cookie_token_by_stoken(cookies)
+                        if login_status:
                             logger.info(f"用户 {phone_number} 成功获取 cookie_token: {cookies.cookie_token}")
-                            conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                            account.cookies.update(cookies)
                             conf.save()
                             CaptchaLoginInformation.radio_tuple.cookie_token_by_stoken.turn_on()
 
-                            # Plan: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
+                            # TODO: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
                             CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
                             self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
                             self.button.success.show()
 
         self.loading.display = NONE
-        if not multi_token_status:
+        if not login_status:
             notice_text = "登录失败：[bold red]"
-            if multi_token_status.incorrect_captcha:
+            if login_status.incorrect_captcha:
                 notice_text += "验证码错误！"
-            elif multi_token_status.login_expired:
+            elif login_status.login_expired:
                 notice_text += "登录失效！"
-            elif multi_token_status.incorrect_return:
+            elif login_status.incorrect_return:
                 notice_text += "服务器返回错误！"
-            elif multi_token_status.network_error:
+            elif login_status.network_error:
                 notice_text += "网络连接失败！"
-            elif multi_token_status.missing_bbs_uid:
+            elif login_status.missing_bbs_uid:
                 notice_text += "Cookies缺少 bbs_uid（例如 ltuid, stuid）"
-            elif multi_token_status.missing_login_ticket:
+            elif login_status.missing_login_ticket:
                 notice_text += "Cookies缺少 login_ticket！"
-            elif multi_token_status.missing_cookie_token:
+            elif login_status.missing_cookie_token:
                 notice_text += "Cookies缺少 cookie_token！"
-            elif multi_token_status.missing_stoken:
+            elif login_status.missing_stoken:
                 notice_text += "Cookies缺少 stoken！"
-            elif multi_token_status.missing_stoken_v1:
+            elif login_status.missing_stoken_v1:
                 notice_text += "Cookies缺少 stoken_v1"
-            elif multi_token_status.missing_stoken_v2:
+            elif login_status.missing_stoken_v2:
                 notice_text += "Cookies缺少 stoken_v2"
             else:
                 notice_text += "未知错误！"
@@ -646,7 +644,7 @@ class CaptchaForm(LoginForm):
             self.app.notice(notice_text)
 
         self.close_login()
-        return multi_token_status
+        return login_status
 
     async def on_input_submitted(self, _: Input.Submitted) -> None:
         await self.login()
