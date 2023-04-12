@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import queue
 from importlib.metadata import version
+from io import StringIO
 from typing import NamedTuple, Tuple, Optional, Set
 
 from httpx import Cookies
@@ -844,6 +845,8 @@ class TuiApp(App[None]):
 
     app: TuiApp
     """当前App实例"""
+    text_log_writer: TextLogWriter
+    """textual日志输出流"""
 
     text_log = TextLog(classes="-hidden", wrap=False, highlight=True, markup=True)
     """textual日志输出界面"""
@@ -923,9 +926,16 @@ class TuiApp(App[None]):
                 self.screen.set_focus(None)
             sidebar.add_class("-hidden")
 
+
+    class TextLogWriter(StringIO):
+        def write(self, text: str) -> None:
+            super().write(text)
+            TuiApp.text_log.write(text)
+
     def on_mount(self) -> None:
         TuiApp.app = self
-        logger.add(TuiApp.text_log.write, diagnose=False, level="DEBUG", format=LOG_FORMAT)
+        TuiApp.text_log_writer = TuiApp.TextLogWriter()
+        logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
 
