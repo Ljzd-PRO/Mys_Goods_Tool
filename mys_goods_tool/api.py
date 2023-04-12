@@ -21,6 +21,7 @@ URL_LOGIN_TICKET_BY_PASSWORD = "https://webapi.account.mihoyo.com/Api/login_by_p
 URL_MULTI_TOKEN_BY_LOGIN_TICKET = "https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket={0}&token_types=3&uid={1}"
 URL_COOKIE_TOKEN_BY_CAPTCHA = "https://api-takumi.mihoyo.com/account/auth/api/webLoginByMobile"
 URL_COOKIE_TOKEN_BY_STOKEN = "https://passport-api.mihoyo.com/account/auth/api/getCookieAccountInfoBySToken"
+URL_LTOKEN_BY_STOKEN = "https://passport-api.mihoyo.com/account/auth/api/getLTokenBySToken"
 URL_STOKEN_V2_BY_V1 = "https://passport-api.mihoyo.com/account/ma-cn-session/app/getTokenBySToken"
 URL_ACTION_TICKET = "https://api-takumi.mihoyo.com/auth/api/getActionTicketBySToken?action_type=game_role&stoken={stoken}&uid={bbs_uid}"
 URL_GAME_RECORD = "https://api-takumi-record.mihoyo.com/game_record/card/wapi/getGameRecordCard?uid={}"
@@ -916,9 +917,9 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
 async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
-    通过 stoken_v2 获取 cookie_token
+    通过 stoken_v2 和 mid 获取 cookie_token
 
-    :param cookies: 米游社Cookies，需要包含 stoken
+    :param cookies: 米游社Cookies，需要包含 stoken_v2 和 mid
     :param device_id: X_RPC_DEVICE_ID
     :param retry: 是否允许重试
 
@@ -968,7 +969,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
 async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
-    通过 stoken_v1 获取 stoken_v2
+    通过 stoken_v1 获取 stoken_v2 以及 mid
 
     :param cookies: 米游社Cookies，需要包含 stoken_v1
     :param device_id: X_RPC_DEVICE_ID
@@ -1000,6 +1001,7 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
                 res_json = res.json()
                 if res_json["retcode"] == 0 or res_json["message"] == "OK":
                     cookies.stoken_v2 = res_json["data"]["token"]["token"]
+                    cookies.mid = res_json["data"]["user_info"]["mid"]
                     if not cookies.bbs_uid:
                         cookies.bbs_uid = res_json["data"]["user_info"]["aid"]
                     return GetCookieStatus(success=True), cookies
@@ -1017,6 +1019,56 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
             return GetCookieStatus(incorrect_return=True), None
         else:
             logger.error(f"通过 stoken_v1 获取 stoken_v2: 网络请求失败")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(network_error=True), None
+
+
+async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
+    GetCookieStatus, Optional[BBSCookies]]:
+    """
+    通过 stoken_v2 和 mid 获取 ltoken
+
+    :param cookies: 米游社Cookies，需要包含 stoken_v2 和 mid
+    :param device_id: X_RPC_DEVICE_ID
+    :param retry: 是否允许重试
+
+    >>> import asyncio
+    >>> coroutine = get_ltoken_by_stoken(BBSCookies())
+    >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is False
+    """
+    headers = HEADERS_PASSPORT_API.copy()
+    headers["x-rpc-device_id"] = device_id if device_id else generate_device_id()
+    if not cookies.stoken_v2:
+        return GetCookieStatus(missing_stoken_v2=True), None
+    try:
+        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
+                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.get(
+                        URL_COOKIE_TOKEN_BY_STOKEN,
+                        cookies=cookies.dict(v2_stoken=True),
+                        headers=headers,
+                        timeout=conf.preference.timeout
+                    )
+                res_json = res.json()
+                if res_json["retcode"] == 0 or res_json["message"] == "OK":
+                    cookies.ltoken = res_json["data"]["ltoken"]
+                    return GetCookieStatus(success=True), cookies
+                elif res_json["retcode"] == -100 or res_json["message"] == "登录失效，请重新登录":
+                    logger.warning(f"通过 stoken 获取 ltoken: 登录失效")
+                    return GetCookieStatus(login_expired=True), None
+                else:
+                    raise IncorrectReturn
+
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(f"通过 stoken 获取 ltoken: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            logger.debug(f"{traceback.format_exc()}")
+            return GetCookieStatus(incorrect_return=True), None
+        else:
+            logger.error(f"通过 stoken 获取 ltoken: 网络请求失败")
             logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(network_error=True), None
 
