@@ -26,7 +26,7 @@ pyinstaller = "~=5.9.0"
 [tool.poetry.group.test.dependencies]
 pytest = "~=7.3.0"
 pyflake8 = "~=6.0.0"
-test-html = "~=3.2.0"
+pytest-html = "~=3.2.0"
 pytest-asyncio = "~=0.21.0"
 
 [tool.poetry.group.pyinstaller]
