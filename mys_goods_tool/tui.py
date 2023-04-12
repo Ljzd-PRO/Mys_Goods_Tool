@@ -24,7 +24,7 @@ from textual.widgets import (
 )
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
@@ -213,6 +213,7 @@ class CaptchaLoginInformation(Container):
                             create_captcha=RadioStatus,
                             login_ticket_by_captcha=RadioStatus,
                             multi_token_by_login_ticket=RadioStatus,
+                            get_stoken_v2=RadioStatus,
                             cookie_token_by_stoken=RadioStatus,
                             login_finished=RadioStatus
                             )
@@ -229,6 +230,7 @@ class CaptchaLoginInformation(Container):
         create_captcha=RadioStatus("发出短信验证码"),
         login_ticket_by_captcha=RadioStatus("通过验证码获取 login_ticket"),
         multi_token_by_login_ticket=RadioStatus("通过 login_ticket 获取 stoken 和 ltoken"),
+        get_stoken_v2=RadioStatus("获取 v2 版本 stoken"),
         cookie_token_by_stoken=RadioStatus("通过 stoken 获取 cookie_token"),
         login_finished=RadioStatus("完成登录")
     )
@@ -581,20 +583,30 @@ class CaptchaForm(LoginForm):
                 conf.save()
                 CaptchaLoginInformation.radio_tuple.multi_token_by_login_ticket.turn_on()
 
-                # 3. 通过 stoken 获取 cookie_token
-                cookie_token_return = await get_cookie_token_by_stoken(cookies)
-                login_status = cookie_token_return[0]
-                cookies = cookie_token_return[1]
-                if login_status:
-                    logger.info(f"用户 {phone_number} 成功获取 cookie_token: {cookies.cookie_token}")
+                # 3. 通过 stoken_v1 获取 stoken_v2
+                get_stoken_v2_return = await get_stoken_v2_by_v1(conf.accounts[cookies.bbs_uid].cookies)
+                get_stoken_v2_status = get_stoken_v2_return[0]
+                cookies = get_stoken_v2_return[1]
+                if get_stoken_v2_status:
+                    logger.info(f"用户 {phone_number} 成功获取 stoken_v2: {cookies.stoken_v2}")
                     conf.accounts[cookies.bbs_uid].cookies.update(cookies)
                     conf.save()
-                    CaptchaLoginInformation.radio_tuple.cookie_token_by_stoken.turn_on()
+                    CaptchaLoginInformation.radio_tuple.get_stoken_v2.turn_on()
 
-                    # Plan: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
-                    CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
-                    self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
-                    self.button.success.show()
+                    # 4. 通过 stoken 获取 cookie_token
+                    cookie_token_return = await get_cookie_token_by_stoken(cookies)
+                    login_status = cookie_token_return[0]
+                    cookies = cookie_token_return[1]
+                    if login_status:
+                        logger.info(f"用户 {phone_number} 成功获取 cookie_token: {cookies.cookie_token}")
+                        conf.accounts[cookies.bbs_uid].cookies.update(cookies)
+                        conf.save()
+                        CaptchaLoginInformation.radio_tuple.cookie_token_by_stoken.turn_on()
+
+                        # Plan: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
+                        CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
+                        self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
+                        self.button.success.show()
 
         self.loading.display = NONE
         if not login_status:
@@ -615,6 +627,10 @@ class CaptchaForm(LoginForm):
                 notice_text += "Cookies缺少 cookie_token！"
             elif login_status.missing_stoken:
                 notice_text += "Cookies缺少 stoken！"
+            elif login_status.missing_stoken_v1:
+                notice_text += "Cookies缺少 stoken_v1"
+            elif login_status.missing_stoken_v2:
+                notice_text += "Cookies缺少 stoken_v2"
             else:
                 notice_text += "未知错误！"
             notice_text += "[/] 如果部分步骤成功，你仍然可以尝试获取收货地址、兑换等功能"

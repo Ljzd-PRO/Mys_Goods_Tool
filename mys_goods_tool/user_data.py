@@ -4,6 +4,7 @@ import traceback
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict
 
+import pydantic.typing
 from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings
@@ -24,23 +25,48 @@ class BBSCookies(BaseModelWithSetter):
     """
     米游社Cookies数据
 
+    # 测试 is_correct() 方法
+
     >>> assert BBSCookies().is_correct() is False
     >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct() is True
+
+    # 测试 bbs_uid getter
 
     >>> bbs_cookies = BBSCookies()
     >>> assert not bbs_cookies.bbs_uid
     >>> assert BBSCookies(stuid="123").bbs_uid == "123"
 
+    # 测试 bbs_uid setter
+
     >>> bbs_cookies.bbs_uid = "123"
     >>> assert bbs_cookies.bbs_uid == "123"
+
+    # 检查构造函数内所用的 stoken setter
 
     >>> bbs_cookies = BBSCookies(stoken="abcd1234")
     >>> assert bbs_cookies.stoken_v1 and not bbs_cookies.stoken_v2
     >>> bbs_cookies = BBSCookies(stoken="v2_abcd1234==")
     >>> assert bbs_cookies.stoken_v2 and not bbs_cookies.stoken_v1
     >>> assert bbs_cookies.stoken == "v2_abcd1234=="
-    >>> bbs_cookies.stoken = "v2_abcd=="
-    >>> assert bbs_cookies.stoken_v2 == "v2_abcd=="
+
+    # 检查 stoken setter
+
+    >>> bbs_cookies = BBSCookies(stoken="abcd1234")
+    >>> bbs_cookies.stoken = "v2_abcd1234=="
+    >>> assert bbs_cookies.stoken_v2 == "v2_abcd1234=="
+    >>> assert bbs_cookies.stoken_v1 == "abcd1234"
+
+    # 检查 .dict 方法能否生成包含 stoken_2 类型的 stoken 的字典
+    >>> bbs_cookies = BBSCookies()
+    >>> bbs_cookies.stoken_v1 = "abcd1234"
+    >>> bbs_cookies.stoken_v2 = "v2_abcd1234=="
+    >>> assert bbs_cookies.dict(v2_stoken=True)["stoken"] == "v2_abcd1234=="
+
+    # 检查是否有多余的字段
+
+    >>> bbs_cookies = BBSCookies(stuid="123")
+    >>> assert all(bbs_cookies.dict())
+    >>> assert all(map(lambda x: x not in bbs_cookies, ["stoken_v1", "stoken_v2"]))
     """
     stuid: Optional[str]
     """米游社UID"""
@@ -122,6 +148,37 @@ class BBSCookies(BaseModelWithSetter):
             self_dict: Dict[str, str] = self.dict()
             self_dict.update(cookies)
             self.parse_obj(self_dict)
+
+    def dict(self, *,
+             include: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
+             exclude: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
+             by_alias: bool = False,
+             skip_defaults: Optional[bool] = None, exclude_unset: bool = False, exclude_defaults: bool = False,
+             exclude_none: bool = False, v2_stoken: bool = False) -> 'pydantic.typing.DictStrAny':
+        """
+        获取Cookies字典
+
+        v2_stoken: stoken 字段是否使用 stoken_v2
+        """
+        # 保证 stuid, ltuid 等字段存在
+        self.bbs_uid = self.bbs_uid
+        cookies_dict = super().dict(include=include, exclude=exclude, by_alias=by_alias, skip_defaults=skip_defaults,
+                                    exclude_unset=exclude_unset, exclude_defaults=exclude_defaults,
+                                    exclude_none=exclude_none)
+        if v2_stoken:
+            cookies_dict["stoken"] = self.stoken_v2
+
+        # 去除自定义的 stoken_v1, stoken_v2 字段
+        cookies_dict.pop("stoken_v1")
+        cookies_dict.pop("stoken_v2")
+
+        # 去除空的字段
+        empty_key = set()
+        for key, value in cookies_dict.items():
+            if not value:
+                empty_key.add(key)
+        [cookies_dict.pop(key) for key in empty_key]
+        return cookies_dict
 
 
 class UserAccount(BaseModelWithSetter, extra=Extra.ignore):

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 import httpx
 import tenacity
-from httpx import Cookies
+from httpx import Cookies, ConnectError
 from pydantic import ValidationError
 from requests.utils import dict_from_cookiejar
 
@@ -627,6 +627,10 @@ async def create_mmt(retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtDat
             logger.error(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
             logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(network_error=True), None, None
+    except ConnectError:
+        logger.error(f"获取短信验证-人机验证任务(create_mmt) - 网络连接失败")
+        logger.debug(f"{traceback.format_exc()}")
+        return BaseApiStatus(network_error=True), None, None
 
 
 async def create_mobile_captcha(phone_number: int,
@@ -763,7 +767,7 @@ async def get_login_ticket_by_captcha(phone_number: str, captcha: int, cookies: 
 async def get_multi_token_by_login_ticket(cookies: BBSCookies, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
-    通过 login_ticket 获取 stoken 和 ltoken
+    通过 login_ticket 获取 `stoken 和 ltoken
 
     :param cookies: 米游社Cookies，需要包含 login_ticket 和 bbs_uid
     :param retry: 是否允许重试
@@ -909,10 +913,10 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
             return GetCookieStatus(network_error=True), None
 
 
-async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: str, retry: bool = True) -> Tuple[
+async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
-    通过 stoken 获取 cookie_token
+    通过 stoken_v2 获取 cookie_token
 
     :param cookies: 米游社Cookies，需要包含 stoken
     :param device_id: X_RPC_DEVICE_ID
@@ -924,8 +928,8 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: str, retry:
     """
     headers = HEADERS_PASSPORT_API.copy()
     headers["x-rpc-device_id"] = device_id if device_id else generate_device_id()
-    if not cookies.stoken:
-        return GetCookieStatus(missing_stoken=True), None
+    if not cookies.stoken_v2:
+        return GetCookieStatus(missing_stoken_v2=True), None
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
@@ -933,7 +937,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: str, retry:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
                         URL_COOKIE_TOKEN_BY_STOKEN,
-                        cookies=cookies.dict(),
+                        cookies=cookies.dict(v2_stoken=True),
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
