@@ -7,7 +7,7 @@ from typing import List, Union, Optional, Tuple, Any, Dict
 import pydantic.typing
 from httpx import Cookies
 from loguru import logger
-from pydantic import BaseModel, Extra, ValidationError, BaseSettings
+from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 
 from mys_goods_tool.data_model import BaseModelWithSetter
 
@@ -269,6 +269,13 @@ class Preference(BaseSettings):
     """是否保存日志"""
     log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
     """日志保存路径"""
+
+    @validator("log_path")
+    def _(cls, v: Optional[Path]):
+        absolute_path = v.absolute()
+        if not os.access(absolute_path, os.W_OK):
+            logger.warning(f"程序没有写入日志文件 {absolute_path} 的权限")
+        return v
 
     class Config:
         env_prefix = "MYS_GOODS_TOOL_"  # 环境变量前缀
