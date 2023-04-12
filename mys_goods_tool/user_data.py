@@ -390,6 +390,11 @@ if os.path.isfile(CONFIG_PATH):
         logger.debug(traceback.format_exc())
         exit(1)
 else:
-    write_config_file(config)
+    try:
+        write_config_file(config)
+    except PermissionError:
+        logger.error(f"创建配置文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
+        logger.debug(traceback.format_exc())
+        exit(1)
     # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
     # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
