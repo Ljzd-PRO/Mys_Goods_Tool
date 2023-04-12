@@ -608,7 +608,7 @@ class CaptchaForm(LoginForm):
                             conf.save()
                             CaptchaLoginInformation.radio_tuple.cookie_token_by_stoken.turn_on()
 
-                            # TODO: 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
+                            # TODO 2023/04/12 此处如果可以模拟App的登录操作，再标记为登录完成，更安全
                             CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
                             self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
                             self.button.success.show()
