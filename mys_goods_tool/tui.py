@@ -518,7 +518,7 @@ class CaptchaForm(LoginForm):
         self.before_login: bool = True
         """当前状态是否在登录操作之前（不处于正在登录的状态）"""
 
-        self.input = Input(placeholder="短信验证码", id="login_captcha")
+        self.input = Input(placeholder="为空时点击登录可进行Cookies刷新", id="login_captcha")
 
         self.loading = LoadingIndicator()
         self.loading.display = NONE
@@ -551,36 +551,41 @@ class CaptchaForm(LoginForm):
         elif not PhoneForm.input.value:
             self.app.notice("登录信息缺少 [bold red]手机号[/] ！")
             return
-        elif not self.input.value:
-            self.app.notice("登录信息缺少 [bold red]验证码[/] ！")
-            return
-        elif not self.input.value.isdigit():
-            self.app.notice("登录信息 [bold red]验证码[/] 需要是数字！")
+        elif not self.input.value.isdigit() and self.input.value:
+            self.app.notice("登录信息 [bold red]验证码[/] 需要是数字或为空（刷新Cookies）！")
             return
         self.before_login = False
 
         self.button.login.disabled = True
         self.loading.display = BLOCK
 
-        # 1. 通过短信验证码获取 login_ticket
+        account: Optional[UserAccount] = None
+        login_status: Optional[GetCookieStatus] = None
         phone_number = PhoneForm.input.value
-        captcha = int(self.input.value)
-        login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.client)
-        if login_status:
-            logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
-            account = conf.accounts.get(cookies.bbs_uid)
-            """当前的账户数据对象"""
-            if not account or not account.cookies:
-                conf.accounts.update({
-                    cookies.bbs_uid: UserAccount(phone_number=phone_number, cookies=cookies)
-                })
-                account = conf.accounts[cookies.bbs_uid]
-            else:
-                account.cookies.update(cookies)
-            conf.save()
-            CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
+        captcha = int(self.input.value) if self.input.value.isdigit() else self.input.value
 
-            # 2. 通过 login_ticket 获取 stoken 和 ltoken
+        # 1. 通过短信验证码获取 login_ticket / 使用已有 login_ticket
+        if captcha:
+            login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.client)
+            if login_status:
+                logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
+                account = conf.accounts.get(cookies.bbs_uid)
+                """当前的账户数据对象"""
+                if not account or not account.cookies:
+                    conf.accounts.update({
+                        cookies.bbs_uid: UserAccount(phone_number=phone_number, cookies=cookies)
+                    })
+                    account = conf.accounts[cookies.bbs_uid]
+                else:
+                    account.cookies.update(cookies)
+                conf.save()
+                CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
+        else:
+            account_list = list(filter(lambda x: x.phone_number == phone_number, conf.accounts.values()))
+            account = account_list[0] if account_list else None
+
+        # 2. 通过 login_ticket 获取 stoken 和 ltoken
+        if login_status or account:
             login_status, cookies = await get_multi_token_by_login_ticket(account.cookies)
             if login_status:
                 logger.info(f"用户 {phone_number} 成功获取 stoken: {cookies.stoken}")
