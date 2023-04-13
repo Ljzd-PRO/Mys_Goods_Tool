@@ -202,7 +202,7 @@ class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
 
     def __init__(self, **data: Any):
         if not data.get("device_id_ios") or not data.get("device_id_android"):
-            from utils import generate_device_id
+            from mys_goods_tool.utils import generate_device_id
             if not data.get("device_id_ios"):
                 data.setdefault("device_id_ios", generate_device_id())
             if not data.get("device_id_android"):
