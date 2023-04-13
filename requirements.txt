@@ -11,7 +11,6 @@ loguru~=0.7.0
 httpx~=0.24.0
 rich~=13.3.4
 textual~=0.19.1
-charset_normalizer>=2.0.0,<4.0.0
 
 ## pyinstaller.dependencies
 pyinstaller==5.10.0

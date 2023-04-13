@@ -4,31 +4,37 @@ version = "2.0.0-dev"
 description = "米游社商品兑换工具|免抓包登录|终端TUI界面"
 authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
 readme = "README.md"
+homepage = "https://github.com/Ljzd-PRO/Mys_Goods_Tool"
+repository = "https://github.com/Ljzd-PRO/Mys_Goods_Tool"
+documentation = "https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki"
+
 packages = [{ include = "mys_goods_tool" }]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
-tenacity = "~=8.2.2"
-requests = "~=2.28.2"
-ping3 = "~=4.0.4"
-ntplib = "~=0.4.0"
-pyperclip = "~=1.8.2"
-pydantic = "~=1.10.6"
-loguru = ">=0.6.0,<=0.7.0"
-httpx = ">=0.23.0,<=0.25.0"
-rich = "~=13.3.4"
-textual = "~=0.19.1"
-charset_normalizer = ">=2.0.0,<4.0.0"
+tenacity = "^8.2.2"
+requests = "^2.28.2"
+ping3 = "^4.0.4"
+ntplib = "^0.4.0"
+pyperclip = "^1.8.2"
+pydantic = "^1.10.6"
+loguru = "^0.7.0"
+httpx = "^0.25.0"
+rich = "^13.3.4"
+textual = "^0.19.1"
 
 [tool.poetry.group.pyinstaller.dependencies]
 pyinstaller = "==5.10.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "~=7.3.0"
-pytest-html = "~=3.2.0"
-pytest-asyncio = "~=0.21.0"
-flake8 = "~=6.0.0"
-pydevd-pycharm = "~=231.8109.197"
+pytest = "^7.3.0"
+pytest-html = "^3.2.0"
+pytest-asyncio = "^0.21.0"
+flake8 = "^6.0.0"
+pydevd-pycharm = "^231.8109.197"
 
 [tool.poetry.group.pyinstaller]
 optional = true
