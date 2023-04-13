@@ -11,8 +11,9 @@ from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.pretty import Pretty
 from rich.text import Text
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, DEFAULT_COLORS
 from textual.binding import Binding
+from textual.color import Color
 from textual.events import Event
 from textual.reactive import reactive
 from textual.widgets import (
@@ -21,7 +22,7 @@ from textual.widgets import (
     Header,
     Input,
     Switch,
-    LoadingIndicator, RadioButton
+    LoadingIndicator, RadioButton, Tabs, Tab, Label, TabbedContent, TabPane, OptionList
 )
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
@@ -683,6 +684,26 @@ class CaptchaForm(LoginForm):
             self.before_login = True
 
 
+class ExchangePlanAdding(Container):
+    class AccountWidget(PlanAddingWidget):
+        def compose(self) -> ComposeResult:
+            yield OptionList(*map(str, conf.accounts.keys()))
+    def compose(self) -> ComposeResult:
+        with TabbedContent():
+            with TabPane("➕添加计划", id="tab-adding"):
+                with TabbedContent():
+                    with TabPane("1.选择账号", id="tab-adding-account"):
+                        yield self.AccountWidget()
+                    with TabPane("2.选择目标商品", id="tab-adding-goods"):
+                        yield self.AccountWidget()
+                    with TabPane("3.选择收货地址", id="tab-adding-address"):
+                        yield self.AccountWidget()
+                    with TabPane("4.完成添加", id="tab-adding-ending"):
+                        yield self.AccountWidget()
+
+            with TabPane("✏️管理计划", id="tab-managing"):
+                yield Container()
+
 class Welcome(Container):
     DEFAULT_CSS = """
     Welcome {
@@ -754,7 +775,7 @@ class Sidebar(Container):
 
     def compose(self) -> ComposeResult:
         yield Title("Mys_Goods_Tool")
-        yield OptionGroup(Message("MESSAGE"), Version())
+        yield Container(Message("MESSAGE"), Version())
         yield DarkSwitch()
 
 
@@ -849,16 +870,25 @@ class Notification(Static):
     def on_click(self) -> None:
         self.remove()
 
+# 主题颜色
+# https://colorhunt.co/palette/b9eddd87cbb9569daa577d86
+DEFAULT_COLORS["dark"].primary = Color.parse("#569DAA")
+DEFAULT_COLORS["dark"].secondary = Color.parse("#577D86")
+DEFAULT_COLORS["dark"].accent = DEFAULT_COLORS["dark"].primary
+DEFAULT_COLORS["light"].primary = Color.parse("#B9EDDD")
+DEFAULT_COLORS["light"].secondary = Color.parse("#87CBB9")
+DEFAULT_COLORS["light"].accent = DEFAULT_COLORS["dark"].primary
+
 
 class TuiApp(App[None]):
     TITLE = "Mys_Goods_Tool"
     """textual TUI 标题"""
     BINDINGS = [
-        ("ctrl+b", "toggle_sidebar", "侧栏"),
-        ("ctrl+t", "app.toggle_dark", "暗黑模式切换"),
-        ("ctrl+s", "app.screenshot()", "截屏"),
-        ("f1", "app.toggle_class('TextLog', '-hidden')", "日志"),
-        Binding("ctrl+c,ctrl+q", "app.quit", "退出", show=True),
+        ("ctrl+b", "toggle_sidebar", "🧭侧栏"),
+        ("ctrl+t", "app.toggle_dark", "🌓暗黑模式切换"),
+        ("ctrl+s", "app.screenshot()", "✂截屏"),
+        ("f1", "app.toggle_class('TextLog', '-hidden')", "📃日志"),
+        Binding("ctrl+c,ctrl+q", "app.quit", "🚪退出", show=True),
     ]
     """按键绑定"""
 
@@ -895,10 +925,10 @@ class TuiApp(App[None]):
             self.text_log,
             Body(
                 QuickAccess(
-                    LocationLink("主页", ".location-top"),
-                    LocationLink("登录绑定", ".location-login"),
-                    LocationLink("管理兑换计划", ".location-rich"),
-                    LocationLink("进入兑换模式", ".location-css"),
+                    LocationLink("🏠 主页", ".location-top"),
+                    LocationLink("🔑 登录绑定", ".location-login"),
+                    LocationLink("📅 管理兑换计划", ".location-add_plan"),
+                    LocationLink("⏰ 进入兑换模式", ".location-css"),
                 ),
                 AboveFold(Welcome(), classes="location-top"),
                 Column(
@@ -906,19 +936,16 @@ class TuiApp(App[None]):
                         SectionTitle("米游社账号登录绑定"),
                         CaptchaLoginInformation(),
                         PhoneForm(),
-                        CaptchaForm(),
-                        DataTable(),
+                        CaptchaForm()
                     ),
                     classes="location-login location-first",
                 ),
                 Column(
                     Section(
-                        SectionTitle("Rich"),
-                        TextContent(Markdown(RICH_MD)),
-                        SubTitle("Pretty Printed data (try resizing the terminal)"),
-                        Static(Pretty(DATA, indent_guides=True), classes="pretty pad"),
+                        SectionTitle("管理米游币商品兑换计划"),
+                        ExchangePlanAdding(),
                     ),
-                    classes="location-rich",
+                    classes="location-add_plan",
                 ),
             ),
         )

@@ -100,17 +100,6 @@ class Title(Static):
     """
 
 
-class OptionGroup(Container):
-    DEFAULT_CSS = """
-    OptionGroup {
-        background: $boost;
-        color: $text;
-        height: 1fr;
-        border-right: vkey $background;
-    }
-    """
-
-
 class SectionTitle(Static):
     DEFAULT_CSS = """
     SectionTitle {
@@ -206,7 +195,7 @@ class SubTitle(Static):
 
 class LoginForm(Container):
     """
-    登录表单（包含自定义CSS风格，作为父类让子类继承）
+    登录表单
     """
     DEFAULT_CSS = """
     LoginForm {
@@ -228,5 +217,26 @@ class LoginForm(Container):
     LoginForm .label {
         padding: 1 2;
         text-align: right;
+    }
+    """
+
+
+class PlanAddingWidget(Container):
+    """
+    兑换计划的添加步骤视图
+    """
+    DEFAULT_CSS = """
+    PlanAddingWidget {
+        height: auto;
+        width: auto;
+    }
+
+    OptionList {
+        background: $panel;
+        border: round $primary;
+        height: auto;
+        width: 1fr;
+        padding: 1 2;
+        margin: 1 2;
     }
     """
