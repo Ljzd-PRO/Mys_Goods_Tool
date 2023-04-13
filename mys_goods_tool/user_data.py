@@ -180,7 +180,8 @@ class BBSCookies(BaseModelWithSetter):
                 if not value:
                     empty_key.add(key)
             [cookies_dict.pop(key) for key in empty_key]
-            return cookies_dict
+
+        return cookies_dict
 
 
 class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
