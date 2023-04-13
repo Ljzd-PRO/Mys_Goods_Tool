@@ -560,7 +560,7 @@ class CaptchaForm(LoginForm):
         self.loading.display = BLOCK
 
         account: Optional[UserAccount] = None
-        login_status: Optional[GetCookieStatus] = None
+        login_status: GetCookieStatus = GetCookieStatus(success=False)
         phone_number = PhoneForm.input.value
         captcha = int(self.input.value) if self.input.value.isdigit() else self.input.value
 
@@ -583,6 +583,12 @@ class CaptchaForm(LoginForm):
         else:
             account_list = list(filter(lambda x: x.phone_number == phone_number, conf.accounts.values()))
             account = account_list[0] if account_list else None
+            if not account:
+                self.app.notice(f"手机号为 [bold red]{phone_number}[/] 的账户暂未被绑定！")
+                self.loading.display = NONE
+                self.button.error.show()
+                self.close_login()
+                return
 
         # 2. 通过 login_ticket 获取 stoken 和 ltoken
         if login_status or account:
