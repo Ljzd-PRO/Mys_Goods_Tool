@@ -164,6 +164,9 @@ class CaptchaLoginInformation(Container):
         """
 
     class Tips(Container):
+        """
+        登陆信息面板文本视图
+        """
         DEFAULT_CSS = """
         Tips {
             height: 100%;
@@ -171,8 +174,7 @@ class CaptchaLoginInformation(Container):
             align: right middle;
             margin: 0 2 0 0;
             padding: 1;
-            overflow-x: auto;
-            overflow-y: auto;
+            overflow: auto;
             border: round #666;
         }
     
@@ -188,13 +190,15 @@ class CaptchaLoginInformation(Container):
         """
 
     class StepSet(Container):
+        """
+        登陆进度节点集合视图
+        """
         DEFAULT_CSS = """
         StepSet {
             height: auto;
             width: 45%;
             align: left middle;
-            margin: 0 2 0 0;
-            overflow: hidden;
+            overflow: auto;
             border: round #666;
         }
         
@@ -203,7 +207,7 @@ class CaptchaLoginInformation(Container):
         }
         
         StepSet RadioStatus {
-            margin: 1 2;
+            margin: 1 1;
         }
         """
 
