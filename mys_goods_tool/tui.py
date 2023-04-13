@@ -6,7 +6,7 @@ from importlib.metadata import version
 from io import StringIO
 from typing import NamedTuple, Tuple, Optional, Set
 
-from httpx import Cookies
+import httpx
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.pretty import Pretty
@@ -294,8 +294,8 @@ class PhoneForm(LoginForm):
     """
     input = Input(placeholder="手机号", id="login_phone")
     """手机号输入框"""
-    cookies: Optional[Cookies] = None
-    """人机验证过程产生的Cookies，可供登录用"""
+    client: Optional[httpx.AsyncClient] = None
+    """人机验证过程的连接对象"""
 
     ButtonTuple = NamedTuple("ButtonTuple", send=ButtonDisplay, stop_geetest=ButtonDisplay, success=ButtonDisplay,
                              error=ButtonDisplay)
@@ -368,14 +368,13 @@ class PhoneForm(LoginForm):
                 logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
                 CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.display = BLOCK
-                create_captcha_return = await create_mobile_captcha(int(self.input.value), self.mmt_data,
-                                                                    geetest_result)
-                if create_captcha_return[0]:
+                create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
+                                                                    self.mmt_data,
+                                                                    geetest_result,
+                                                                    PhoneForm.client)
+                if create_captcha_status:
                     self.loading.display = NONE
-
                     logger.info(f"短信验证码已发送至 {self.input.value}")
-                    PhoneForm.cookies.update(create_captcha_return[1])
-
                     CaptchaLoginInformation.radio_tuple.create_captcha.turn_on()
                     CaptchaLoginInformation.static_tuple.geetest_text.change_text(CaptchaLoginInformation.GEETEST_TEXT,
                                                                                   "center")
@@ -454,20 +453,20 @@ class PhoneForm(LoginForm):
         self.button.send.disabled = True
         self.loading.display = BLOCK
 
-        create_mmt_return = await create_mmt()
-        if not create_mmt_return[0]:
+        if PhoneForm.client:
+            await PhoneForm.client.aclose()
+        create_mmt_status, self.mmt_data, PhoneForm.client = await create_mmt(keep_client=True)
+        if not create_mmt_status:
             self.close_create_captcha_send()
             self.button.error.show()
             self.app.notice("[red]获取Geetest行为验证任务数据失败！[/]")
             return
         else:
-            logger.info(f"已成功获取Geetest行为验证任务数据 {create_mmt_return[1]}")
-            PhoneForm.cookies = create_mmt_return[2]
+            logger.info(f"已成功获取Geetest行为验证任务数据 {self.mmt_data}")
             CaptchaLoginInformation.radio_tuple.create_geetest.turn_on()
-            self.mmt_data = create_mmt_return[1]
             self.set_address_manager.start()
 
-        return create_mmt_return[0]
+        return create_mmt_status
 
     async def on_input_submitted(self, _: Input.Submitted):
         await self.create_captcha()
@@ -561,7 +560,7 @@ class CaptchaForm(LoginForm):
         # 1. 通过短信验证码获取 login_ticket
         phone_number = PhoneForm.input.value
         captcha = int(self.input.value)
-        login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.cookies)
+        login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.client)
         if login_status:
             logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
             account = conf.accounts.get(cookies.bbs_uid)
@@ -577,7 +576,7 @@ class CaptchaForm(LoginForm):
             CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
 
             # 2. 通过 login_ticket 获取 stoken 和 ltoken
-            login_status, cookies = await get_multi_token_by_login_ticket(cookies)
+            login_status, cookies = await get_multi_token_by_login_ticket(account.cookies)
             if login_status:
                 logger.info(f"用户 {phone_number} 成功获取 stoken: {cookies.stoken}")
                 account.cookies.update(cookies)
@@ -585,7 +584,7 @@ class CaptchaForm(LoginForm):
                 CaptchaLoginInformation.radio_tuple.multi_token_by_login_ticket.turn_on()
 
                 # 3. 通过 stoken_v1 获取 stoken_v2 和 mid
-                login_status, cookies = await get_stoken_v2_by_v1(account.cookies)
+                login_status, cookies = await get_stoken_v2_by_v1(account.cookies, account.device_id_ios)
                 if login_status:
                     logger.info(f"用户 {phone_number} 成功获取 stoken_v2: {cookies.stoken_v2}")
                     account.cookies.update(cookies)
@@ -601,7 +600,7 @@ class CaptchaForm(LoginForm):
                         CaptchaLoginInformation.radio_tuple.get_ltoken_by_stoken.turn_on()
 
                         # 5. 通过 stoken_v2 获取 cookie_token
-                        login_status, cookies = await get_cookie_token_by_stoken(cookies)
+                        login_status, cookies = await get_cookie_token_by_stoken(account.cookies, account.device_id_ios)
                         if login_status:
                             logger.info(f"用户 {phone_number} 成功获取 cookie_token: {cookies.cookie_token}")
                             account.cookies.update(cookies)
@@ -636,6 +635,8 @@ class CaptchaForm(LoginForm):
                 notice_text += "Cookies缺少 stoken_v1"
             elif login_status.missing_stoken_v2:
                 notice_text += "Cookies缺少 stoken_v2"
+            elif login_status.missing_mid:
+                notice_text += "Cookies缺少 mid"
             else:
                 notice_text += "未知错误！"
             notice_text += "[/] 如果部分步骤成功，你仍然可以尝试获取收货地址、兑换等功能"

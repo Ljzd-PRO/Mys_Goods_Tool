@@ -259,6 +259,8 @@ class GetCookieStatus(BaseApiStatus):
     """Cookies 缺少 stoken_v1"""
     missing_stoken_v2 = False
     """Cookies 缺少 stoken_v2"""
+    missing_mid = False
+    """Cookies 缺少 mid"""
 
 
 class GetGoodDetailStatus(BaseApiStatus):
