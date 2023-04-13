@@ -25,9 +25,9 @@ pyinstaller = "==5.10.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "~=7.3.0"
-pyflake8 = "~=6.0.0"
 pytest-html = "~=3.2.0"
 pytest-asyncio = "~=0.21.0"
+flake8 = "~=6.0.0"
 pydevd-pycharm = "~=231.8109.197"
 
 [tool.poetry.group.pyinstaller]
