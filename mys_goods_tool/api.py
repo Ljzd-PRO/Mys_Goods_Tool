@@ -1047,7 +1047,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
                         URL_COOKIE_TOKEN_BY_STOKEN,
-                        cookies=cookies.dict(v2_stoken=True),
+                        cookies=cookies.dict(v2_stoken=True, cookie_type=True),
                         headers=headers,
                         timeout=conf.preference.timeout
                     )
@@ -1158,7 +1158,7 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
                         URL_LTOKEN_BY_STOKEN,
-                        cookies=cookies.dict(v2_stoken=True),
+                        cookies=cookies.dict(v2_stoken=True, cookie_type=True),
                         headers=headers,
                         timeout=conf.preference.timeout
                     )

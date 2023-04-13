@@ -154,11 +154,12 @@ class BBSCookies(BaseModelWithSetter):
              exclude: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
              by_alias: bool = False,
              skip_defaults: Optional[bool] = None, exclude_unset: bool = False, exclude_defaults: bool = False,
-             exclude_none: bool = False, v2_stoken: bool = False) -> 'pydantic.typing.DictStrAny':
+             exclude_none: bool = False, v2_stoken: bool = False, cookie_type: bool = False) -> 'pydantic.typing.DictStrAny':
         """
         获取Cookies字典
 
         v2_stoken: stoken 字段是否使用 stoken_v2
+        cookie_type: 是否返回符合Cookie类型的字典（没有自定义的stoken_v1、stoken_v2键）
         """
         # 保证 stuid, ltuid 等字段存在
         self.bbs_uid = self.bbs_uid
@@ -168,17 +169,18 @@ class BBSCookies(BaseModelWithSetter):
         if v2_stoken:
             cookies_dict["stoken"] = self.stoken_v2
 
-        # 去除自定义的 stoken_v1, stoken_v2 字段
-        cookies_dict.pop("stoken_v1")
-        cookies_dict.pop("stoken_v2")
+        if cookie_type:
+            # 去除自定义的 stoken_v1, stoken_v2 字段
+            cookies_dict.pop("stoken_v1")
+            cookies_dict.pop("stoken_v2")
 
-        # 去除空的字段
-        empty_key = set()
-        for key, value in cookies_dict.items():
-            if not value:
-                empty_key.add(key)
-        [cookies_dict.pop(key) for key in empty_key]
-        return cookies_dict
+            # 去除空的字段
+            empty_key = set()
+            for key, value in cookies_dict.items():
+                if not value:
+                    empty_key.add(key)
+            [cookies_dict.pop(key) for key in empty_key]
+            return cookies_dict
 
 
 class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
