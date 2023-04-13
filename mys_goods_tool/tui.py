@@ -362,6 +362,7 @@ class PhoneForm(LoginForm):
         """
         等待GEETEST验证结果的异步任务
         """
+        self.app.notice("请前往链接进行验证")
         while True:
             await asyncio.sleep(1)
             try:
@@ -860,14 +861,13 @@ class TuiApp(App[None]):
     text_log = TextLog(classes="-hidden", wrap=False, highlight=True, markup=True)
     """textual日志输出界面"""
 
-    @classmethod
-    def notice(cls, renderable: RenderableType) -> None:
+    def notice(self, renderable: RenderableType) -> None:
         """
         发出消息通知
 
         :param renderable: 通知内容
         """
-        cls.app.screen.mount(Notification(renderable))
+        self.app.screen.mount(Notification(renderable))
 
     def add_note(self, renderable: RenderableType) -> None:
         """
@@ -945,7 +945,6 @@ class TuiApp(App[None]):
         TuiApp.app = self
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
-        logger.info("Mys_Goods_Tool 开始运行")
         self.query_one("Welcome Button", Button).focus()
 
     def action_screenshot(self, filename: str | None = None, path: str = str(ROOT_PATH)) -> None:
