@@ -1,5 +1,8 @@
 import sys
 
+import mys_goods_tool.user_data
+from mys_goods_tool.user_data import load_config
+
 from .tui import TuiApp
 
 pyperclip_import_result = True
@@ -37,26 +40,37 @@ Mys_Goods_Tool
         """.strip())
 
 
-def guide_mode():
-    app = TuiApp()
-    app.run()
+def guide_mode(textual_app: TuiApp):
+    textual_app.run()
 
 
-def main():
-    if len(sys.argv) == 1:
-        guide_mode()
+def main(textual_app: TuiApp):
+    argv_length = len(sys.argv)
+    if argv_length == 1:
+        guide_mode(textual_app)
     elif sys.argv[1] == "-h":
         print_help()
     elif sys.argv[1] == "-m":
-        if sys.argv[2] == "guide":
-            ...
-        elif sys.argv[2] == "exchange":
-            ...
-        elif sys.argv[2] == "test":
-            ...
+        if argv_length >= 2:
+            if argv_length >= 3:
+                mys_goods_tool.user_data.CONFIG_PATH = sys.argv[3]
+                mys_goods_tool.user_data.config = load_config()
+            if sys.argv[2] == "guide":
+                guide_mode(textual_app)
+            elif sys.argv[2] == "exchange":
+                # TODO 兑换模式
+                ...
+            elif sys.argv[2] == "test":
+                # TODO 测试模式
+                ...
+            else:
+                print_help()
         else:
-            print_help()
-
+            guide_mode(textual_app)
+    else:
+        mys_goods_tool.user_data.CONFIG_PATH = sys.argv[1]
+        mys_goods_tool.user_data.config = load_config()
 
 if __name__ == "__main__":
-    main()
+    app = TuiApp()
+    main(app)

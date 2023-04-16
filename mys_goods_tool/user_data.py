@@ -14,9 +14,10 @@ from mys_goods_tool.data_model import BaseModelWithSetter
 ROOT_PATH = Path(sys.argv[0]).parent.absolute()
 """程序所在目录"""
 
-if len(sys.argv) == 4 or len(sys.argv) == 2:
-    CONFIG_PATH = sys.argv[-1]
-else:
+# if len(sys.argv) == 4 or len(sys.argv) == 2:
+#     CONFIG_PATH = sys.argv[-1]
+# else:
+if True:
     CONFIG_PATH = ROOT_PATH / "config.json"
     """配置文件默认路径"""
 
@@ -387,24 +388,33 @@ def write_config_file(conf: Config = Config()):
         return f.write(conf.json(indent=4))
 
 
-config = Config()
-if os.path.isfile(CONFIG_PATH):
-    try:
-        config = Config.parse_file(CONFIG_PATH)
-    except ValidationError:
-        logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 格式是否正确。")
-        logger.debug(traceback.format_exc())
-        exit(1)
-    except:
-        logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入。")
-        logger.debug(traceback.format_exc())
-        exit(1)
-else:
-    try:
-        write_config_file(config)
-    except PermissionError:
-        logger.error(f"创建配置文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
-        logger.debug(traceback.format_exc())
-        exit(1)
-    # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
-    # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
+def load_config():
+    """
+    加载配置文件
+    """
+    if os.path.isfile(CONFIG_PATH):
+        try:
+            return Config.parse_file(CONFIG_PATH)
+        except ValidationError:
+            logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 格式是否正确。")
+            logger.debug(traceback.format_exc())
+            exit(1)
+        except:
+            logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入。")
+            logger.debug(traceback.format_exc())
+            exit(1)
+    else:
+        config = Config()
+        try:
+            write_config_file(config)
+        except PermissionError:
+            logger.error(f"创建配置文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
+            logger.debug(traceback.format_exc())
+            exit(1)
+        # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
+        # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
+
+        return config
+
+config = load_config()
+"""程序配置对象"""
