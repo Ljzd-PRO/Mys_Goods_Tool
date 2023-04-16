@@ -1,5 +1,5 @@
 import inspect
-from typing import Optional, Tuple, Literal, Dict, NamedTuple, no_type_check
+from typing import Optional, Literal, NamedTuple, no_type_check
 
 from pydantic import BaseModel
 
@@ -56,8 +56,10 @@ class Good(BaseModel):
 
     # 以下为实际会用到的属性
 
-    name: str
-    """商品名称"""
+    name: Optional[str]
+    """商品名称（单独查询一个商品时）"""
+    goods_name: Optional[str]
+    """商品名称（查询商品列表时）"""
 
     goods_id: str
     """商品ID(Good_ID)"""
@@ -105,7 +107,7 @@ class Good(BaseModel):
                 self.account_cycle_limit, self.account_cycle_type)
 
     @property
-    def is_visual(self) -> bool:
+    def is_visual(self):
         """
         是否为虚拟商品
         """
@@ -113,6 +115,10 @@ class Good(BaseModel):
             return True
         else:
             return False
+
+    @property
+    def general_name(self):
+        return self.name if self.name else self.goods_name
 
 
 class GameRecord(BaseModel):
@@ -142,11 +148,11 @@ class GameInfo(BaseModel):
     """
     游戏信息数据
     """
-    ABBR_TO_ID: Dict[int, Tuple[str, str]] = {}
-    '''
-    游戏ID(game_id)与缩写和全称的对应关系
-    >>> {游戏ID, (缩写, 全称)}
-    '''
+    # ABBR_TO_ID: Dict[int, Tuple[str, str]] = {}
+    # '''
+    # 游戏ID(game_id)与缩写和全称的对应关系
+    # >>> {游戏ID, (缩写, 全称)}
+    # '''
     id: int
     """游戏ID"""
 
