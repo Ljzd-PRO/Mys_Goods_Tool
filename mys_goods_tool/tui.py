@@ -4,12 +4,11 @@ import asyncio
 import queue
 from importlib.metadata import version
 from io import StringIO
-from typing import NamedTuple, Tuple, Optional, Set
+from typing import NamedTuple, Tuple, Optional, Set, List, Dict
 
 import httpx
 from rich.console import RenderableType
 from rich.markdown import Markdown
-from rich.pretty import Pretty
 from rich.text import Text
 from textual.app import App, ComposeResult, DEFAULT_COLORS
 from textual.binding import Binding
@@ -22,13 +21,15 @@ from textual.widgets import (
     Header,
     Input,
     Switch,
-    LoadingIndicator, RadioButton, Tabs, Tab, Label, TabbedContent, TabPane, OptionList
+    LoadingIndicator, RadioButton, TabbedContent, TabPane, OptionList
 )
+from textual.widgets._option_list import Option
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
+    get_good_list, get_game_list
 from mys_goods_tool.custom_css import *
-from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
+from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus, Good, GameInfo
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
 from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH, ROOT_PATH
 from mys_goods_tool.utils import LOG_FORMAT, logger
@@ -256,23 +257,6 @@ class CaptchaLoginInformation(Container):
 
     def compose(self) -> ComposeResult:
         yield Horizontal(self.radio_set, self.static_set)
-
-    async def on_event(self, event: Event) -> None:
-        """
-        重写事件处理，在收到请求修改CaptchaLoginInformation内的各种组件属性的事件时，完成修改
-        这是因为组件只会在事件结束后进行刷新，如果有事件需要修改多个组件属性，就无法一个个生效，需要交由新的事件处理。
-
-        :param event: 事件
-        """
-        if isinstance(event, RadioStatus.TurnOn):
-            event.radio_status.value = True
-        elif isinstance(event, RadioStatus.TurnOff):
-            event.radio_status.value = False
-        elif isinstance(event, StaticStatus.ChangeRenderable):
-            event.static_status.update(event.renderable)
-            if event.text_align:
-                event.static_status.styles.text_align = event.text_align
-        await super().on_event(event)
 
 
 class ButtonDisplay(Button):
@@ -685,9 +669,208 @@ class CaptchaForm(LoginForm):
 
 
 class ExchangePlanAdding(Container):
-    class AccountWidget(PlanAddingWidget):
+    """
+    添加兑换计划 - 界面
+    """
+    class BasePlanAdding(PlanAddingWidget):
+        DEFAULT_TEXT: Markdown
+        """默认提示文本内容"""
+        text_view: StaticStatus
+        """实时文本提示"""
+
+        button_select: ButtonDisplay
+        """保存选定内容"""
+        button_refresh: ButtonDisplay
+        """刷新列表"""
+        button_reset: ButtonDisplay
+        """重置选择"""
+
+        empty_option_list: Option
+        """可选列表为空时显示的视图"""
+
+        def set_empty_options(self):
+            """
+            当可选列表为空时，对一些按钮进行隐藏
+            """
+            self.button_select.disabled = True
+            self.button_reset.disabled = True
+
+
+    class AccountWidget(BasePlanAdding):
+        """
+        选择账号 - 界面
+        """
+        DEFAULT_TEXT = Markdown("- 请选择一个账户")
+        text_view = StaticStatus(DEFAULT_TEXT)
+
+        button_select = ButtonDisplay("💾 保存", id="button-account-select", disabled=True)
+        button_refresh = ButtonDisplay("🔄 刷新", variant="primary", id="button-account-refresh")
+        button_reset = ButtonDisplay("↩ 重置", variant="warning", id="button-account-reset", disabled=True)
+
+        account_keys = list(conf.accounts.keys())
+        option_list = OptionList(*account_keys)
+
+        empty_option_list = OptionList("暂无账号数据 请尝试刷新", disabled=True)
+
         def compose(self) -> ComposeResult:
-            yield OptionList(*map(str, conf.accounts.keys()))
+            yield self.text_view
+            yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
+            if self.account_keys:
+                self.button_select.disabled = False
+                yield self.option_list
+            else:
+                self.set_empty_options()
+                yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
+
+        def on_button_pressed(self, event: Button.Pressed) -> None:
+            if event.button.id == "button-account-select":
+                # 按下“保存”按钮时触发的事件
+                if self.option_list.highlighted is None:
+                    self.app.notice("[bold red]请先从列表中选择账号！[/]")
+                    return
+                self.button_select.disabled = True
+                self.button_reset.disabled = False
+                self.option_list.disabled = True
+                selected_account = self.account_keys[self.option_list.highlighted]
+                self.text_view.change_text(Markdown(f"- 已选择账户 **{selected_account}**"))
+                if conf.accounts[selected_account].cookies.is_correct():
+                    self.app.notice(f"已选择账号：[bold green]{selected_account}[/]")
+                else:
+                    self.app.notice(f"选择的账号：[bold red]{selected_account}[/] Cookies不完整，但你仍然可以尝试进行兑换")
+
+            elif event.button.id == "button-account-refresh":
+                # 按下“刷新”按钮时触发的事件
+
+                self.account_keys = list(conf.accounts.keys())
+                self.option_list.clear_options()
+                for account in self.account_keys:
+                    self.option_list.add_option(account)
+                if self.account_keys:
+                    self.button_select.disabled = False
+                else:
+                    self.set_empty_options()
+                self.app.notice(f"[bold green]已刷新账号列表[/]")
+
+            elif event.button.id == "button-account-reset":
+                # 按下“重置”按钮时触发的事件
+
+                self.button_select.disabled = False
+                self.button_reset.disabled = True
+                self.option_list.disabled = False
+                self.text_view.change_text(self.DEFAULT_TEXT)
+                self.app.notice("已重置账号选择")
+
+    class GoodsWidget(BasePlanAdding):
+        """
+        选择商品 - 界面
+        """
+        DEFAULT_TEXT = Markdown("- 请选择一个商品")
+        text_view = StaticStatus(DEFAULT_TEXT)
+
+        button_refresh = ButtonDisplay("🔄 刷新", variant="primary", id="button-goods-refresh")
+        button_reset = ButtonDisplay("↩ 重置", variant="warning", id="button-goods-reset", disabled=True)
+
+        loading = LoadingIndicator()
+        loading.display = NONE
+
+        class GoodsDictValue:
+            def __init__(self, game_info: GameInfo,
+                         good_list: List[Good] = None,
+                         button_select: Optional[ButtonDisplay] = None):
+                self.game_info = game_info
+                self.good_list = good_list
+                self.option_list = OptionList()
+                self.button_select = button_select
+
+        good_dict: Dict[int, GoodsDictValue] = {}
+        tabbed_content = TabbedContent()
+        selected: Optional[Tuple[GameInfo, int]] = None
+
+        empty_option_list = Option("暂无对应分区的商品数据 请尝试刷新", disabled=True)
+
+        def compose(self) -> ComposeResult:
+            yield self.text_view
+            yield Horizontal(self.button_refresh, self.button_reset, self.loading)
+            with self.tabbed_content:
+                for key, value in self.good_dict:
+                    with TabPane(value.game_info.name):
+                        yield value.button_select
+                        yield value.option_list
+
+        async def update_goods(self):
+            """
+            刷新商品信息
+            """
+            self.loading.display = True
+            game_list_status, game_list = await get_game_list()
+            if game_list_status:
+                for game in game_list:
+                    goods_data = self.good_dict.get(game.id)
+                    if not goods_data:
+                        # 如果没有商品分区对应值，则进行创建
+                        button_select = ButtonDisplay("💾 保存", id=f"button-goods-{game.id}-select", disabled=True)
+                        goods_data = self.GoodsDictValue(game, button_select=button_select)
+                        self.good_dict.setdefault(game.id, goods_data)
+                for goods_data in self.good_dict.values():
+                    good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
+
+                    # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
+                    if good_list_status:
+                        if good_list:
+                            goods_data.good_list = good_list
+                            good_names = map(lambda x: x.general_name, good_list)
+                            goods_data.option_list.clear_options()
+                            for name in good_names:
+                                goods_data.option_list.add_option(name)
+                            goods_data.button_select.disabled = False if not self.selected else True
+                        else:
+                            goods_data.option_list.clear_options()
+                            goods_data.option_list.add_option(self.empty_option_list)
+                    else:
+                        self.app.notice(f"[bold red]获取分区 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
+                        # TODO 待补充各种错误情况
+                    self.tabbed_content.compose_add_child(TabPane(goods_data.game_info.name, goods_data.option_list))
+                    self.refresh()
+            else:
+                self.app.notice("[bold red]刷新商品信息失败！[/]")
+                # TODO 待补充各种错误情况
+            self.loading.display = False
+
+        async def on_mount(self):
+            await self.update_goods()
+
+        async def on_button_pressed(self, event: Button.Pressed) -> None:
+            if event.button.id.startswith("button-goods-") and event.button.id.endswith("-select"):
+                # 按下“保存”按钮时触发的事件
+
+                self.button_reset.disabled = False
+                game_id = int(event.button.id.split("-")[2])
+                game = self.good_dict.get(game_id).game_info
+                if not game:
+                    self.app.notice(f"[bold red]未找到对应的分区数据 / 分区不可用[/]")
+                    return
+                self.selected = (game, self.good_dict[game_id].option_list.highlighted)
+                _, good_index = self.selected
+                good = self.good_dict[game_id].good_list[good_index]
+                self.text_view.change_text(Markdown(f"- 已选择 **{game.name}** 的商品 **{good.name}**"))
+
+            elif event.button.id == "button-goods-refresh":
+                # 按下“刷新”按钮时触发的事件
+                
+                await self.update_goods()
+
+            elif event.button.id == "button-goods-reset":
+                # 按下“重置”按钮时触发的事件
+
+                self.button_reset.disabled = True
+                self.selected = None
+                for goods_data in self.good_dict.values():
+                    goods_data.button_select.disabled = False
+
+                self.text_view.change_text(self.DEFAULT_TEXT)
+                self.app.notice("已重置商品选择")
+
+
     def compose(self) -> ComposeResult:
         with TabbedContent():
             with TabPane("➕添加计划", id="tab-adding"):
@@ -695,7 +878,7 @@ class ExchangePlanAdding(Container):
                     with TabPane("1.选择账号", id="tab-adding-account"):
                         yield self.AccountWidget()
                     with TabPane("2.选择目标商品", id="tab-adding-goods"):
-                        yield self.AccountWidget()
+                        yield self.GoodsWidget()
                     with TabPane("3.选择收货地址", id="tab-adding-address"):
                         yield self.AccountWidget()
                     with TabPane("4.完成添加", id="tab-adding-ending"):
@@ -861,6 +1044,7 @@ class Notification(Static):
         background: $background;
         color: $text;
         height: auto;
+        border: wide $primary;
     }
     """
 
@@ -880,7 +1064,7 @@ DEFAULT_COLORS["light"].secondary = Color.parse("#87CBB9")
 DEFAULT_COLORS["light"].accent = DEFAULT_COLORS["dark"].primary
 
 
-class TuiApp(App[None]):
+class TuiApp(App):
     TITLE = "Mys_Goods_Tool"
     """textual TUI 标题"""
     BINDINGS = [
@@ -950,6 +1134,24 @@ class TuiApp(App[None]):
             ),
         )
         yield Footer()
+
+    async def on_event(self, event: Event) -> None:
+        """
+        重写事件处理，在收到请求修改Widget属性的事件时，完成修改
+        这是因为组件只会在事件结束后进行刷新，如果有事件需要修改多个组件属性，就无法一个个生效，需要交由新的事件处理。
+
+        :param event: 事件
+        """
+        if isinstance(event, RadioStatus.TurnOn):
+            event.radio_status.value = True
+        elif isinstance(event, RadioStatus.TurnOff):
+            event.radio_status.value = False
+        elif isinstance(event, StaticStatus.ChangeRenderable):
+            event.static_status.update(event.renderable)
+            if event.text_align:
+                event.static_status.styles.text_align = event.text_align
+        await super().on_event(event)
+
 
     def action_open_link(self, link: str) -> None:
         """
