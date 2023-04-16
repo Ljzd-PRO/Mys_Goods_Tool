@@ -10,9 +10,9 @@ from textual.widgets import (
 )
 
 NONE = "none"
-"""显示（CSS display 属性 - none）"""
+"""隐藏（CSS display 属性 - none）"""
 BLOCK = "block"
-"""隐藏（CSS display 属性 - block）"""
+"""显示（CSS display 属性 - block）"""
 
 DOMNode.DEFAULT_CSS += """
     * {
@@ -228,15 +228,33 @@ class PlanAddingWidget(Container):
     DEFAULT_CSS = """
     PlanAddingWidget {
         height: auto;
-        width: auto;
+        width: 1fr;
+        border: round #666;
+        padding: 2;
     }
 
-    OptionList {
-        background: $panel;
-        border: round $primary;
+    PlanAddingWidget OptionList {
         height: auto;
         width: 1fr;
-        padding: 1 2;
-        margin: 1 2;
+        padding: 1;
+        border: round $primary;
+    }
+    
+    PlanAddingWidget OptionList Option {
+        margin: 1;
+    }
+    
+    PlanAddingWidget StaticStatus {
+        margin: 0 0 1 0;
+    }
+    
+    PlanAddingWidget Horizontal Button {
+        margin: 0 1 0 0;
+    }
+    
+    PlanAddingWidget Horizontal LoadingIndicator {
+        width: auto;
+        min-width: 16;
+        height: 3;
     }
     """
