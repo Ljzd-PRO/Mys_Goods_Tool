@@ -209,7 +209,7 @@ class LoginForm(Container):
         border: wide $background;
     }
 
-    LoginForm ButtonDisplay {
+    LoginForm ControllableButton {
         margin: 0 1;
         width: 100%;
     }
