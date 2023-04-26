@@ -11,15 +11,11 @@ from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 
 from mys_goods_tool.data_model import BaseModelWithSetter
 
-ROOT_PATH = Path(sys.argv[0]).parent.absolute()
+ROOT_PATH = Path("./")
 """程序所在目录"""
 
-# if len(sys.argv) == 4 or len(sys.argv) == 2:
-#     CONFIG_PATH = sys.argv[-1]
-# else:
-if True:
-    CONFIG_PATH = ROOT_PATH / "config.json"
-    """配置文件默认路径"""
+CONFIG_PATH = ROOT_PATH / "config.json"
+"""配置文件默认路径"""
 
 
 class BBSCookies(BaseModelWithSetter):
