@@ -10,13 +10,14 @@ pydantic~=1.10.6
 loguru~=0.7.0
 httpx~=0.24.0
 rich~=13.3.4
-textual~=0.19.1
+textual~=0.20.1
+socksio~=1.0.0
 
 ## pyinstaller.dependencies
-pyinstaller==5.10.0
+pyinstaller==5.10.1
 
 ## test.dependencies
-pytest~=7.3.0
+pytest~=7.3.1
 pytest-html~=3.2.0
 pytest-asyncio~=0.21.0
 flake8~=6.0.0
