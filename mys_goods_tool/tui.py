@@ -10,6 +10,7 @@ import httpx
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text, TextType
+from textual import events
 from textual.app import App, ComposeResult, DEFAULT_COLORS
 from textual.binding import Binding
 from textual.color import Color
@@ -388,7 +389,7 @@ class PhoneForm(LoginForm):
     async def on_input_submitted(self, _: Input.Submitted):
         await self.create_captcha()
 
-    async def on_button_pressed(self, event: ControllableButton.Pressed):
+    async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "create_captcha_send":
             # 按下“发送短信验证码”按钮时触发的事件
 
@@ -579,7 +580,7 @@ class CaptchaForm(LoginForm):
     async def on_input_submitted(self, _: Input.Submitted) -> None:
         await self.login()
 
-    async def on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+    async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "login":
             # 按下“登录”按钮时触发的事件
 
@@ -668,7 +669,7 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             self.set_empty_options()
             yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
 
-    def on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+    def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-account-select":
             # 按下“保存”按钮时触发的事件
             if self.option_list.highlighted is None:
@@ -825,7 +826,7 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
         self.button_refresh.enable()
         self.refresh(layout=True)
 
-    async def on_mount(self):
+    async def _on_mount(self, _: events.Mount):
         self.button_refresh.disable()
         self.loading.show()
 
@@ -845,7 +846,7 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
         self.button_refresh.enable()
         self.loading.hide()
 
-    async def on_button_pressed(self, event: GameButton.Pressed) -> None:
+    async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
         if event.button.id.startswith("button-goods-select-"):
             # 按下“保存”按钮时触发的事件
 
@@ -900,7 +901,7 @@ class Welcome(Container):
         yield Static(Markdown(WELCOME_MD))
         yield Button("开始使用", variant="success")
 
-    def on_button_pressed(self) -> None:
+    def _on_button_pressed(self) -> None:
         self.app.query_one(".location-first").scroll_visible(duration=0.5, top=True)
 
 
@@ -979,7 +980,7 @@ class LocationLink(Static):
         super().__init__(label)
         self.reveal = reveal
 
-    def on_click(self) -> None:
+    def _on_click(self, _: events.Click) -> None:
         # 跳转到指定位置
         self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
 
@@ -1010,7 +1011,7 @@ class DarkSwitch(Horizontal):
         yield Switch(value=self.app.dark)
         yield Static("暗黑模式切换", classes="label")
 
-    def on_mount(self) -> None:
+    def _on_mount(self, _: events.Mount) -> None:
         self.watch(self.app, "dark", self.on_dark_change, init=False)
 
     def on_dark_change(self) -> None:
@@ -1038,7 +1039,7 @@ class Notification(Static):
     }
     """
 
-    def on_mount(self) -> None:
+    def _on_mount(self, _: events.Mount) -> None:
         self.set_timer(3, self.remove)
 
     def on_click(self) -> None:
@@ -1170,7 +1171,7 @@ class TuiApp(App):
             super().write(text)
             TuiApp.text_log.write(text)
 
-    def on_mount(self) -> None:
+    def _on_mount(self, _: events.Mount) -> None:
         TuiApp.app = self
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
