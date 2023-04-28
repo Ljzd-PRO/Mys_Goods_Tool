@@ -71,7 +71,13 @@ class StaticStatus(Static):
             super().__init__()
 
     def change_text(self, renderable: RenderableType, text_align: Optional[str] = None) -> None:
-        """修改renderable属性（此处与文本相关）"""
+        """
+        修改renderable属性
+        主要是为了修改text_align属性，如果只是修改文本内容，直接使用update方法即可
+
+        :param renderable: 新的 renderable 文本内容
+        :param text_align: 新的 text_align 属性
+        """
         self.post_message(StaticStatus.ChangeRenderable(self, renderable, text_align))
 
 
@@ -96,13 +102,15 @@ class ControllableButton(Button):
         """
         禁用
         """
-        self.disabled: bool = True
+        button = self
+        button.disabled = True
 
     def enable(self):
         """
         启用
         """
-        self.disabled: bool = False
+        button = self
+        button.disabled = False
 
 
 class LoadingDisplay(LoadingIndicator):
