@@ -145,14 +145,13 @@ class DynamicTabbedContent(TabbedContent):
         """返回所有TabPane"""
         yield from self._tab_content
 
-    def append(self, content: TabPane):
+    async def append(self, content: TabPane):
         """增加TabPane"""
         self.titles.append(content._title)
         self._tab_content.append(content)
         tab_pane_with_id = self._set_id(content, f"tab-{len(self.content_switcher.children) + 1}")
         content_tab = ContentTab(tab_pane_with_id._title, tab_pane_with_id.id or "")
-        mount_await = self.content_switcher.mount(tab_pane_with_id)
-        self.call_after_refresh(mount_await)
+        await self.content_switcher.mount(tab_pane_with_id)
         self.tabs.add_tab(content_tab)
 
     def compose(self) -> ComposeResult:

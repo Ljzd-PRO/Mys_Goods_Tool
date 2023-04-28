@@ -676,7 +676,7 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
                 return
             self.button_select.disable()
             self.button_reset.enable()
-            self.option_list.disable()
+            self.option_list.disabled = True
             selected_account = self.account_keys[self.option_list.highlighted]
             self.text_view.change_text(Markdown(f"- 已选择账户 **{selected_account}**"))
             if conf.accounts[selected_account].cookies.is_correct():
@@ -837,7 +837,7 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
                     # 如果没有商品分区对应值，则进行创建
                     goods_data = self.GoodsDictValue(game)
                     self.good_dict.setdefault(game.id, goods_data)
-                    self.tabbed_content.append(goods_data.tap_pane)
+                    await self.tabbed_content.append(goods_data.tap_pane)
 
         # 更新每个分区的商品数据
         await self.update_goods()
