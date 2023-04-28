@@ -120,10 +120,14 @@ class LoadingDisplay(LoadingIndicator):
 
 
 class DynamicTabbedContent(TabbedContent):
-    def __init__(self, *titles: TextType):
-        super().__init__(*titles)
-        self.tabs: Optional[Tabs] = None
-        self.content_switcher: Optional[ContentSwitcher] = None
+    """
+    可动态增加TabPane的TabbedContent
+    """
+
+    def __init__(self, *titles: TextType, initial: str = "") -> None:
+        super().__init__(*titles, initial=initial)
+        self._tabs: Optional[Tabs] = None
+        self._content_switcher = ContentSwitcher(initial=self._initial or None)
 
     @classmethod
     def _set_id(cls, content: TabPane, new_id: str) -> TabPane:
@@ -139,20 +143,6 @@ class DynamicTabbedContent(TabbedContent):
         if content.id is None:
             content.id = new_id
         return content
-
-    @property
-    def contents(self):
-        """返回所有TabPane"""
-        yield from self._tab_content
-
-    async def append(self, content: TabPane):
-        """增加TabPane"""
-        self.titles.append(content._title)
-        self._tab_content.append(content)
-        tab_pane_with_id = self._set_id(content, f"tab-{len(self.content_switcher.children) + 1}")
-        content_tab = ContentTab(tab_pane_with_id._title, tab_pane_with_id.id or "")
-        await self.content_switcher.mount(tab_pane_with_id)
-        self.tabs.add_tab(content_tab)
 
     def compose(self) -> ComposeResult:
         """Compose the tabbed content."""
@@ -175,9 +165,27 @@ class DynamicTabbedContent(TabbedContent):
             ContentTab(content._title, content.id or "") for content in pane_content
         ]
         # Yield the tabs
-        self.tabs = Tabs(*tabs, active=self._initial or None)
-        yield self.tabs
+        self._tabs = Tabs(*tabs, active=self._initial or None)
+        yield self._tabs
         # Yield the content switcher and panes
-        self.content_switcher = ContentSwitcher(initial=self._initial or None)
-        with self.content_switcher:
+        with self._content_switcher:
             yield from pane_content
+
+    async def append(self, content: TabPane):
+        """Add a new TabPane to the end of the tab list.
+
+        Args:
+            content: The new TabPane object to add.
+        """
+        self.titles.append(content._title)
+        self._tab_content.append(content)
+        tab_pane_with_id = self._set_id(content, f"tab-{len(self._content_switcher.children) + 1}")
+        content_tab = ContentTab(tab_pane_with_id._title, tab_pane_with_id.id or "")
+        await self._content_switcher.mount(tab_pane_with_id)
+        # Incase _initial is not set (empty TabbedContent), set it to the active tab
+        self._content_switcher._initial = self.active
+        initial = self._content_switcher._initial
+        with self._content_switcher.app.batch_update():
+            for child in self._content_switcher.children:
+                child.display = bool(initial) and child.id == initial
+        self._tabs.add_tab(content_tab)
