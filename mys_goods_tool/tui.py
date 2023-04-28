@@ -604,7 +604,7 @@ class ExchangePlan(Container):
     lock = asyncio.Lock()
 
     class BasePlanAdding(PlanAddingWidget):
-        DEFAULT_TEXT: Markdown
+        DEFAULT_TEXT: RenderableType
         """默认提示文本内容"""
         text_view: StaticStatus
         """实时文本提示"""
@@ -670,6 +670,15 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
 
     def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+        def reset():
+            """
+            重置选择
+            """
+            self.button_select.enable()
+            self.button_reset.disable()
+            self.option_list.disabled = False
+            self.text_view.update(self.DEFAULT_TEXT)
+
         if event.button.id == "button-account-select":
             # 按下“保存”按钮时触发的事件
             if self.option_list.highlighted is None:
@@ -679,9 +688,9 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             self.button_reset.enable()
             self.option_list.disabled = True
             selected_account = self.account_keys[self.option_list.highlighted]
-            self.text_view.change_text(Markdown(f"- 已选择账户 **{selected_account}**"))
+            self.text_view.update(f"已选择账户 [bold green]{selected_account}[/]")
             if conf.accounts[selected_account].cookies.is_correct():
-                self.app.notice(f"已选择账号：[bold green]{selected_account}[/]")
+                self.app.notice(f"选择的账号：[bold green]{selected_account}[/] Cookies完整，可继续")
             else:
                 self.app.notice(
                     f"选择的账号：[bold red]{selected_account}[/] Cookies不完整，但你仍然可以尝试进行兑换")
@@ -697,15 +706,13 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
                 self.button_select.enable()
             else:
                 self.set_empty_options()
+            reset()
             self.app.notice(f"[bold green]已刷新账号列表[/]")
 
         elif event.button.id == "button-account-reset":
             # 按下“重置”按钮时触发的事件
 
-            self.button_select.enable()
-            self.button_reset.disable()
-            self.option_list.disabled = False
-            self.text_view.change_text(self.DEFAULT_TEXT)
+            reset()
             self.app.notice("已重置账号选择")
 
 
@@ -847,34 +854,50 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
         self.loading.hide()
 
     async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
+        def reset():
+            """
+            重置商品选择
+            """
+            self.button_reset.disable()
+            self.selected = None
+            for value in self.good_dict.values():
+                value.button_select.enable()
+                value.option_list.disabled = False
+            self.text_view.update(self.DEFAULT_TEXT)
+
         if event.button.id.startswith("button-goods-select-"):
             # 按下“保存”按钮时触发的事件
 
-            self.button_reset.enable()
             game = event.button.game
             game_id = game.id
             if not game:
                 self.app.notice(f"[bold red]未找到对应的分区数据 / 分区不可用[/]")
                 return
-            self.selected = (game, self.good_dict[game_id].option_list.highlighted)
+            option_list = self.good_dict[game_id].option_list
+            selected_index = option_list.highlighted
+            if selected_index is None:
+                self.app.notice(f"[bold red]未选择商品！[/]")
+                return
+            self.selected = (game, selected_index)
             _, good_index = self.selected
             good = self.good_dict[game_id].good_list[good_index]
-            self.text_view.change_text(Markdown(f"- 已选择 **{game.name}** 的商品 **{good.name}**"))
+
+            self.button_reset.enable()
+            for value in self.good_dict.values():
+                value.button_select.disable()
+                value.option_list.disabled = True
+            self.text_view.update(f"已选择 [bold green]{game.name}[/] 商品 [bold green]{good.general_name}[/]")
 
         elif event.button.id == "button-goods-refresh":
             # 按下“刷新”按钮时触发的事件
 
             await self.update_goods()
+            reset()
 
         elif event.button.id == "button-goods-reset":
             # 按下“重置”按钮时触发的事件
 
-            self.button_reset.disable()
-            self.selected = None
-            for goods_data in self.good_dict.values():
-                goods_data.button_select.enable()
-
-            self.text_view.change_text(self.DEFAULT_TEXT)
+            reset()
             self.app.notice("已重置商品选择")
 
 
