@@ -178,9 +178,9 @@ def generate_ds(data: Union[str, dict, list, None] = None, params: Union[str, di
     """
     if data is None and params is None or salt != conf.salt_config.SALT_PROD:
         if platform == "ios":
-            salt = conf.salt_config.SALT_IOS if not salt else salt
+            salt = salt or conf.salt_config.SALT_IOS
         else:
-            salt = conf.salt_config.SALT_ANDROID if not salt else salt
+            salt = salt or conf.salt_config.SALT_ANDROID
         t = str(int(NtpTime.time()))
         a = "".join(random.sample(
             string.ascii_lowercase + string.digits, 6))

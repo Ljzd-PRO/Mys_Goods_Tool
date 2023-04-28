@@ -118,7 +118,7 @@ class Good(BaseModel):
 
     @property
     def general_name(self):
-        return self.name if self.name else self.goods_name
+        return self.name or self.goods_name
 
 
 class GameRecord(BaseModel):

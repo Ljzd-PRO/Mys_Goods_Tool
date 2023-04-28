@@ -107,7 +107,7 @@ class BBSCookies(BaseModelWithSetter):
             if value:
                 uid = value
                 break
-        return uid if uid else None
+        return uid or None
 
     @bbs_uid.setter
     def bbs_uid(self, value: str):
