@@ -14,14 +14,14 @@ from textual.app import App, ComposeResult, DEFAULT_COLORS
 from textual.binding import Binding
 from textual.color import Color
 from textual.events import Event
-from textual.reactive import reactive, Reactive
+from textual.reactive import reactive
 from textual.widgets import (
     Button,
     Footer,
     Header,
     Input,
     Switch,
-    LoadingIndicator, RadioButton, TabbedContent, TabPane, OptionList
+    TabbedContent, TabPane, OptionList
 )
 from textual.widgets._button import ButtonVariant
 from textual.widgets._option_list import Option
@@ -30,6 +30,8 @@ from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_tick
     get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
     get_good_list, get_game_list
 from mys_goods_tool.custom_css import *
+from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay, \
+    DynamicTabbedContent
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus, Good, GameInfo
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
 from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH, ROOT_PATH
@@ -89,65 +91,6 @@ DATA = {
         ),
     ],
 }
-
-
-class RadioStatus(RadioButton, can_focus=False):
-    """
-    完成的进度节点，不允许点击交互
-    可通过触发事件以即时修改value属性
-    """
-
-    class ChangeStatus(Event):
-        """
-        请求按钮状态修改的事件
-        """
-
-        def __init__(self, radio_status: RadioStatus):
-            self.radio_status = radio_status
-            super().__init__()
-
-    class TurnOn(ChangeStatus):
-        """请求按钮状态修改为亮起的事件"""
-        pass
-
-    class TurnOff(ChangeStatus):
-        """请求按钮状态修改为熄灭的事件"""
-        pass
-
-    def turn_on(self):
-        """修改按钮状态为亮起"""
-        self.post_message(RadioStatus.TurnOn(self))
-
-    def turn_off(self):
-        """修改按钮状态为熄灭"""
-        self.post_message(RadioStatus.TurnOff(self))
-
-    def toggle(self) -> None:
-        """
-        重写按钮交互，交互时不会改变按钮状态
-        """
-        pass
-
-
-class StaticStatus(Static):
-    """
-    实时文本说明，可通过触发事件以即时修改文本属性
-    """
-
-    class ChangeRenderable(Event):
-        """
-        请求renderable属性（此处与文本相关）修改的事件
-        """
-
-        def __init__(self, static_status: StaticStatus, renderable: RenderableType, text_align: Optional[str] = None):
-            self.static_status = static_status
-            self.renderable = renderable
-            self.text_align = text_align
-            super().__init__()
-
-    def change_text(self, renderable: RenderableType, text_align: Optional[str] = None) -> None:
-        """修改renderable属性（此处与文本相关）"""
-        self.post_message(StaticStatus.ChangeRenderable(self, renderable, text_align))
 
 
 class CaptchaLoginInformation(Container):
@@ -260,49 +203,6 @@ class CaptchaLoginInformation(Container):
         yield Horizontal(self.radio_set, self.static_set)
 
 
-class ControllableButton(Button):
-    """
-    带隐藏、显示、禁用、启用控制方法的按钮
-    """
-
-    def show(self):
-        """
-        显示
-        """
-        self.display = BLOCK
-
-    def hide(self):
-        """
-        隐藏
-        """
-        self.display = NONE
-        
-    def disable(self):
-        """
-        禁用
-        """
-        self.disabled = Reactive(True)
-        
-    def enable(self):
-        """
-        启用
-        """
-        self.disabled = Reactive(False)
-        
-class LoadingDisplay(LoadingIndicator):
-    def show(self):
-        """
-        显示
-        """
-        self.display = BLOCK
-
-    def hide(self):
-        """
-        隐藏
-        """
-        self.display = NONE
-        
-
 class PhoneForm(LoginForm):
     """
     手机号 表单
@@ -312,7 +212,8 @@ class PhoneForm(LoginForm):
     client: Optional[httpx.AsyncClient] = None
     """人机验证过程的连接对象"""
 
-    ButtonTuple = NamedTuple("ButtonTuple", send=ControllableButton, stop_geetest=ControllableButton, success=ControllableButton,
+    ButtonTuple = NamedTuple("ButtonTuple", send=ControllableButton, stop_geetest=ControllableButton,
+                             success=ControllableButton,
                              error=ControllableButton)
 
     def __init__(self):
@@ -385,9 +286,9 @@ class PhoneForm(LoginForm):
                 CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.show()
                 create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
-                                                                    self.mmt_data,
-                                                                    geetest_result,
-                                                                    PhoneForm.client)
+                                                                                      self.mmt_data,
+                                                                                      geetest_result,
+                                                                                      PhoneForm.client)
                 if create_captcha_status:
                     self.loading.hide()
                     logger.info(f"短信验证码已发送至 {self.input.value}")
@@ -428,9 +329,9 @@ class PhoneForm(LoginForm):
         self.button.stop_geetest.show()
         CaptchaLoginInformation.radio_tuple.http_server.turn_on()
 
-        listen_result_task = self.loop.create_task(self.listen_result())
-        self.loop_tasks.add(listen_result_task)
-        listen_result_task.add_done_callback(self.loop_tasks.discard)
+        task = self.loop.create_task(self.listen_result())
+        self.loop_tasks.add(task)
+        task.add_done_callback(self.loop_tasks.discard)
 
         link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
         link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
@@ -520,7 +421,8 @@ class CaptchaForm(LoginForm):
     """
     验证码 表单
     """
-    ButtonTuple = NamedTuple("ButtonTuple", login=ControllableButton, success=ControllableButton, error=ControllableButton)
+    ButtonTuple = NamedTuple("ButtonTuple", login=ControllableButton, success=ControllableButton,
+                             error=ControllableButton)
 
     def __init__(self):
         super().__init__()
@@ -694,10 +596,12 @@ class CaptchaForm(LoginForm):
             self.before_login = True
 
 
-class ExchangePlanAdding(Container):
+class ExchangePlan(Container):
     """
     添加兑换计划 - 界面
     """
+    lock = asyncio.Lock()
+
     class BasePlanAdding(PlanAddingWidget):
         DEFAULT_TEXT: Markdown
         """默认提示文本内容"""
@@ -721,236 +625,257 @@ class ExchangePlanAdding(Container):
             self.button_select.disable()
             self.button_reset.disable()
 
-
-    class AccountWidget(BasePlanAdding):
-        """
-        选择账号 - 界面
-        """
-        DEFAULT_TEXT = Markdown("- 请选择一个账户")
-        text_view = StaticStatus(DEFAULT_TEXT)
-
-        button_select = ControllableButton("💾 保存", id="button-account-select", disabled=True)
-        button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-account-refresh")
-        button_reset = ControllableButton("↩ 重置", variant="warning", id="button-account-reset", disabled=True)
-
-        account_keys = list(conf.accounts.keys())
-        option_list = OptionList(*account_keys)
-
-        empty_option_list = OptionList("暂无账号数据 请尝试刷新", disabled=True)
-
-        def compose(self) -> ComposeResult:
-            yield self.text_view
-            yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
-            if self.account_keys:
-                self.button_select.enable()
-                yield self.option_list
-            else:
-                self.set_empty_options()
-                yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
-
-        def on_button_pressed(self, event: ControllableButton.Pressed) -> None:
-            if event.button.id == "button-account-select":
-                # 按下“保存”按钮时触发的事件
-                if self.option_list.highlighted is None:
-                    self.app.notice("[bold red]请先从列表中选择账号！[/]")
-                    return
-                self.button_select.disable()
-                self.button_reset.enable()
-                self.option_list.disable()
-                selected_account = self.account_keys[self.option_list.highlighted]
-                self.text_view.change_text(Markdown(f"- 已选择账户 **{selected_account}**"))
-                if conf.accounts[selected_account].cookies.is_correct():
-                    self.app.notice(f"已选择账号：[bold green]{selected_account}[/]")
-                else:
-                    self.app.notice(f"选择的账号：[bold red]{selected_account}[/] Cookies不完整，但你仍然可以尝试进行兑换")
-
-            elif event.button.id == "button-account-refresh":
-                # 按下“刷新”按钮时触发的事件
-
-                self.account_keys = list(conf.accounts.keys())
-                self.option_list.clear_options()
-                for account in self.account_keys:
-                    self.option_list.add_option(account)
-                if self.account_keys:
-                    self.button_select.enable()
-                else:
-                    self.set_empty_options()
-                self.app.notice(f"[bold green]已刷新账号列表[/]")
-
-            elif event.button.id == "button-account-reset":
-                # 按下“重置”按钮时触发的事件
-
-                self.button_select.enable()
-                self.button_reset.disable()
-                self.option_list.disabled = False
-                self.text_view.change_text(self.DEFAULT_TEXT)
-                self.app.notice("已重置账号选择")
-
-    class GoodsWidget(BasePlanAdding):
-        """
-        选择商品 - 界面
-        """
-        DEFAULT_CSS = """
-        GoodsWidget TabbedContainer {
-            height: 100%;
-            width: 100%;
-        }
-        """
-        DEFAULT_TEXT = Markdown("- 请选择一个商品")
-        text_view = StaticStatus(DEFAULT_TEXT)
-
-        button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-goods-refresh")
-        button_reset = ControllableButton("↩ 重置", variant="warning", id="button-goods-reset", disabled=True)
-
-        loading = LoadingDisplay()
-        loading.hide()
-
-        class GameButton(ControllableButton):
-            """
-            商品按钮
-            """
-
-            def __init__(
-                    self,
-                    label: TextType | None = None,
-                    variant: ButtonVariant = "default",
-                    *,
-                    name: str | None = None,
-                    id: str | None = None,
-                    classes: str | None = None,
-                    disabled: bool = False,
-                    game: GameInfo
-            ):
-                super().__init__(label, variant, name=name, id=id, classes=classes, disabled=disabled)
-                self.game = game
-
-            class Pressed(Button.Pressed):
-                def __init__(self, button: ExchangePlanAdding.GoodsWidget.GameButton):
-                    super().__init__(button)
-                    self.button = button
-
-
-
-        class GoodsDictValue:
-            """
-            获取到的商品数据以及相关的控件
-            """
-            def __init__(self, game_info: GameInfo,
-                         good_list: List[Good] = None,
-                         button_select: Optional[ExchangePlanAdding.GoodsWidget.GameButton] = None):
-                self.game_info = game_info
-                self.good_list = good_list
-                self.option_list = OptionList()
-                self.button_select = button_select
-
-        good_dict: Dict[int, GoodsDictValue] = {}
-        """获取到的商品数据以及相关的控件"""
-        selected: Optional[Tuple[GameInfo, int]] = None
-
-        empty_option_list = Option("暂无对应分区的商品数据 请尝试刷新", disabled=True)
-
-        def compose(self) -> ComposeResult:
-            yield self.text_view
-            yield Horizontal(self.button_refresh, self.button_reset, self.loading)
-            with TabbedContent():
-                for key, value in self.good_dict:
-                    with TabPane(value.game_info.name):
-                        yield Horizontal(value.button_select, value.option_list)
-
-        async def update_goods(self):
-            """
-            刷新商品信息
-            """
-            self.loading.display = True
-            self.button_refresh.disable()
-            for goods_data in self.good_dict.values():
-                good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
-
-                # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
-                if good_list_status:
-                    if good_list:
-                        goods_data.good_list = good_list
-                        good_names = map(lambda x: x.general_name, good_list)
-                        goods_data.option_list.clear_options()
-                        for name in good_names:
-                            goods_data.option_list.add_option(name)
-                        goods_data.button_select.enable() if not self.selected else True
-                    else:
-                        goods_data.option_list.clear_options()
-                        goods_data.option_list.add_option(self.empty_option_list)
-                else:
-                    self.app.notice(f"[bold red]获取分区 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
-                    self.loading.display = False
-                    self.button_refresh.enable()
-                    # TODO 待补充各种错误情况
-
-        async def on_mount(self):
-            self.button_refresh.disable()
-            self.loading.display = True
-            game_list_status, game_list = await get_game_list()
-            self.button_refresh.enable()
-            self.loading.display = False
-            if game_list_status:
-                for game in game_list:
-                    goods_data = self.good_dict.get(game.id)
-                    if not goods_data:
-                        # 如果没有商品分区对应值，则进行创建
-                        button_select = ExchangePlanAdding.GoodsWidget.GameButton(
-                            "💾 确定",
-                            id=f"button-goods-select-{game.id}",
-                            disabled=True,
-                            game=game)
-                        goods_data = self.GoodsDictValue(game, button_select=button_select)
-                        self.good_dict.setdefault(game.id, goods_data)
-            await self.update_goods()
-
-        async def on_button_pressed(self, event: GameButton.Pressed) -> None:
-            if event.button.id.startswith("button-goods-select-"):
-                # 按下“保存”按钮时触发的事件
-
-                self.button_reset.enable()
-                game = event.button.game
-                game_id = game.id
-                if not game:
-                    self.app.notice(f"[bold red]未找到对应的分区数据 / 分区不可用[/]")
-                    return
-                self.selected = (game, self.good_dict[game_id].option_list.highlighted)
-                _, good_index = self.selected
-                good = self.good_dict[game_id].good_list[good_index]
-                self.text_view.change_text(Markdown(f"- 已选择 **{game.name}** 的商品 **{good.name}**"))
-
-            elif event.button.id == "button-goods-refresh":
-                # 按下“刷新”按钮时触发的事件
-
-                await self.update_goods()
-
-            elif event.button.id == "button-goods-reset":
-                # 按下“重置”按钮时触发的事件
-
-                self.button_reset.disable()
-                self.selected = None
-                for goods_data in self.good_dict.values():
-                    goods_data.button_select.enable()
-
-                self.text_view.change_text(self.DEFAULT_TEXT)
-                self.app.notice("已重置商品选择")
-
-
     def compose(self) -> ComposeResult:
         with TabbedContent():
             with TabPane("➕添加计划", id="tab-adding"):
                 with TabbedContent():
                     with TabPane("1.选择账号", id="tab-adding-account"):
-                        yield self.AccountWidget()
+                        yield AccountWidget()
                     with TabPane("2.选择目标商品", id="tab-adding-goods"):
-                        yield self.GoodsWidget()
+                        yield GoodsWidget()
                     with TabPane("3.选择收货地址", id="tab-adding-address"):
-                        yield self.AccountWidget()
+                        yield AccountWidget()
                     with TabPane("4.完成添加", id="tab-adding-ending"):
-                        yield self.AccountWidget()
+                        yield AccountWidget()
 
             with TabPane("✏️管理计划", id="tab-managing"):
                 yield Container()
+
+
+class AccountWidget(ExchangePlan.BasePlanAdding):
+    """
+    选择账号 - 界面
+    """
+    DEFAULT_TEXT = Markdown("- 请选择一个账户")
+    text_view = StaticStatus(DEFAULT_TEXT)
+
+    button_select = ControllableButton("💾 保存", id="button-account-select", disabled=True)
+    button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-account-refresh")
+    button_reset = ControllableButton("↩ 重置", variant="warning", id="button-account-reset", disabled=True)
+
+    account_keys = list(conf.accounts.keys())
+    option_list = OptionList(*account_keys)
+
+    empty_option_list = OptionList("暂无账号数据 请尝试刷新", disabled=True)
+
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
+        if self.account_keys:
+            self.button_select.enable()
+            yield self.option_list
+        else:
+            self.set_empty_options()
+            yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
+
+    def on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+        if event.button.id == "button-account-select":
+            # 按下“保存”按钮时触发的事件
+            if self.option_list.highlighted is None:
+                self.app.notice("[bold red]请先从列表中选择账号！[/]")
+                return
+            self.button_select.disable()
+            self.button_reset.enable()
+            self.option_list.disable()
+            selected_account = self.account_keys[self.option_list.highlighted]
+            self.text_view.change_text(Markdown(f"- 已选择账户 **{selected_account}**"))
+            if conf.accounts[selected_account].cookies.is_correct():
+                self.app.notice(f"已选择账号：[bold green]{selected_account}[/]")
+            else:
+                self.app.notice(
+                    f"选择的账号：[bold red]{selected_account}[/] Cookies不完整，但你仍然可以尝试进行兑换")
+
+        elif event.button.id == "button-account-refresh":
+            # 按下“刷新”按钮时触发的事件
+
+            self.account_keys = list(conf.accounts.keys())
+            self.option_list.clear_options()
+            for account in self.account_keys:
+                self.option_list.add_option(account)
+            if self.account_keys:
+                self.button_select.enable()
+            else:
+                self.set_empty_options()
+            self.app.notice(f"[bold green]已刷新账号列表[/]")
+
+        elif event.button.id == "button-account-reset":
+            # 按下“重置”按钮时触发的事件
+
+            self.button_select.enable()
+            self.button_reset.disable()
+            self.option_list.disabled = False
+            self.text_view.change_text(self.DEFAULT_TEXT)
+            self.app.notice("已重置账号选择")
+
+
+class GoodsWidget(ExchangePlan.BasePlanAdding):
+    """
+    选择商品 - 界面
+    """
+    DEFAULT_CSS = """
+    GoodsWidget TabbedContainer {
+        height: 100%;
+        width: 100%;
+    }
+    """
+    DEFAULT_TEXT = Markdown("- 请选择一个商品")
+    text_view = StaticStatus(DEFAULT_TEXT)
+
+    button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-goods-refresh")
+    button_reset = ControllableButton("↩ 重置", variant="warning", id="button-goods-reset", disabled=True)
+
+    loading = LoadingDisplay()
+    loading.hide()
+
+    good_dict: Dict[int, GoodsDictValue] = {}
+    """获取到的商品数据以及相关的控件"""
+    selected: Optional[Tuple[GameInfo, int]] = None
+    """已选择的商品"""
+
+    empty_option_list = Option("暂无对应分区的商品数据 请尝试刷新", disabled=True)
+    """空的商品选项列表"""
+    tabbed_content = DynamicTabbedContent()
+
+    class GameButton(ControllableButton):
+        """
+        商品按钮
+        """
+
+        def __init__(
+                self,
+                label: TextType | None = None,
+                variant: ButtonVariant = "default",
+                *,
+                name: str | None = None,
+                id: str | None = None,
+                classes: str | None = None,
+                disabled: bool = False,
+                game: GameInfo
+        ):
+            super().__init__(label, variant, name=name, id=id, classes=classes, disabled=disabled)
+            self.game = game
+
+        class Pressed(Button.Pressed):
+            def __init__(self, button: "GoodsWidget.GameButton"):
+                super().__init__(button)
+                self.button = button
+
+    class GoodsDictValue:
+        """
+        游戏分区对应的商品数据相关
+        """
+
+        def __init__(self,
+                     game_info: GameInfo,
+                     button_select: Optional[GoodsWidget.GameButton] = None,
+                     tap_pane: Optional[TabPane] = None,
+                     good_list: List[Good] = None,
+                     ):
+            """
+            :param game_info: 商品分区数据
+            :param tap_pane: 分区对应的 `TabPane` 标签页
+            :param good_list: 商品数据
+            :param button_select: 选择商品的按钮
+            """
+            self.game_info = game_info
+            """商品分区数据"""
+            self.button_select = button_select or GoodsWidget.GameButton(
+                "💾 确定",
+                id=f"button-goods-select-{game_info.id}",
+                disabled=True,
+                game=game_info)
+            """选择商品的按钮"""
+            self.option_list = OptionList(GoodsWidget.empty_option_list)
+            """商品的选项列表"""
+            self.tap_pane = tap_pane or TabPane(game_info.name, Horizontal(self.button_select, self.option_list))
+            """分区对应的 `TabPane` 标签页"""
+            self.good_list = good_list
+            """商品数据"""
+
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_refresh, self.button_reset, self.loading)
+        yield self.tabbed_content
+
+    async def update_goods(self):
+        """
+        刷新商品信息
+        """
+        self.loading.show()
+        self.button_refresh.disable()
+        for goods_data in self.good_dict.values():
+            good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
+
+            # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
+            if good_list_status:
+                if good_list:
+                    goods_data.good_list = good_list
+                    good_names = map(lambda x: x.general_name, good_list)
+                    goods_data.option_list.clear_options()
+                    for name in good_names:
+                        goods_data.option_list.add_option(name)
+                    goods_data.button_select.enable() if not self.selected else True
+                else:
+                    goods_data.option_list.clear_options()
+                    goods_data.option_list.add_option(self.empty_option_list)
+            else:
+                self.app.notice(f"[bold red]获取分区 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
+                # TODO 待补充各种错误情况
+        self.loading.hide()
+        self.button_refresh.enable()
+        self.refresh(layout=True)
+
+    async def on_mount(self):
+        self.button_refresh.disable()
+        self.loading.show()
+
+        # 更新商品分区列表
+        game_list_status, game_list = await get_game_list()
+        if game_list_status:
+            for game in game_list:
+                if game.id not in self.good_dict:
+                    # 如果没有商品分区对应值，则进行创建
+                    goods_data = self.GoodsDictValue(game)
+                    self.good_dict.setdefault(game.id, goods_data)
+                    self.tabbed_content.append(goods_data.tap_pane)
+
+        # 更新每个分区的商品数据
+        await self.update_goods()
+
+        self.button_refresh.enable()
+        self.loading.hide()
+
+    async def on_button_pressed(self, event: GameButton.Pressed) -> None:
+        if event.button.id.startswith("button-goods-select-"):
+            # 按下“保存”按钮时触发的事件
+
+            self.button_reset.enable()
+            game = event.button.game
+            game_id = game.id
+            if not game:
+                self.app.notice(f"[bold red]未找到对应的分区数据 / 分区不可用[/]")
+                return
+            self.selected = (game, self.good_dict[game_id].option_list.highlighted)
+            _, good_index = self.selected
+            good = self.good_dict[game_id].good_list[good_index]
+            self.text_view.change_text(Markdown(f"- 已选择 **{game.name}** 的商品 **{good.name}**"))
+
+        elif event.button.id == "button-goods-refresh":
+            # 按下“刷新”按钮时触发的事件
+
+            await self.update_goods()
+
+        elif event.button.id == "button-goods-reset":
+            # 按下“重置”按钮时触发的事件
+
+            self.button_reset.disable()
+            self.selected = None
+            for goods_data in self.good_dict.values():
+                goods_data.button_select.enable()
+
+            self.text_view.change_text(self.DEFAULT_TEXT)
+            self.app.notice("已重置商品选择")
+
 
 class Welcome(Container):
     DEFAULT_CSS = """
@@ -1119,6 +1044,7 @@ class Notification(Static):
     def on_click(self) -> None:
         self.remove()
 
+
 # 主题颜色
 # https://colorhunt.co/palette/b9eddd87cbb9569daa577d86
 DEFAULT_COLORS["dark"].primary = Color.parse("#569DAA")
@@ -1192,7 +1118,7 @@ class TuiApp(App):
                 Column(
                     Section(
                         SectionTitle("管理米游币商品兑换计划"),
-                        ExchangePlanAdding(),
+                        ExchangePlan(),
                     ),
                     classes="location-add_plan",
                 ),
@@ -1217,7 +1143,6 @@ class TuiApp(App):
                 event.static_status.styles.text_align = event.text_align
         await super().on_event(event)
 
-
     def action_open_link(self, link: str) -> None:
         """
         跳转浏览器打开URL链接
@@ -1239,7 +1164,6 @@ class TuiApp(App):
             if sidebar.query("*:focus"):
                 self.screen.set_focus(None)
             sidebar.add_class("-hidden")
-
 
     class TextLogWriter(StringIO):
         def write(self, text: str) -> None:
