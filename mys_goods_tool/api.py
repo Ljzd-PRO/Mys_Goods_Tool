@@ -36,6 +36,7 @@ URL_ADDRESS = "https://api-takumi.mihoyo.com/account/address/list?t={}"
 URL_REGISTRABLE = "https://webapi.account.mihoyo.com/Api/is_mobile_registrable?mobile={mobile}&t={t}"
 URL_CREATE_MMT = "https://webapi.account.mihoyo.com/Api/create_mmt?scene_type=1&now={now}&reason=user.mihoyo.com%2523%252Flogin%252Fcaptcha&action_type=login_by_mobile_captcha&t={t}"
 URL_CREATE_MOBILE_CAPTCHA = "https://webapi.account.mihoyo.com/Api/create_mobile_captcha"
+URL_GET_USER_INFO = "https://bbs-api.miyoushe.com/user/api/getUserFullInfo?uid={uid}"
 
 HEADERS_WEBAPI = {
     "Host": "webapi.account.mihoyo.com",
@@ -279,21 +280,21 @@ class ApiResultHandler(BaseModel):
         """
         是否成功
         """
-        return True if self.retcode == 1 or self.message in ["成功", "OK"] else False
+        return self.retcode == 1 or self.message in ["成功", "OK"]
 
     @property
     def wrong_captcha(self):
         """
         是否返回验证码错误
         """
-        return True if self.retcode == -201 or self.message in ["验证码错误", "Captcha not match Err"] else False
+        return self.retcode == -201 or self.message in ["验证码错误", "Captcha not match Err"]
 
     @property
     def login_expired(self):
         """
         是否返回登录失效
         """
-        return True if self.retcode == -100 or self.message in ["登录失效，请重新登录"] else False
+        return self.retcode == -100 or self.message in ["登录失效，请重新登录"]
 
     @property
     def invalid_ds(self):
@@ -302,7 +303,7 @@ class ApiResultHandler(BaseModel):
         """
         # TODO 2023/4/13: 待补充状态码
         #  return True if self.retcode == -... or self.message in ["invalid request"] else False
-        return True if self.message in ["invalid request"] else False
+        return self.message in ["invalid request"]
 
 
 async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[GameRecord]]]:
@@ -545,7 +546,7 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
             GetGoodDetailStatus(network_error=True), None
 
 
-async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: bool = True) -> Tuple[
+async def get_good_list(game: str, retry: bool = True) -> Tuple[
     BaseApiStatus, Optional[List[Good]]]:
     """
     获取商品信息列表
@@ -554,17 +555,6 @@ async def get_good_list(game: Literal["bh3", "ys", "bh2", "wd", "bbs"], retry: b
     :param retry: 是否允许重试
     :return: 商品信息列表
     """
-    if game == "bh3":
-        game = "bh3"
-    elif game == "ys":
-        game = "hk4e"
-    elif game == "bh2":
-        game = "bh2"
-    elif game == "wd":
-        game = "nxx"
-    elif game == "bbs":
-        game = "bbs"
-
     good_list = []
     page = 1
 
