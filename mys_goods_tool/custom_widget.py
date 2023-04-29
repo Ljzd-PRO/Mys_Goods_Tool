@@ -11,9 +11,11 @@ from textual.widgets import (
     Button,
     LoadingIndicator, RadioButton, TabbedContent, TabPane, ContentSwitcher, Tabs
 )
+from textual.widgets._button import ButtonVariant
 from textual.widgets._tabbed_content import ContentTab
 
 from mys_goods_tool.custom_css import *
+from mys_goods_tool.data_model import GameInfo
 
 
 class RadioStatus(RadioButton, can_focus=False):
@@ -197,3 +199,28 @@ class DynamicTabbedContent(TabbedContent):
             for child in self._content_switcher.children:
                 child.display = bool(initial) and child.id == initial
         self._tabs.add_tab(content_tab)
+
+
+class GameButton(ControllableButton):
+    """
+    商品分区下的商品选择按钮
+    """
+
+    def __init__(
+            self,
+            label: TextType | None = None,
+            variant: ButtonVariant = "default",
+            *,
+            name: str | None = None,
+            id: str | None = None,
+            classes: str | None = None,
+            disabled: bool = False,
+            game: GameInfo
+    ):
+        super().__init__(label, variant, name=name, id=id, classes=classes, disabled=disabled)
+        self.game = game
+
+    class Pressed(Button.Pressed):
+        def __init__(self, button: GameButton):
+            super().__init__(button)
+            self.button = button
