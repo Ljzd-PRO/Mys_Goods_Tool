@@ -9,6 +9,7 @@ from rich.console import RenderableType
 from rich.markdown import Markdown
 from textual import events
 from textual.app import ComposeResult
+from textual.widget import Widget
 from textual.widgets import (
     TabbedContent, TabPane, OptionList
 )
@@ -26,9 +27,6 @@ class ExchangePlanView(Container):
     """
     添加兑换计划 - 界面
     """
-    loop: asyncio.AbstractEventLoop
-    loop_tasks: Set[asyncio.Task] = set()
-
     def compose(self) -> ComposeResult:
         with TabbedContent():
             with TabPane("➕添加计划", id="tab-adding"):
@@ -44,9 +42,6 @@ class ExchangePlanView(Container):
 
             with TabPane("✏️管理计划", id="tab-managing"):
                 yield Container()
-
-    def _on_compose(self) -> None:
-        ExchangePlanView.loop = asyncio.get_event_loop()
 
 
 class BasePlanAdding(PlanAddingWidget):
@@ -122,12 +117,19 @@ class AccountWidget(BasePlanAdding):
     """选定的账号"""
     empty_data_option = Option("暂无账号数据 请尝试刷新", disabled=True)
 
+    loop: asyncio.AbstractEventLoop
+    loop_tasks: Set[asyncio.Task] = set()
+
     if account_keys:
         # 如果账号列表非空，启用 选择按钮、选项列表
         button_select.enable()
         option_list.disabled = False
     else:
         option_list.add_option(empty_data_option)
+
+    def __init__(self, *children: Widget):
+        super().__init__(*children)
+        AccountWidget.loop = asyncio.get_event_loop()
 
     def compose(self) -> ComposeResult:
         yield self.text_view
@@ -158,17 +160,21 @@ class AccountWidget(BasePlanAdding):
                 self.app.notice("[bold red]请先从列表中选择账号！[/]")
                 return
 
+            selected = self.account_keys[self.option_list.highlighted]
+            AccountWidget.selected = conf.accounts.get(selected)
+            if AccountWidget.selected is None:
+                self.app.notice(f"未找到账号：[bold red]{selected}[/]")
+                return
+
             # 禁用选择按钮、启用重置按钮、禁用选项列表
             self.button_select.disable()
             self.button_reset.enable()
             self.option_list.disabled = True
 
-            selected = self.account_keys[self.option_list.highlighted]
-            self.selected = selected
-
             AddressWidget.text_view.update(AddressWidget.DEFAULT_TEXT)
-            task = ExchangePlanView.loop.create_task(AddressWidget.update_address(self.app.notice))
-            task.add_done_callback(ExchangePlanView.loop_tasks.discard)
+            task = AccountWidget.loop.create_task(AddressWidget.update_address(self.app.notice))
+            AccountWidget.loop_tasks.add(task)
+            task.add_done_callback(AccountWidget.loop_tasks.discard)
 
             self.text_view.update(f"已选择账户 [bold green]{selected}[/]")
             if conf.accounts[selected].cookies.is_correct():
@@ -323,20 +329,21 @@ class GoodsWidget(BasePlanAdding):
         self.button_refresh.enable()
         self.loading.hide()
 
-    def reset_selected(self):
+    @classmethod
+    def reset_selected(cls):
         """
         重置商品选择
         """
-        self.button_reset.disable()
-        self.selected = None
-        for value in self.good_dict.values():
+        cls.button_reset.disable()
+        cls.selected = None
+        for value in cls.good_dict.values():
             if value.good_list:
                 value.button_select.enable()
                 value.option_list.disabled = False
             else:
                 value.button_select.disable()
                 value.option_list.disabled = True
-        self.text_view.update(self.DEFAULT_TEXT)
+        cls.text_view.update(cls.DEFAULT_TEXT)
 
     async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
         if event.button.id.startswith("button-goods-select-"):
@@ -352,9 +359,8 @@ class GoodsWidget(BasePlanAdding):
             if selected_index is None:
                 self.app.notice(f"[bold red]未选择商品！[/]")
                 return
-            self.selected = (game, selected_index)
-            _, good_index = self.selected
-            good = self.good_dict[game_id].good_list[good_index]
+            GoodsWidget.selected = game, selected_index
+            good = self.good_dict[game_id].good_list[selected_index]
 
             # 启用重置按钮
             self.button_reset.enable()
@@ -460,6 +466,9 @@ class AddressWidget(BasePlanAdding):
         cls.loading.hide()
         cls.button_refresh.enable()
 
+        #  重置已选地址
+        cls.reset_selected()
+
     def compose(self) -> ComposeResult:
         yield self.text_view
         yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
@@ -483,19 +492,20 @@ class AddressWidget(BasePlanAdding):
         cls.option_list.disabled = True
         cls.option_list.clear_options()
 
-    def reset_selected(self):
+    @classmethod
+    def reset_selected(cls):
         """
         重置已选地址
         """
-        if self.address_list:
-            self.button_select.enable()
-            self.option_list.disabled = False
+        if cls.address_list:
+            cls.button_select.enable()
+            cls.option_list.disabled = False
         else:
-            self.button_select.disable()
-            self.option_list.disabled = True
-        self.selected = None
-        self.text_view.update(self.DEFAULT_TEXT)
-        self.button_reset.disable()
+            cls.button_select.disable()
+            cls.option_list.disabled = True
+        cls.selected = None
+        cls.text_view.update(cls.DEFAULT_TEXT)
+        cls.button_reset.disable()
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-address-select":
@@ -505,7 +515,7 @@ class AddressWidget(BasePlanAdding):
             if address_index is None:
                 self.app.notice(f"[bold red]未选择收货地址！[/]")
                 return
-            self.selected = address_index
+            AddressWidget.selected = address_index
 
             self.text_view.update(f"已选择收货地址："
                                   f"\n[list]"
@@ -521,7 +531,6 @@ class AddressWidget(BasePlanAdding):
             # 按下“刷新”按钮时触发的事件
 
             await self.update_address(self.app.notice)
-            self.reset_selected()
 
         elif event.button.id == "button-address-reset":
             # 按下“重置”按钮时触发的事件
