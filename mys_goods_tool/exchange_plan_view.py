@@ -13,7 +13,7 @@ from textual.widget import Widget
 from textual.widgets import (
     TabbedContent, TabPane, OptionList
 )
-from textual.widgets._option_list import Option
+from textual.widgets._option_list import Option, Separator
 
 from mys_goods_tool.api import get_good_list, get_game_list, get_address
 from mys_goods_tool.custom_css import *
@@ -176,7 +176,10 @@ class AccountWidget(BasePlanAdding):
             AccountWidget.loop_tasks.add(task)
             task.add_done_callback(AccountWidget.loop_tasks.discard)
 
-            self.text_view.update(f"已选择账户 [bold green]{selected}[/]")
+            self.text_view.update(f"已选择账户"
+                                  f"\n[list]"
+                                  f"\n🪪 通信证ID - [bold green]{selected}[/]"
+                                  f"\n[/list]")
             if conf.accounts[selected].cookies.is_correct():
                 self.app.notice(f"选择的账号：[bold green]{selected}[/] Cookies完整，可继续")
             else:
@@ -194,7 +197,7 @@ class AccountWidget(BasePlanAdding):
                 self.option_list.add_option(self.empty_data_option)
             # 重置已选内容
             self.reset_selected()
-            self.app.notice(f"[bold green]已刷新账号列表[/]")
+            self.app.notice("[bold green]已刷新账号列表[/]")
 
         elif event.button.id == "button-account-reset":
             # 按下“重置”按钮时触发的事件
@@ -233,7 +236,7 @@ class GoodsWidget(BasePlanAdding):
 
     class GoodsDictValue:
         """
-        游戏分区对应的商品数据相关
+        游戏频道对应的商品数据相关
         """
 
         def __init__(self,
@@ -243,13 +246,13 @@ class GoodsWidget(BasePlanAdding):
                      good_list: List[Good] = None,
                      ):
             """
-            :param game_info: 商品分区数据
-            :param tap_pane: 分区对应的 `TabPane` 标签页
+            :param game_info: 商品频道数据
+            :param tap_pane: 频道对应的 `TabPane` 标签页
             :param good_list: 商品数据
             :param button_select: 选择商品的按钮
             """
             self.game_info = game_info
-            """商品分区数据"""
+            """商品频道数据"""
             self.button_select = button_select or GameButton(
                 "💾 确定",
                 id=f"button-goods-select-{game_info.id}",
@@ -259,7 +262,7 @@ class GoodsWidget(BasePlanAdding):
             self.option_list = OptionList(GoodsWidget.empty_data_option, disabled=True)
             """商品的选项列表"""
             self.tap_pane = tap_pane or TabPane(game_info.name, Horizontal(self.button_select, self.option_list))
-            """分区对应的 `TabPane` 标签页"""
+            """频道对应的 `TabPane` 标签页"""
             self.good_list = good_list
             """商品数据"""
 
@@ -293,7 +296,7 @@ class GoodsWidget(BasePlanAdding):
                 else:
                     goods_data.option_list.add_option(self.empty_data_option)
             else:
-                self.app.notice(f"[bold red]获取分区 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
+                self.app.notice(f"[bold red]获取频道 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
                 # TODO 待补充各种错误情况
 
         # 进度条、刷新按钮
@@ -308,21 +311,21 @@ class GoodsWidget(BasePlanAdding):
         self.button_refresh.disable()
         self.loading.show()
 
-        # 更新商品分区列表
+        # 更新商品频道列表
         game_list_status, game_list = await get_game_list()
         if game_list_status:
             for game in game_list:
                 if game.id not in self.good_dict:
-                    # 如果没有商品分区对应值，则进行创建
+                    # 如果没有商品频道对应值，则进行创建
                     goods_data = self.GoodsDictValue(game)
                     self.good_dict.setdefault(game.id, goods_data)
                     await self.tabbed_content.append(goods_data.tap_pane)
 
-            # 更新每个分区的商品数据
+            # 更新每个频道的商品数据
             await self.update_goods()
         else:
-            self.text_view.update("[bold red]⚠ 获取商品分区列表失败，可尝试刷新[/]")
-            self.app.notice("[bold red]获取商品分区列表失败！[/]")
+            self.text_view.update("[bold red]⚠ 获取商品频道列表失败，可尝试刷新[/]")
+            self.app.notice("[bold red]获取商品频道列表失败！[/]")
             # TODO 待补充各种错误情况
 
         # 进度条、刷新按钮
@@ -352,12 +355,12 @@ class GoodsWidget(BasePlanAdding):
             game = event.button.game
             game_id = game.id
             if not game:
-                self.app.notice(f"[bold red]未找到对应的分区数据 / 分区不可用[/]")
+                self.app.notice("[bold red]未找到对应的频道数据或频道不可用[/]")
                 return
             option_list = self.good_dict[game_id].option_list
             selected_index = option_list.highlighted
             if selected_index is None:
-                self.app.notice(f"[bold red]未选择商品！[/]")
+                self.app.notice("[bold red]未选择商品！[/]")
                 return
             GoodsWidget.selected = game, selected_index
             good = self.good_dict[game_id].good_list[selected_index]
@@ -365,8 +368,8 @@ class GoodsWidget(BasePlanAdding):
             # 启用重置按钮
             self.button_reset.enable()
 
-            # 禁用其他分区的选择按钮
-            # 禁用其他分区的选项列表
+            # 禁用其他频道的选择按钮
+            # 禁用其他频道的选项列表
             for value in self.good_dict.values():
                 value.button_select.disable()
                 value.option_list.disabled = True
@@ -383,7 +386,7 @@ class GoodsWidget(BasePlanAdding):
 
             self.text_view.update(f"已选择商品："
                                   f"\n[list]"
-                                  f"\n🗂️ 商品分区：[bold green]{game.name}[/]"
+                                  f"\n🗂️ 商品频道：[bold green]{game.name}[/]"
                                   f"\n📌 名称：[bold green]{good.general_name}[/]"
                                   f"\n💰 价格：[bold green]{good.price}[/] 米游币"
                                   f"\n📦 库存：[bold green]{exchange_stoke_text}[/] 件"
@@ -394,7 +397,7 @@ class GoodsWidget(BasePlanAdding):
         elif event.button.id == "button-goods-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            # 在初次加载时，如果获取商品分区信息失败，则此时重新获取
+            # 在初次加载时，如果获取商品频道信息失败，则此时重新获取
             if not self.good_dict:
                 await self._on_mount(events.Mount())
             await self.update_goods()
@@ -423,7 +426,7 @@ class AddressWidget(BasePlanAdding):
     loading.hide()
 
     empty_data_option = Option("暂无收货地址数据 请尝试刷新", disabled=True)
-    option_list = OptionList(empty_data_option)
+    option_list = OptionList()
     """收货地址选项列表"""
     address_list: List[Address] = []
     """收货地址列表"""
@@ -445,18 +448,20 @@ class AddressWidget(BasePlanAdding):
         address_status, cls.address_list = await get_address(AccountWidget.selected)
         if address_status:
             cls.option_list.clear_options()
+            cls.option_list.add_option(Separator())
             for address_data in cls.address_list:
                 preview_text = f"[list]" \
-                               f"\n👓 收货人：[bold green]{address_data.connect_name}[/]" \
-                               f"\n📞 联系电话：[bold green]{address_data.phone}[/]" \
+                               f"\n👓 收货人：[bold underline]{address_data.connect_name}[/]" \
+                               f"\n📞 联系电话：[bold underline]{address_data.phone}[/]" \
                                f"\n📮 收货地址：" \
-                               f"\n     省：[bold green]{address_data.province_name}[/]" \
-                               f"\n     市：[bold green]{address_data.city_name}[/]" \
-                               f"\n     区/县：[bold green]{address_data.county_name}[/]" \
-                               f"\n     详细地址：[bold green]{address_data.addr_ext}[/]" \
-                               f"\n📌 地址ID：[bold green]{address_data.id}[/]" \
+                               f"\n     省：[bold underline]{address_data.province_name}[/]" \
+                               f"\n     市：[bold underline]{address_data.city_name}[/]" \
+                               f"\n     区/县：[bold underline]{address_data.county_name}[/]" \
+                               f"\n     详细地址：[bold underline]{address_data.addr_ext}[/]" \
+                               f"\n📌 地址ID：[bold underline]{address_data.id}[/]" \
                                f"\n[/list]"
-                cls.option_list.append(Option(preview_text))
+                cls.option_list.add_option(Option(preview_text))
+                cls.option_list.add_option(Separator())
             if not cls.address_list:
                 cls.option_list.add_option(cls.empty_data_option)
         else:
@@ -471,7 +476,7 @@ class AddressWidget(BasePlanAdding):
 
     def compose(self) -> ComposeResult:
         yield self.text_view
-        yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
+        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
         yield self.option_list
 
     @classmethod
@@ -513,13 +518,16 @@ class AddressWidget(BasePlanAdding):
 
             address_index = self.option_list.highlighted
             if address_index is None:
-                self.app.notice(f"[bold red]未选择收货地址！[/]")
+                self.app.notice("[bold red]未选择收货地址！[/]")
                 return
-            AddressWidget.selected = address_index
+            if address_index >= len(self.address_list):
+                self.app.notice("[bold red]无法找到收货地址！[/]")
+                return
+            AddressWidget.selected = self.address_list[address_index]
 
             self.text_view.update(f"已选择收货地址："
                                   f"\n[list]"
-                                  f"\n📌 地址ID：[bold green]{self.selected.id}[/]"
+                                  f"\n📌 地址ID - [bold green]{self.selected.id}[/]"
                                   f"\n[/list]")
 
             # 禁用 选项列表、保存按钮，启用 重置按钮
