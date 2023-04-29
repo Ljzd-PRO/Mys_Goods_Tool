@@ -29,59 +29,6 @@ class ExchangePlanView(Container):
     loop: asyncio.AbstractEventLoop
     loop_tasks: Set[asyncio.Task] = set()
 
-    class BasePlanAdding(PlanAddingWidget):
-        DEFAULT_TEXT: RenderableType
-        """默认提示文本内容"""
-        text_view: StaticStatus
-        """实时文本提示"""
-
-        button_select: ControllableButton
-        """保存选定内容"""
-        button_refresh: ControllableButton
-        """刷新列表"""
-        button_reset: ControllableButton
-        """重置选择"""
-        selected: Optional[Any] = None
-        """已选内容"""
-
-        empty_data_option: Option
-        """可选列表为空时显示的视图"""
-
-        @abstractmethod
-        def reset_selected(self):
-            """
-            重置已选内容
-            一般包含以下操作：
-                - 清空已选内容
-                - 禁用重置按钮
-                - 启用选择按钮
-                - 重置文本内容
-            """
-            pass
-
-        @abstractmethod
-        def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
-            """
-            按下按钮时触发的事件
-            一般包含：
-                - 选择按钮：保存选定内容
-                    - 禁用选择按钮
-                    - 禁用选项列表
-                    - 启用重置按钮
-                    - 更新文本内容
-                - 刷新按钮：刷新列表
-                    - 更新选项列表
-                    - 检查新的列表是否为空
-                    - 重置已选内容
-                - 重置按钮：重置已选内容
-                    - 重置已选内容
-                    - 重置文本内容
-                    - 禁用重置按钮
-                    - 启用选择按钮
-                    - 启用选项列表
-            """
-            pass
-
     def compose(self) -> ComposeResult:
         with TabbedContent():
             with TabPane("➕添加计划", id="tab-adding"):
@@ -102,7 +49,61 @@ class ExchangePlanView(Container):
         ExchangePlanView.loop = asyncio.get_event_loop()
 
 
-class AccountWidget(ExchangePlanView.BasePlanAdding):
+class BasePlanAdding(PlanAddingWidget):
+    DEFAULT_TEXT: RenderableType
+    """默认提示文本内容"""
+    text_view: StaticStatus
+    """实时文本提示"""
+
+    button_select: ControllableButton
+    """保存选定内容"""
+    button_refresh: ControllableButton
+    """刷新列表"""
+    button_reset: ControllableButton
+    """重置选择"""
+    selected: Optional[Any] = None
+    """已选内容"""
+
+    empty_data_option: Option
+    """可选列表为空时显示的视图"""
+
+    @abstractmethod
+    def reset_selected(self):
+        """
+        重置已选内容
+        一般包含以下操作：
+            - 清空已选内容
+            - 禁用重置按钮
+            - 启用选择按钮
+            - 重置文本内容
+        """
+        pass
+
+    @abstractmethod
+    def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+        """
+        按下按钮时触发的事件
+        一般包含：
+            - 选择按钮：保存选定内容
+                - 禁用选择按钮
+                - 禁用选项列表
+                - 启用重置按钮
+                - 更新文本内容
+            - 刷新按钮：刷新列表
+                - 更新选项列表
+                - 检查新的列表是否为空
+                - 重置已选内容
+            - 重置按钮：重置已选内容
+                - 重置已选内容
+                - 重置文本内容
+                - 禁用重置按钮
+                - 启用选择按钮
+                - 启用选项列表
+        """
+        pass
+
+
+class AccountWidget(BasePlanAdding):
     """
     选择账号 - 界面
     """
@@ -196,7 +197,7 @@ class AccountWidget(ExchangePlanView.BasePlanAdding):
             self.app.notice("已重置账号选择")
 
 
-class GoodsWidget(ExchangePlanView.BasePlanAdding):
+class GoodsWidget(BasePlanAdding):
     """
     选择商品 - 界面
     """
@@ -398,7 +399,8 @@ class GoodsWidget(ExchangePlanView.BasePlanAdding):
             self.reset_selected()
             self.app.notice("已重置商品选择")
 
-class AddressWidget(ExchangePlanView.BasePlanAdding):
+
+class AddressWidget(BasePlanAdding):
     """
     收货地址选择组件
     """
