@@ -1,4 +1,5 @@
 import inspect
+import time
 from typing import Optional, Literal, NamedTuple, no_type_check
 
 from pydantic import BaseModel
@@ -84,6 +85,30 @@ class Good(BaseModel):
             return int(self.sale_start_time)
         else:
             return self.next_time
+
+    @property
+    def time_text(self):
+        """
+        商品的兑换时间文本
+        """
+        if self.is_time_end():
+            return "已结束"
+        elif self.is_time_limited():
+            return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.time))
+        else:
+            return "任何时间"
+
+    @property
+    def stoke_text(self):
+        """
+        商品的库存文本
+        """
+        if self.is_time_end():
+            return "无"
+        elif self.is_time_limited():
+            return str(self.num)
+        else:
+            return "不限"
 
     def is_time_limited(self):
         """

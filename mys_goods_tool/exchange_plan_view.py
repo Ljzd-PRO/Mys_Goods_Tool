@@ -9,6 +9,7 @@ from rich.console import RenderableType
 from rich.markdown import Markdown
 from textual import events
 from textual.app import ComposeResult
+from textual.reactive import reactive, Reactive
 from textual.widget import Widget
 from textual.widgets import (
     TabbedContent, TabPane, OptionList
@@ -56,7 +57,7 @@ class BaseExchangePlan(ExchangePlanContent):
     """刷新列表"""
     button_reset: ControllableButton
     """重置选择"""
-    selected: Optional[Any] = None
+    selected: Reactive[Optional[Any]] = reactive(None)
     """已选内容"""
 
     empty_data_option: Option
@@ -113,7 +114,7 @@ class AccountContent(BaseExchangePlan):
     """账号列表"""
     option_list = OptionList(*account_keys, disabled=True)
     """账号选项列表"""
-    selected: Optional[UserAccount] = None
+    selected: Reactive[Optional[UserAccount]] = reactive(None)
     """选定的账号"""
     empty_data_option = Option("暂无账号数据 请尝试刷新", disabled=True)
 
@@ -227,7 +228,9 @@ class GoodsContent(BaseExchangePlan):
 
     good_dict: Dict[int, GoodsDictValue] = {}
     """获取到的商品数据以及相关的控件"""
-    selected: Optional[Tuple[GameInfo, int]] = None
+    selected_tuple: Optional[Tuple[GameInfo, int]] = None
+    """已选择的商品位置"""
+    selected: Reactive[Optional[Good]] = reactive(None)
     """已选择的商品"""
 
     empty_data_option = Option("暂无商品数据，可能是目前没有限时兑换的商品，可尝试刷新", disabled=True)
@@ -278,8 +281,6 @@ class GoodsContent(BaseExchangePlan):
         # 进度条、刷新按钮
         self.loading.show()
         self.button_refresh.disable()
-
-        view_actions: List[Callable] = []
 
         for goods_data in self.good_dict.values():
             good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
@@ -338,7 +339,7 @@ class GoodsContent(BaseExchangePlan):
         重置商品选择
         """
         cls.button_reset.disable()
-        cls.selected = None
+        cls.selected_tuple = None
         for value in cls.good_dict.values():
             if value.good_list:
                 value.button_select.enable()
@@ -362,8 +363,14 @@ class GoodsContent(BaseExchangePlan):
             if selected_index is None:
                 self.app.notice("[bold red]未选择商品！[/]")
                 return
-            GoodsContent.selected = game, selected_index
-            good = self.good_dict[game_id].good_list[selected_index]
+            good_dict_value = self.good_dict.get(game_id)
+            if not good_dict_value:
+                self.app.notice("[bold red]未找到对应的频道[/]")
+                return
+
+            good = good_dict_value.good_list[selected_index]
+            GoodsContent.selected_tuple = game, selected_index
+            GoodsContent.selected = good
 
             # 启用重置按钮
             self.button_reset.enable()
@@ -374,23 +381,13 @@ class GoodsContent(BaseExchangePlan):
                 value.button_select.disable()
                 value.option_list.disabled = True
 
-            if good.is_time_end():
-                exchange_time_text = "已结束"
-                exchange_stoke_text = "无"
-            elif good.is_time_limited():
-                exchange_time_text = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(good.time))
-                exchange_stoke_text = good.num
-            else:
-                exchange_time_text = "任何时间"
-                exchange_stoke_text = "不限"
-
             self.text_view.update(f"已选择商品："
                                   f"\n[list]"
                                   f"\n🗂️ 商品频道：[bold green]{game.name}[/]"
                                   f"\n📌 名称：[bold green]{good.general_name}[/]"
                                   f"\n💰 价格：[bold green]{good.price}[/] 米游币"
-                                  f"\n📦 库存：[bold green]{exchange_stoke_text}[/] 件"
-                                  f"\n📅 兑换时间：[bold green]{exchange_time_text}[/]"
+                                  f"\n📦 库存：[bold green]{good.stoke_text}[/] 件"
+                                  f"\n📅 兑换时间：[bold green]{good.time_text}[/]"
                                   f"\n📌 商品ID：[bold green]{good.goods_id}[/]"
                                   f"\n[/list]")
 
@@ -430,7 +427,7 @@ class AddressContent(BaseExchangePlan):
     """收货地址选项列表"""
     address_list: List[Address] = []
     """收货地址列表"""
-    selected: Optional[Address] = None
+    selected: Reactive[Optional[Address]] = reactive(None)
     """已选地址数据"""
 
     @classmethod
@@ -548,5 +545,18 @@ class AddressContent(BaseExchangePlan):
 
 
 class FinishContent(ExchangePlanContent):
-    # TODO
-    ...
+    text_view = StaticStatus(
+        f"请确认兑换计划信息："
+        f"\n[list]"
+        f"\n👓 账号 - [bold orange]{AccountContent.selected.bbs_uid}[/]"
+        f"\n📮 详细地址 - [bold orange]{AddressContent.selected.addr_ext}[/]"
+        f"\n📦 商品名称 - [bold orange]{GoodsContent.selected.general_name}[/]"
+        f"\n📅 兑换时间 - [bold orange]{GoodsContent.selected.time_text}[/]"
+    )
+    button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit")
+    button_test = ControllableButton("测试兑换", id="button-finish-test")
+    loading = LoadingDisplay()
+
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_submit, self.button_test, self.loading)
