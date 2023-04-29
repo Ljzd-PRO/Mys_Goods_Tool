@@ -186,9 +186,11 @@ class DarkSwitch(Horizontal):
     }
     """
 
+    # TODO: 目前似乎切换后会导致UI界面卡顿，待优化
+
     def compose(self) -> ComposeResult:
         yield Switch(value=self.app.dark)
-        yield Static("暗黑模式切换", classes="label")
+        yield Static("深色模式切换", classes="label")
 
     def _on_mount(self, _: events.Mount) -> None:
         self.watch(self.app, "dark", self.on_dark_change, init=False)
@@ -227,6 +229,7 @@ class Notification(Static):
 
 # 主题颜色
 # https://colorhunt.co/palette/b9eddd87cbb9569daa577d86
+# TODO: 希望可以找到更好的日间模式(Light Mode)配色方案
 DEFAULT_COLORS["dark"].primary = Color.parse("#569DAA")
 DEFAULT_COLORS["dark"].secondary = Color.parse("#577D86")
 DEFAULT_COLORS["dark"].accent = DEFAULT_COLORS["dark"].primary
@@ -240,7 +243,7 @@ class TuiApp(App):
     """textual TUI 标题"""
     BINDINGS = [
         ("ctrl+b", "toggle_sidebar", "🧭侧栏"),
-        ("ctrl+t", "app.toggle_dark", "🌓暗黑模式切换"),
+        ("ctrl+t", "app.toggle_dark", "🌓深色模式切换"),
         ("ctrl+s", "app.screenshot()", "✂截屏"),
         ("f1", "app.toggle_class('TextLog', '-hidden')", "📃日志"),
         Binding("ctrl+c,ctrl+q", "app.quit", "🚪退出", show=True),
