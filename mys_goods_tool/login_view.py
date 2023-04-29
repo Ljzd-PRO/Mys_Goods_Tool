@@ -374,11 +374,12 @@ class CaptchaForm(LoginForm):
         self.loading.hide()
 
         self.button = self.ButtonTuple(
-            login=ControllableButton("登录", variant="primary", id="login"),
+            login=ControllableButton("登录 / 刷新Cookies", variant="primary", id="login"),
             success=ControllableButton("完成", variant="success", id="login_success"),
             error=ControllableButton("返回", variant="error", id="login_error")
         )
-        [i.hide() for i in self.button[1:]]
+        for i in self.button[1:]:
+            i.hide()
 
     def compose(self) -> ComposeResult:
         yield Static("验证码", classes="label")
