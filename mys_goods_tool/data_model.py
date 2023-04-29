@@ -80,12 +80,10 @@ class Good(BaseModel):
         # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
         if self.type != 1 and self.next_time == 0:
             return None
-        elif self.status != "not_in_sell":
-            return self.next_time
-        elif not self.sale_start_time:
+        elif self.sale_start_time is not None:
             return int(self.sale_start_time)
         else:
-            return self.time_by_detail
+            return self.next_time
 
     def is_time_limited(self):
         """
