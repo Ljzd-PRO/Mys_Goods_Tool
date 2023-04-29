@@ -74,7 +74,7 @@ class Good(BaseModel):
     def time(self):
         """
         兑换时间
-        如果返回`None`，说明获取商品兑换时间失败
+        如果返回`None`，说明任何时间均可兑换或兑换已结束
         """
         # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
         # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
@@ -87,11 +87,23 @@ class Good(BaseModel):
         else:
             return self.time_by_detail
 
+    def is_time_limited(self):
+        """
+        是否为限时商品
+        """
+        return self.type == 1
+
+    def is_time_end(self):
+        """
+        兑换是否已经结束
+        """
+        return self.type == 1 and self.next_time == 0
+
     @property
     def num(self):
         """
         库存
-        如果返回`None`，说明获取商品库存失败
+        如果返回`None`，说明库存不限
         """
         if self.type != 1 and self.next_num == 0:
             return None
@@ -111,10 +123,7 @@ class Good(BaseModel):
         """
         是否为虚拟商品
         """
-        if self.type == 2:
-            return True
-        else:
-            return False
+        return self.type == 2
 
     @property
     def general_name(self):

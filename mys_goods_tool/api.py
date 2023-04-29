@@ -587,8 +587,7 @@ async def get_good_list(game: str, retry: bool = True) -> Tuple[
 
     # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
     # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
-    result = list(filter(lambda good: good.next_time == 0 and good.type == 1 or not good.unlimit and good.next_num == 0,
-                         good_list))
+    result = list(filter(lambda good: not good.is_time_end(), good_list))
 
     return BaseApiStatus(success=True), result
 

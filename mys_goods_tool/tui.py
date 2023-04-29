@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import queue
+import time
 from importlib.metadata import version
 from io import StringIO
 from typing import NamedTuple, Tuple, Optional, Set, List, Dict
@@ -790,6 +791,7 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
         self.button_refresh.disable()
         for goods_data in self.good_dict.values():
             good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
+            good_list = list(filter(lambda x: x.is_time_limited(), good_list))
 
             # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
             if good_list_status:
@@ -841,9 +843,9 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
             """
             self.button_reset.disable()
             self.selected = None
-            for value in self.good_dict.values():
-                value.button_select.enable()
-                value.option_list.disabled = False
+            for good_dict_value in self.good_dict.values():
+                good_dict_value.button_select.enable()
+                good_dict_value.option_list.disabled = False
             self.text_view.update(self.DEFAULT_TEXT)
 
         if event.button.id.startswith("button-goods-select-"):
@@ -867,7 +869,26 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
             for value in self.good_dict.values():
                 value.button_select.disable()
                 value.option_list.disabled = True
-            self.text_view.update(f"已选择 [bold green]{game.name}[/] 商品 [bold green]{good.general_name}[/]")
+
+            if good.is_time_end():
+                exchange_time_text = "已结束"
+                exchange_stoke_text = "无"
+            elif good.is_time_limited():
+                exchange_time_text = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(good.time))
+                exchange_stoke_text = good.num
+            else:
+                exchange_time_text = "任何时间"
+                exchange_stoke_text = "不限"
+
+            self.text_view.update(f"已选择商品："
+                                  f"\n[list]"
+                                  f"\n🗂️ 商品分区：[bold green]{game.name}[/]"
+                                  f"\n📌 名称：[bold green]{good.general_name}[/]"
+                                  f"\n💰 价格：[bold green]{good.price}[/] 米游币"
+                                  f"\n📦 库存：[bold green]{exchange_stoke_text}[/] 件"
+                                  f"\n📅 兑换时间：[bold green]{exchange_time_text}[/]"
+                                  f"\n📌 商品ID：[bold green]{good.goods_id}[/]"
+                                  f"\n[/list]")
 
         elif event.button.id == "button-goods-refresh":
             # 按下“刷新”按钮时触发的事件
