@@ -221,7 +221,7 @@ class LoginForm(Container):
     """
 
 
-class PlanAddingWidget(Container):
+class ExchangePlanContent(Container):
     """
     兑换计划的添加步骤视图
     """

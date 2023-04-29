@@ -32,19 +32,19 @@ class ExchangePlanView(Container):
             with TabPane("➕添加计划", id="tab-adding"):
                 with TabbedContent():
                     with TabPane("1.选择账号", id="tab-adding-account"):
-                        yield AccountWidget()
+                        yield AccountContent()
                     with TabPane("2.选择目标商品", id="tab-adding-goods"):
-                        yield GoodsWidget()
+                        yield GoodsContent()
                     with TabPane("3.选择收货地址", id="tab-adding-address"):
-                        yield AddressWidget()
+                        yield AddressContent()
                     with TabPane("4.完成添加", id="tab-adding-ending"):
-                        yield AccountWidget()
+                        yield AccountContent()
 
             with TabPane("✏️管理计划", id="tab-managing"):
                 yield Container()
 
 
-class BasePlanAdding(PlanAddingWidget):
+class BaseExchangePlan(ExchangePlanContent):
     DEFAULT_TEXT: RenderableType
     """默认提示文本内容"""
     text_view: StaticStatus
@@ -98,7 +98,7 @@ class BasePlanAdding(PlanAddingWidget):
         pass
 
 
-class AccountWidget(BasePlanAdding):
+class AccountContent(BaseExchangePlan):
     """
     选择账号 - 界面
     """
@@ -129,7 +129,7 @@ class AccountWidget(BasePlanAdding):
 
     def __init__(self, *children: Widget):
         super().__init__(*children)
-        AccountWidget.loop = asyncio.get_event_loop()
+        AccountContent.loop = asyncio.get_event_loop()
 
     def compose(self) -> ComposeResult:
         yield self.text_view
@@ -149,7 +149,7 @@ class AccountWidget(BasePlanAdding):
             self.option_list.disabled = False
             self.button_select.enable()
         self.button_reset.disable()
-        AddressWidget.reset_account()
+        AddressContent.reset_account()
         self.text_view.update(self.DEFAULT_TEXT)
 
     def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
@@ -161,8 +161,8 @@ class AccountWidget(BasePlanAdding):
                 return
 
             selected = self.account_keys[self.option_list.highlighted]
-            AccountWidget.selected = conf.accounts.get(selected)
-            if AccountWidget.selected is None:
+            AccountContent.selected = conf.accounts.get(selected)
+            if AccountContent.selected is None:
                 self.app.notice(f"未找到账号：[bold red]{selected}[/]")
                 return
 
@@ -171,10 +171,10 @@ class AccountWidget(BasePlanAdding):
             self.button_reset.enable()
             self.option_list.disabled = True
 
-            AddressWidget.text_view.update(AddressWidget.DEFAULT_TEXT)
-            task = AccountWidget.loop.create_task(AddressWidget.update_address(self.app.notice))
-            AccountWidget.loop_tasks.add(task)
-            task.add_done_callback(AccountWidget.loop_tasks.discard)
+            AddressContent.text_view.update(AddressContent.DEFAULT_TEXT)
+            task = AccountContent.loop.create_task(AddressContent.update_address(self.app.notice))
+            AccountContent.loop_tasks.add(task)
+            task.add_done_callback(AccountContent.loop_tasks.discard)
 
             self.text_view.update(f"已选择账户"
                                   f"\n[list]"
@@ -206,7 +206,7 @@ class AccountWidget(BasePlanAdding):
             self.app.notice("已重置账号选择")
 
 
-class GoodsWidget(BasePlanAdding):
+class GoodsContent(BaseExchangePlan):
     """
     选择商品 - 界面
     """
@@ -259,7 +259,7 @@ class GoodsWidget(BasePlanAdding):
                 disabled=True,
                 game=game_info)
             """选择商品的按钮"""
-            self.option_list = OptionList(GoodsWidget.empty_data_option, disabled=True)
+            self.option_list = OptionList(GoodsContent.empty_data_option, disabled=True)
             """商品的选项列表"""
             self.tap_pane = tap_pane or TabPane(game_info.name, Horizontal(self.button_select, self.option_list))
             """频道对应的 `TabPane` 标签页"""
@@ -362,7 +362,7 @@ class GoodsWidget(BasePlanAdding):
             if selected_index is None:
                 self.app.notice("[bold red]未选择商品！[/]")
                 return
-            GoodsWidget.selected = game, selected_index
+            GoodsContent.selected = game, selected_index
             good = self.good_dict[game_id].good_list[selected_index]
 
             # 启用重置按钮
@@ -409,7 +409,7 @@ class GoodsWidget(BasePlanAdding):
             self.app.notice("已重置商品选择")
 
 
-class AddressWidget(BasePlanAdding):
+class AddressContent(BaseExchangePlan):
     """
     收货地址选择组件
     """
@@ -438,14 +438,14 @@ class AddressWidget(BasePlanAdding):
         """
         更新收货地址列表
         """
-        if AccountWidget.selected is None:
+        if AccountContent.selected is None:
             return
 
         # 进度条、刷新按钮
         cls.loading.show()
         cls.button_refresh.disable()
 
-        address_status, cls.address_list = await get_address(AccountWidget.selected)
+        address_status, cls.address_list = await get_address(AccountContent.selected)
         if address_status:
             cls.option_list.clear_options()
             cls.option_list.add_option(Separator())
@@ -523,7 +523,7 @@ class AddressWidget(BasePlanAdding):
             if address_index >= len(self.address_list):
                 self.app.notice("[bold red]无法找到收货地址！[/]")
                 return
-            AddressWidget.selected = self.address_list[address_index]
+            AddressContent.selected = self.address_list[address_index]
 
             self.text_view.update(f"已选择收货地址："
                                   f"\n[list]"
@@ -545,3 +545,8 @@ class AddressWidget(BasePlanAdding):
 
             self.reset_selected()
             self.app.notice("已重置收获地址选择")
+
+
+class FinishContent(ExchangePlanContent):
+    # TODO
+    ...
