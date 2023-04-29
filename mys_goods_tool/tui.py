@@ -68,31 +68,6 @@ WELCOME_MD = """
 简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录、原神树脂提醒
 """
 
-RICH_MD = """
-
-Textual is built on **Rich**, the popular Python library for advanced terminal output.
-
-Add content to your Textual App with Rich *renderables* (this text is written in Markdown and formatted with Rich's 
-Markdown class). 
-
-Here are some examples:
-
-
-"""
-
-DATA = {
-    "foo": [
-        3.1427,
-        (
-            "Paul Atreides",
-            "Vladimir Harkonnen",
-            "Thufir Hawat",
-            "Gurney Halleck",
-            "Duncan Idaho",
-        ),
-    ],
-}
-
 
 class CaptchaLoginInformation(Container):
     """
@@ -635,7 +610,7 @@ class ExchangePlan(Container):
                     with TabPane("2.选择目标商品", id="tab-adding-goods"):
                         yield GoodsWidget()
                     with TabPane("3.选择收货地址", id="tab-adding-address"):
-                        yield AccountWidget()
+                        yield AddressWidget()
                     with TabPane("4.完成添加", id="tab-adding-ending"):
                         yield AccountWidget()
 
@@ -667,7 +642,7 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             yield self.option_list
         else:
             self.set_empty_options()
-            yield OptionList("暂无账号数据 请尝试刷新", disabled=True)
+            yield self.empty_option_list
 
     def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         def reset():
@@ -677,6 +652,7 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             self.button_select.enable()
             self.button_reset.disable()
             self.option_list.disabled = False
+            AddressWidget.text_view.update(AddressWidget.REQUIRE_ACCOUNT_TEXT)
             self.text_view.update(self.DEFAULT_TEXT)
 
         if event.button.id == "button-account-select":
@@ -688,6 +664,7 @@ class AccountWidget(ExchangePlan.BasePlanAdding):
             self.button_reset.enable()
             self.option_list.disabled = True
             selected_account = self.account_keys[self.option_list.highlighted]
+            AddressWidget.text_view.update(AddressWidget.DEFAULT_TEXT)
             self.text_view.update(f"已选择账户 [bold green]{selected_account}[/]")
             if conf.accounts[selected_account].cookies.is_correct():
                 self.app.notice(f"选择的账号：[bold green]{selected_account}[/] Cookies完整，可继续")
@@ -764,7 +741,7 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
             self.game = game
 
         class Pressed(Button.Pressed):
-            def __init__(self, button: "GoodsWidget.GameButton"):
+            def __init__(self, button: GoodsWidget.GameButton):
                 super().__init__(button)
                 self.button = button
 
@@ -847,8 +824,12 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
                     self.good_dict.setdefault(game.id, goods_data)
                     await self.tabbed_content.append(goods_data.tap_pane)
 
-        # 更新每个分区的商品数据
-        await self.update_goods()
+            # 更新每个分区的商品数据
+            await self.update_goods()
+        else:
+            self.text_view.update("[bold red]⚠ 获取商品分区列表失败，可尝试刷新[/]")
+            self.app.notice("[bold red]获取商品分区列表失败！[/]")
+            # TODO 待补充各种错误情况
 
         self.button_refresh.enable()
         self.loading.hide()
@@ -899,6 +880,33 @@ class GoodsWidget(ExchangePlan.BasePlanAdding):
 
             reset()
             self.app.notice("已重置商品选择")
+
+class AddressWidget(ExchangePlan.BasePlanAdding):
+    DEFAULT_TEXT = Markdown("- 请选择一个收货地址")
+    REQUIRE_ACCOUNT_TEXT = Markdown("- 请先完成账号选择")
+    text_view = StaticStatus(REQUIRE_ACCOUNT_TEXT)
+
+    button_select = ControllableButton("💾 保存", id="button-address-select", disabled=True)
+    button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-address-refresh")
+    button_reset = ControllableButton("↩ 重置", variant="warning", id="button-address-reset", disabled=True)
+
+    loading = LoadingDisplay()
+    loading.hide()
+
+    empty_option_list = Option("暂无收货地址数据 请尝试刷新", disabled=True)
+    option_list = OptionList(empty_option_list)
+
+    def set_empty_options(self):
+        """
+        当可选列表为空时，对一些按钮进行隐藏
+        """
+        self.button_select.disable()
+        self.button_reset.disable()
+
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
+        yield self.option_list
 
 
 class Welcome(Container):
