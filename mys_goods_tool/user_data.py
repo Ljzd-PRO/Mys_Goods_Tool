@@ -1,7 +1,9 @@
+import json
 import os
 import traceback
+from json import JSONDecodeError
 from pathlib import Path
-from typing import List, Union, Optional, Tuple, Any, Dict, Set
+from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable
 
 import pydantic.typing
 from httpx import Cookies
@@ -221,7 +223,7 @@ class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
         self.cookies.bbs_uid = value
 
 
-class ExchangePlan(BaseModel, extra=Extra.ignore):
+class ExchangePlan(BaseModel):
     """
     兑换计划数据类
     """
@@ -357,11 +359,11 @@ class DeviceConfig(BaseSettings):
         pass
 
 
-class Config(BaseModel, extra=Extra.ignore):
+class Config(BaseModel):
     """
     配置类
     """
-    exchange_plans: Set[ExchangePlan] = set()
+    exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
     """兑换计划列表"""
     preference: Preference = Preference()
     """偏好设置"""
@@ -372,12 +374,50 @@ class Config(BaseModel, extra=Extra.ignore):
     accounts: Dict[str, UserAccount] = {}
     """储存一些已绑定的账号数据"""
 
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        exchange_plans = self.exchange_plans
+        self.exchange_plans = set()
+        for plan in exchange_plans:
+            plan = ExchangePlan.parse_obj(plan)
+            self.exchange_plans.add(plan)
+
     def save(self):
         """
         保存配置文件
         """
         return write_config_file(self)
 
+    def json(
+        self,
+        *,
+        include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+        exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+        by_alias: bool = False,
+        skip_defaults: Optional[bool] = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = False,
+        encoder: Optional[Callable[[Any], Any]] = None,
+        models_as_dict: bool = True,
+        **dumps_kwargs: Any,
+    ) -> str:
+        """
+        重写 BaseModel.json() 方法，使其支持对 Set 类型的数据进行序列化
+        """
+        self.exchange_plans = list(self.exchange_plans)
+        return super().json(
+            include=include,
+            exclude=exclude,
+            by_alias=by_alias,
+            skip_defaults=skip_defaults,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            encoder=encoder,
+            models_as_dict=models_as_dict,
+            **dumps_kwargs,
+        )
 
 def write_config_file(conf: Config = Config()):
     """
@@ -394,7 +434,7 @@ def load_config():
     if os.path.isfile(CONFIG_PATH):
         try:
             return Config.parse_file(CONFIG_PATH)
-        except ValidationError:
+        except (ValidationError, JSONDecodeError):
             logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 格式是否正确。")
             logger.debug(traceback.format_exc())
             exit(1)
