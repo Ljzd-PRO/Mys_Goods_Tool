@@ -782,7 +782,7 @@ class CheckOutText(StaticStatus):
             if content_type == AccountContent:
                 self.account_text = self.DEFAULT_TEXT
             elif content_type == AddressContent:
-                good: Optional[Good] = GoodsContent._selected
+                good: Optional[Good] = ExchangePlanView.goods_content.selected
                 if good is not None and not good.is_visual:
                     self.address_detail = self.DEFAULT_TEXT
             elif content_type == GoodsContent:
@@ -792,7 +792,7 @@ class CheckOutText(StaticStatus):
                 self.address_detail = self.DEFAULT_TEXT
                 self.game_uid_text = self.DEFAULT_TEXT
             elif content_type == GameRecordContent:
-                good: Optional[Good] = GoodsContent._selected
+                good: Optional[Good] = ExchangePlanView.goods_content.selected
                 if good is not None and good.is_visual:
                     self.game_uid_text = self.DEFAULT_TEXT
 
@@ -865,6 +865,7 @@ class FinishContent(ExchangePlanContent):
             conf.save()
             self.app.notice(f"[bold green]已保存兑换计划[/]")
         elif event.button.id == "button-finish-test":
+            # TODO: 测试兑换
             ...
 
 
