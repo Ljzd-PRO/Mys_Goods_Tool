@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 from abc import abstractmethod
-from typing import Tuple, Optional, Set, List, Dict, Callable, Union, Type, TypeVar
+from typing import Tuple, Optional, List, Dict, Union, Type, TypeVar
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
@@ -23,6 +22,7 @@ from mys_goods_tool.data_model import Good, GameInfo, Address
 from mys_goods_tool.user_data import config as conf, UserAccount
 
 _T = TypeVar("_T")
+
 
 class BaseExchangePlan(ExchangePlanContent):
     DEFAULT_TEXT: RenderableType
@@ -52,7 +52,6 @@ class BaseExchangePlan(ExchangePlanContent):
         """设置已选内容的同时更新CheckOutText兑换计划预览视图"""
         type(self)._selected = value
         FinishContent.check_out_text.set_check_item(value, type(self))
-
 
     @abstractmethod
     def reset_selected(self):
@@ -521,7 +520,6 @@ class AddressContent(BaseExchangePlan):
                 # 在已选地址不为空的情况下，视图被虚拟商品改变后的情况
                 ExchangePlanView.address_content._set_select_view(cls._selected)
 
-
     def reset_selected(self):
         """
         重置已选地址
@@ -594,6 +592,7 @@ class CheckOutText(StaticStatus):
         :param value: 兑换计划所需的数据对象
         :param content_type: 当 value 为 None 时，需要传入 BaseExchangePlan 对象，用于确定数据类型
         """
+
         def finished_style_text(text: str):
             return f"[bold green]{text}[/]"
 
@@ -628,6 +627,7 @@ class CheckOutText(StaticStatus):
                f"\n📦 商品名称 - {self.goods_name}" \
                f"\n📅 兑换时间 - {self.goods_time}" \
                f"\n[/list]"
+
 
 class FinishContent(ExchangePlanContent):
     check_out_text = CheckOutText()

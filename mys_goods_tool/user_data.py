@@ -1,5 +1,4 @@
 import os
-import sys
 import traceback
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict
@@ -151,7 +150,8 @@ class BBSCookies(BaseModelWithSetter):
              exclude: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
              by_alias: bool = False,
              skip_defaults: Optional[bool] = None, exclude_unset: bool = False, exclude_defaults: bool = False,
-             exclude_none: bool = False, v2_stoken: bool = False, cookie_type: bool = False) -> 'pydantic.typing.DictStrAny':
+             exclude_none: bool = False, v2_stoken: bool = False,
+             cookie_type: bool = False) -> 'pydantic.typing.DictStrAny':
         """
         获取Cookies字典
 
@@ -411,6 +411,7 @@ def load_config():
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
 
         return config
+
 
 config = load_config()
 """程序配置对象"""

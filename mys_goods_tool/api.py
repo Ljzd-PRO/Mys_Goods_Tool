@@ -1,5 +1,5 @@
 import traceback
-from typing import List, Literal, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple, Dict, Any
 from urllib.parse import urlencode
 
 import httpx
@@ -655,7 +655,8 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
             return BaseApiStatus(network_error=True), None
 
 
-async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[BaseApiStatus, Optional[MmtData], Optional[httpx.AsyncClient]]:
+async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[
+    BaseApiStatus, Optional[MmtData], Optional[httpx.AsyncClient]]:
     """
     发送短信验证前所需的人机验证任务申请
 
@@ -664,6 +665,7 @@ async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[Bas
     """
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
+
     async def request():
         """
         发送请求的闭包函数
@@ -672,7 +674,7 @@ async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[Bas
         await client.options(URL_CREATE_MMT.format(now=time_now, t=time_now),
                              headers=headers, timeout=conf.preference.timeout)
         return await client.get(URL_CREATE_MMT.format(now=time_now, t=time_now),
-                               headers=headers, timeout=conf.preference.timeout)
+                                headers=headers, timeout=conf.preference.timeout)
 
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
@@ -733,14 +735,16 @@ async def create_mobile_captcha(phone_number: int,
         "t": round(NtpTime.time() * 1000)
     }
     encoded_params = urlencode(params)
+
     async def request():
         """
         发送请求的闭包函数
         """
         return await client.post(URL_CREATE_MOBILE_CAPTCHA,
-                                content=encoded_params,
-                                headers=headers,
-                                timeout=conf.preference.timeout)
+                                 content=encoded_params,
+                                 headers=headers,
+                                 timeout=conf.preference.timeout)
+
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
@@ -809,16 +813,16 @@ async def get_login_ticket_by_captcha(phone_number: str,
         """
         _cookies = {}
         _res = await client.options(URL_LOGIN_TICKET_BY_CAPTCHA,
-                                   headers=headers,
-                                   timeout=conf.preference.timeout
-                                   )
+                                    headers=headers,
+                                    timeout=conf.preference.timeout
+                                    )
         _cookies.update(_res.cookies)
         return await client.post(URL_LOGIN_TICKET_BY_CAPTCHA,
-                                headers=headers,
-                                content=encoded_params,
-                                cookies=_cookies,
-                                timeout=conf.preference.timeout
-                                )
+                                 headers=headers,
+                                 content=encoded_params,
+                                 cookies=_cookies,
+                                 timeout=conf.preference.timeout
+                                 )
 
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),

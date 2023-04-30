@@ -25,10 +25,12 @@ class LoginView(Container):
     """
     登录页面
     """
+
     def compose(self) -> ComposeResult:
         yield CaptchaLoginInformation()
         yield PhoneForm()
         yield CaptchaForm()
+
 
 class CaptchaLoginInformation(Container):
     """

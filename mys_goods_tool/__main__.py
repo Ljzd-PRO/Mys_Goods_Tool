@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 
 import mys_goods_tool.user_data
 from mys_goods_tool.user_data import load_config
-
 from .tui import TuiApp
 
 pyperclip_import_result = True
@@ -16,6 +15,7 @@ VERSION = "v2.0.0-dev"
 """程序当前版本"""
 NTP_MAX_RETRY_TIMES = 5
 """网络时间校对失败后最多重试次数"""
+
 
 def guide_mode(textual_app: TuiApp):
     textual_app.run()
@@ -61,13 +61,16 @@ Mys_Goods_Tool
         通过该命令运行本程序或直接双击打开程序，将读取程序目录下的配置文件config.json，并提供添加兑换计划、查看兑换计划、删除兑换计划、设置收货地址等功能。
         """.strip()
 
+
 class ArgumentParserWithHelp(ArgumentParser):
     def error(self, message):
         self.print_help()
         super().error(message)
 
+
 arg_parser = ArgumentParserWithHelp(description="Mys_Goods_Tool", usage=USAGE)
-arg_parser.add_argument("-m", "--mode", dest="mode", choices=["guide", "exchange", "exchange-simple", "test"], default="guide")
+arg_parser.add_argument("-m", "--mode", dest="mode", choices=["guide", "exchange", "exchange-simple", "test"],
+                        default="guide")
 arg_parser.add_argument("-c", "--conf", type=str, dest="conf", default=None)
 
 if __name__ == "__main__":
