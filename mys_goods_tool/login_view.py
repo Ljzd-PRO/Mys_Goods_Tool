@@ -508,7 +508,6 @@ class CaptchaForm(LoginForm):
                 notice_text += "未知错误！"
             notice_text += "[/] 如果部分步骤成功，你仍然可以尝试获取收货地址、兑换等功能"
             self.button.error.show()
-            logger.info(notice_text)
             self.app.notice(notice_text)
 
         self.close_login()
