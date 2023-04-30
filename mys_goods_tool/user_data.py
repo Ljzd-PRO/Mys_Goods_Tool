@@ -227,7 +227,7 @@ class ExchangePlan(BaseModel, extra=Extra.ignore):
     """
     good_id: str
     """商品ID"""
-    address_id: str
+    address_id: Optional[str]
     """地址ID"""
     account: Union[UserAccount, int]
     """米游社账号（可为UserAccount账号数据 或 账号数据在Config.accounts中的位置）"""

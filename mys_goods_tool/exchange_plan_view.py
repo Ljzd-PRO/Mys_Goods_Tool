@@ -14,11 +14,11 @@ from textual.widgets import (
 )
 from textual.widgets._option_list import Option, Separator
 
-from mys_goods_tool.api import get_good_list, get_game_list, get_address
+from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton
-from mys_goods_tool.data_model import Good, GameInfo, Address
+from mys_goods_tool.data_model import Good, GameInfo, Address, GameRecord
 from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
 
 _T = TypeVar("_T")
@@ -93,7 +93,7 @@ class AccountContent(BaseExchangePlan):
     """
     选择账号 - 界面
     """
-    DEFAULT_TEXT = Markdown("- 请选择一个账户")
+    DEFAULT_TEXT = Markdown("- 请选择一个米游社账号")
     text_view = StaticStatus(DEFAULT_TEXT)
 
     button_select = ControllableButton("💾 保存", id="button-account-select", disabled=True)
@@ -104,7 +104,7 @@ class AccountContent(BaseExchangePlan):
     """账号列表"""
     option_list = OptionList(*account_keys, disabled=True)
     """账号选项列表"""
-    empty_data_option = Option("暂无账号数据 请尝试刷新", disabled=True)
+    empty_data_option = Option("暂无米游社账号数据 请尝试刷新", disabled=True)
 
     if account_keys:
         # 如果账号列表非空，启用 选择按钮、选项列表
@@ -136,20 +136,21 @@ class AccountContent(BaseExchangePlan):
         self.selected = None
         self.button_reset.disable()
         self.text_view.update(self.DEFAULT_TEXT)
-        ExchangePlanView.address_content.reset_account()
+        ExchangePlanView.address_content.reset_all()
+        ExchangePlanView.game_record_content.reset_all()
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-account-select":
             # 按下“保存”按钮时触发的事件
 
             if self.option_list.highlighted is None:
-                self.app.notice("[bold red]请先从列表中选择账号！[/]")
+                self.app.notice("[bold red]请先从列表中选择米游社账号！[/]")
                 return
 
             account_key = self.account_keys[self.option_list.highlighted]
             self.selected = conf.accounts.get(account_key)
             if self.selected is None:
-                self.app.notice(f"未找到账号：[bold red]{account_key}[/]")
+                self.app.notice(f"未找到米游社账号：[bold red]{account_key}[/]")
                 return
 
             # 禁用选择按钮、启用重置按钮、禁用选项列表
@@ -157,17 +158,18 @@ class AccountContent(BaseExchangePlan):
             self.button_reset.enable()
             self.option_list.disabled = True
 
-            self.text_view.update(f"已选择账户"
+            self.text_view.update(f"已选择米游社账号"
                                   f"\n[list]"
                                   f"\n🪪 通信证ID - [bold green]{account_key}[/]"
                                   f"\n[/list]")
             if conf.accounts[account_key].cookies.is_correct():
-                self.app.notice(f"选择的账号：[bold green]{account_key}[/] Cookies完整，可继续")
+                self.app.notice(f"选择的米游社账号：[bold green]{account_key}[/] Cookies完整，可继续")
             else:
                 self.app.notice(
-                    f"选择的账号：[bold red]{account_key}[/] Cookies不完整，但你仍然可以尝试进行兑换")
+                    f"选择的米游社账号：[bold red]{account_key}[/] Cookies不完整，但你仍然可以尝试进行兑换")
 
             await ExchangePlanView.address_content.update_address()
+            await ExchangePlanView.game_record_content.update_game_record()
 
         elif event.button.id == "button-account-refresh":
             # 按下“刷新”按钮时触发的事件
@@ -180,13 +182,13 @@ class AccountContent(BaseExchangePlan):
                 self.option_list.add_option(self.empty_data_option)
             # 重置已选内容
             self.reset_selected(event)
-            self.app.notice("[bold green]已刷新账号列表[/]")
+            self.app.notice("[bold green]已刷新米游社账号列表[/]")
 
         elif event.button.id == "button-account-reset":
             # 按下“重置”按钮时触发的事件
 
             self.reset_selected(event)
-            self.app.notice("已重置账号选择")
+            self.app.notice("已重置米游社账号选择")
 
 
 class GoodsContent(BaseExchangePlan):
@@ -332,6 +334,8 @@ class GoodsContent(BaseExchangePlan):
         self.text_view.update(self.DEFAULT_TEXT)
 
         AddressContent.check_good_type()
+        ExchangePlanView.game_record_content.reset_selected()
+        GameRecordContent.check_good_type()
 
     async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
         if event.button.id.startswith("button-goods-select-"):
@@ -344,7 +348,7 @@ class GoodsContent(BaseExchangePlan):
             option_list = self.good_dict[game.id].option_list
             selected_index = option_list.highlighted
             if selected_index is None:
-                self.app.notice("[bold red]未选择商品！[/]")
+                self.app.notice("[bold red]请先从列表中选择商品！[/]")
                 return
             good_dict_value = self.good_dict.get(game.id)
             if not good_dict_value:
@@ -364,9 +368,10 @@ class GoodsContent(BaseExchangePlan):
                 value.button_select.disable()
                 value.option_list.disabled = True
 
-            # 如果是虚拟商品，则不需要设置收货地址，并更改地址视图
-            # 如果是实物商品，则需要设置收货地址，并更改地址视图
+            # 如果是虚拟/实物商品，则地址、游戏账号视图需要更新
             AddressContent.check_good_type()
+            if AccountContent._selected is not None:
+                GameRecordContent.check_good_type()
 
             self.text_view.update(f"已选择商品："
                                   f"\n[list]"
@@ -377,6 +382,9 @@ class GoodsContent(BaseExchangePlan):
                                   f"\n📅 兑换时间：[bold green]{good.time_text}[/]"
                                   f"\n📌 商品ID：[bold green]{good.goods_id}[/]"
                                   f"\n[/list]")
+
+            if good.is_visual and AccountContent._selected is not None:
+                await ExchangePlanView.game_record_content.update_game_record()
 
         elif event.button.id == "button-goods-refresh":
             # 按下“刷新”按钮时触发的事件
@@ -393,13 +401,187 @@ class GoodsContent(BaseExchangePlan):
             self.app.notice("已重置商品选择")
 
 
+class GameRecordContent(BaseExchangePlan):
+    """
+    游戏账号选择视图
+    """
+    DEFAULT_TEXT = Markdown("- 请选择一个游戏账号")
+    REQUIRE_OTHER_TEXT = Markdown("- 请先完成米游社账号和商品选择")
+    UNNEEDED_TEXT = Markdown("- 兑换实体商品无需选择游戏账号")
+
+    text_view = StaticStatus(REQUIRE_OTHER_TEXT)
+
+    button_select = ControllableButton("💾 保存", id="button-game_uid-select", disabled=True)
+    button_refresh = ControllableButton("🔄 刷新", variant="primary", id="button-game_uid-refresh", disabled=True)
+    button_reset = ControllableButton("↩ 重置", variant="warning", id="button-game_uid-reset", disabled=True)
+
+    loading = LoadingDisplay()
+    loading.hide()
+
+    empty_data_option = Option("无可用账号", disabled=True)
+    option_list = OptionList(REQUIRE_OTHER_TEXT, disabled=True)
+    """游戏账号选项列表"""
+    option_list.highlighted = None
+    record_list: List[GameRecord] = []
+    """游戏账号列表"""
+
+    async def update_game_record(self):
+        """
+        更新游戏账号列表
+        """
+        if GoodsContent._selected is None:
+            return
+
+        # 进度条、刷新按钮、选项列表
+        self.loading.show()
+        self.button_refresh.disable()
+        self.option_list.disabled = False
+
+        record_status, self.record_list = await get_game_record(AccountContent._selected)
+        if record_status:
+            self.option_list.clear_options()
+            self.option_list.add_option(Separator())
+            for record in self.record_list:
+                preview_text = f"[list]" \
+                               f"\n👓 昵称：[bold underline]{record.nickname}[/]" \
+                               f"\n📌 游戏UID：[bold underline]{record.game_id}[/]" \
+                               f"\n🌐 区服：[bold underline]{record.region_name}[/]" \
+                               f"\n🔥 等级：[bold underline]{record.level}[/]" \
+                               f"\n[/list]"
+                self.option_list.add_option(Option(preview_text))
+                self.option_list.add_option(Separator())
+            if not self.record_list:
+                self.option_list.add_option(self.empty_data_option)
+        else:
+            self.app.notice(f"[bold red]获取游戏账号列表失败！[/]")
+
+        # 进度条、刷新按钮
+        self.loading.hide()
+        self.button_refresh.enable()
+
+        #  重置已选择的游戏账号
+        self.reset_selected()
+
+        # 检查选项列表是否为空的操作包含在 check_good_type 中
+        self.check_good_type()
+
+    def reset_all(self):
+        """
+        重置所有内容
+        - 重置已选游戏账号
+        - 重置文本内容
+        - 禁用所有按钮
+        - 禁用选项列表
+        - 清空选项列表
+        """
+        self.selected = None
+        self.text_view.update(self.REQUIRE_OTHER_TEXT)
+        self.option_list.disabled = True
+        self.option_list.clear_options()
+        self.option_list.add_option(self.REQUIRE_OTHER_TEXT)
+        self.button_select.disable()
+        self.button_reset.disable()
+        self.button_refresh.disable()
+
+    @classmethod
+    def check_empty(cls):
+        """
+        检查选项列表是否为空
+        """
+        if cls.record_list:
+            cls.button_select.enable()
+            cls.option_list.disabled = False
+        else:
+            cls.button_select.disable()
+            cls.option_list.disabled = True
+
+    @classmethod
+    def check_good_type(cls):
+        """
+        检查商品类型是否是虚拟商品，并改变视图
+        """
+        cls.check_empty()
+        # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
+        if GoodsContent._selected is not None:
+            good: Optional[Good] = GoodsContent._selected
+            if good is not None and not good.is_visual:
+                cls.text_view.update(cls.UNNEEDED_TEXT)
+                cls.option_list.disabled = True
+                cls.button_select.disable()
+                cls.button_refresh.disable()
+            elif cls._selected is None:
+                cls.text_view.update(cls.DEFAULT_TEXT)
+                cls.option_list.disabled = False
+                cls.button_select.enable()
+                cls.button_refresh.enable()
+            else:
+                # 在已选游戏账号不为空的情况下，视图被虚拟商品改变后的情况
+                ExchangePlanView.game_record_content._set_select_view(cls._selected)
+        else:
+            # # 程序载入初次刷新商品列表时，重置已选商品并调用本类的reset_selected，由于没有选择商品，需要更新文本视图
+            cls.text_view.update(cls.REQUIRE_OTHER_TEXT)
+
+    def reset_selected(self):
+        self.check_empty()
+        self.selected = None
+        self.button_reset.disable()
+        self.text_view.update(self.DEFAULT_TEXT)
+        self.check_good_type()
+
+    def _set_select_view(self, record: GameRecord):
+        """
+        设置已选地址后改变视图
+        """
+        self.text_view.update(f"已选择游戏账号："
+                              f"\n[list]"
+                              f"\n📌 游戏UID - [bold green]{record.game_id}[/]"
+                              f"\n[/list]")
+
+        # 禁用 选项列表、保存按钮，启用 重置按钮
+        self.button_reset.enable()
+        self.button_select.disable()
+        self.option_list.disabled = True
+
+    async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+        if event.button.id == "button-game_uid-select":
+            # 按下“保存”按钮时触发的事件
+
+            record_index = self.option_list.highlighted
+            if record_index is None:
+                self.app.notice("[bold red]请先从列表中选择游戏账号！[/]")
+                return
+            if record_index >= len(self.record_list):
+                self.app.notice("[bold red]无法找到游戏账号[/]")
+                return
+            record = self.record_list[record_index]
+            self.selected = record
+
+            self._set_select_view(record)
+
+        elif event.button.id == "button-game_uid-refresh":
+            # 按下“刷新”按钮时触发的事件
+
+            await self.update_game_record()
+
+        elif event.button.id == "button-game_uid-reset":
+            # 按下“重置”按钮时触发的事件
+
+            self.reset_selected()
+            self.app.notice("已重置游戏账号选择")
+
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
+        yield self.option_list
+
+
 class AddressContent(BaseExchangePlan):
     """
     收货地址选择组件
     """
 
     DEFAULT_TEXT = Markdown("- 请选择一个收货地址")
-    REQUIRE_ACCOUNT_TEXT = Markdown("- 请先完成账号选择")
+    REQUIRE_ACCOUNT_TEXT = Markdown("- 请先完成米游社账号选择")
     UNNEEDED_TEXT = Markdown("- 兑换虚拟商品无需设置收货地址")
 
     text_view = StaticStatus(REQUIRE_ACCOUNT_TEXT)
@@ -422,7 +604,7 @@ class AddressContent(BaseExchangePlan):
         """
         更新收货地址列表
         """
-        if AccountContent.selected is None:
+        if AccountContent._selected is None:
             return
 
         # 进度条、刷新按钮、选项列表
@@ -462,14 +644,9 @@ class AddressContent(BaseExchangePlan):
         # 检查选项列表是否为空的操作包含在 check_good_type 中
         self.check_good_type()
 
-    def compose(self) -> ComposeResult:
-        yield self.text_view
-        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
-        yield self.option_list
-
-    def reset_account(self):
+    def reset_all(self):
         """
-        重置已选账号
+        重置所有内容
         - 重置已选地址
         - 重置文本内容
         - 禁用所有按钮
@@ -503,7 +680,7 @@ class AddressContent(BaseExchangePlan):
         检查商品类型是否是虚拟商品，并改变视图
         """
         cls.check_empty()
-        # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，此时不需要检查商品类型
+        # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
         if AccountContent._selected is not None:
             good: Optional[Good] = GoodsContent._selected
             if good is not None and good.is_visual:
@@ -550,10 +727,10 @@ class AddressContent(BaseExchangePlan):
 
             address_index = self.option_list.highlighted
             if address_index is None:
-                self.app.notice("[bold red]未选择收货地址！[/]")
+                self.app.notice("[bold red]请先从列表中选择收货地址！[/]")
                 return
             if address_index >= len(self.address_list):
-                self.app.notice("[bold red]无法找到收货地址！[/]")
+                self.app.notice("[bold red]无法找到收货地址[/]")
                 return
             address = self.address_list[address_index]
             self.selected = address
@@ -569,8 +746,12 @@ class AddressContent(BaseExchangePlan):
             # 按下“重置”按钮时触发的事件
 
             self.reset_selected()
-            self.app.notice("已重置收获地址选择")
+            self.app.notice("已重置收货地址选择")
 
+    def compose(self) -> ComposeResult:
+        yield self.text_view
+        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
+        yield self.option_list
 
 class CheckOutText(StaticStatus):
     """
@@ -582,6 +763,7 @@ class CheckOutText(StaticStatus):
     address_detail = reactive(DEFAULT_TEXT)
     goods_name = reactive(DEFAULT_TEXT)
     goods_time = reactive(DEFAULT_TEXT)
+    game_uid_text = reactive(DEFAULT_TEXT)
 
     def set_check_item(self,
                        value: Union[UserAccount, Address, Good, None],
@@ -608,6 +790,12 @@ class CheckOutText(StaticStatus):
                 self.goods_time = self.DEFAULT_TEXT
                 # 把“无需设置”还原为“待选取”
                 self.address_detail = self.DEFAULT_TEXT
+                self.game_uid_text = self.DEFAULT_TEXT
+            elif content_type == GameRecordContent:
+                good: Optional[Good] = GoodsContent._selected
+                if good is not None and good.is_visual:
+                    self.game_uid_text = self.DEFAULT_TEXT
+
             ExchangePlanView.finish_content.button_submit.disable()
             ExchangePlanView.finish_content.button_test.disable()
         else:
@@ -620,11 +808,19 @@ class CheckOutText(StaticStatus):
                 self.goods_time = finished_style_text(value.time_text)
                 if value.is_visual:
                     self.address_detail = self.UNNEEDED_TEXT
+                else:
+                    self.game_uid_text = self.UNNEEDED_TEXT
+            elif isinstance(value, GameRecord):
+                self.game_uid_text = finished_style_text(str(value.game_id))
 
             account: UserAccount = ExchangePlanView.account_content.selected
             good: Good = ExchangePlanView.goods_content.selected
             address: Address = ExchangePlanView.address_content.selected
-            if account is not None and good is not None and (address is not None or good.is_visual):
+            record: GameRecord = ExchangePlanView.game_record_content.selected
+            if account is not None \
+                    and good is not None\
+                    and (address is not None or good.is_visual)\
+                    and (record is not None or not good.is_visual):
                 ExchangePlanView.finish_content.button_submit.enable()
                 ExchangePlanView.finish_content.button_test.enable()
             else:
@@ -636,10 +832,11 @@ class CheckOutText(StaticStatus):
     def render(self) -> RenderableType:
         return f"请确认兑换计划信息：" \
                f"\n[list]" \
-               f"\n👓 账号 - {self.account_text}" \
-               f"\n📮 详细地址 - {self.address_detail}" \
+               f"\n👓 米游社账号 - {self.account_text}" \
                f"\n📦 商品名称 - {self.goods_name}" \
                f"\n📅 兑换时间 - {self.goods_time}" \
+               f"\n🎮 游戏UID - {self.game_uid_text}" \
+               f"\n📮 收货地址 - {self.address_detail}" \
                f"\n[/list]"
 
 
@@ -656,14 +853,15 @@ class FinishContent(ExchangePlanContent):
 
     def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-finish-submit":
-            account: UserAccount = self.account_content.selected
-            good: Good = self.goods_content.selected
-            address: Address = self.address_content.selected
+            account: UserAccount = ExchangePlanView.account_content.selected
+            good: Good = ExchangePlanView.goods_content.selected
+            address: Optional[Address] = ExchangePlanView.address_content.selected
+            record: Optional[GameRecord] = ExchangePlanView.game_record_content.selected
             conf.exchange_plans.add(ExchangePlan(good_id=good.goods_id,
-                                                    address_id=address.id,
-                                                    account=account,
-                                                    game_uid=...)
-                                       )
+                                                 address_id=address.id if address is not None else None,
+                                                 account=account,
+                                                 game_uid=record.game_id if record is not None else None)
+                                    )
             conf.save()
             self.app.notice(f"[bold green]已保存兑换计划：[/]")
         elif event.button.id == "button-finish-test":
@@ -676,6 +874,7 @@ class ExchangePlanView(Container):
     """
     account_content = AccountContent()
     goods_content = GoodsContent()
+    game_record_content = GameRecordContent()
     address_content = AddressContent()
     finish_content = FinishContent()
 
@@ -683,13 +882,15 @@ class ExchangePlanView(Container):
         with TabbedContent():
             with TabPane("➕添加计划", id="tab-adding"):
                 with TabbedContent():
-                    with TabPane("1.选择账号", id="tab-adding-account"):
+                    with TabPane("1.选择米游社账号", id="tab-adding-account"):
                         yield self.account_content
                     with TabPane("2.选择目标商品", id="tab-adding-goods"):
                         yield self.goods_content
-                    with TabPane("3.选择收货地址", id="tab-adding-address"):
+                    with TabPane("3.选择游戏账号", id="tab-adding-game-record"):
+                        yield self.game_record_content
+                    with TabPane("4.选择收货地址", id="tab-adding-address"):
                         yield self.address_content
-                    with TabPane("4.完成添加", id="tab-adding-ending"):
+                    with TabPane("5.完成添加", id="tab-adding-ending"):
                         yield self.finish_content
 
             with TabPane("✏️管理计划", id="tab-managing"):
