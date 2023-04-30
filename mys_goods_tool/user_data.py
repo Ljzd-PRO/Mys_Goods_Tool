@@ -1,7 +1,7 @@
 import os
 import traceback
 from pathlib import Path
-from typing import List, Union, Optional, Tuple, Any, Dict
+from typing import List, Union, Optional, Tuple, Any, Dict, Set
 
 import pydantic.typing
 from httpx import Cookies
@@ -225,9 +225,9 @@ class ExchangePlan(BaseModel, extra=Extra.ignore):
     """
     兑换计划数据类
     """
-    good_id: int
+    good_id: str
     """商品ID"""
-    address_id: int
+    address_id: str
     """地址ID"""
     account: Union[UserAccount, int]
     """米游社账号（可为UserAccount账号数据 或 账号数据在Config.accounts中的位置）"""
@@ -358,7 +358,7 @@ class Config(BaseModel, extra=Extra.ignore):
     """
     配置类
     """
-    exchange_plans: List[ExchangePlan] = []
+    exchange_plans: Set[ExchangePlan] = set()
     """兑换计划列表"""
     preference: Preference = Preference()
     """偏好设置"""

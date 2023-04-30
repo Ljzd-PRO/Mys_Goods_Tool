@@ -19,7 +19,7 @@ from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton
 from mys_goods_tool.data_model import Good, GameInfo, Address
-from mys_goods_tool.user_data import config as conf, UserAccount
+from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
 
 _T = TypeVar("_T")
 
@@ -608,15 +608,29 @@ class CheckOutText(StaticStatus):
                 self.goods_time = self.DEFAULT_TEXT
                 # 把“无需设置”还原为“待选取”
                 self.address_detail = self.DEFAULT_TEXT
-        elif isinstance(value, UserAccount):
-            self.account_text = finished_style_text(value.bbs_uid)
-        elif isinstance(value, Address):
-            self.address_detail = finished_style_text(value.addr_ext)
-        elif isinstance(value, Good):
-            self.goods_name = finished_style_text(value.general_name)
-            self.goods_time = finished_style_text(value.time_text)
-            if value.is_visual:
-                self.address_detail = self.UNNEEDED_TEXT
+            ExchangePlanView.finish_content.button_submit.disable()
+            ExchangePlanView.finish_content.button_test.disable()
+        else:
+            if isinstance(value, UserAccount):
+                self.account_text = finished_style_text(value.bbs_uid)
+            elif isinstance(value, Address):
+                self.address_detail = finished_style_text(value.addr_ext)
+            elif isinstance(value, Good):
+                self.goods_name = finished_style_text(value.general_name)
+                self.goods_time = finished_style_text(value.time_text)
+                if value.is_visual:
+                    self.address_detail = self.UNNEEDED_TEXT
+
+            account: UserAccount = ExchangePlanView.account_content.selected
+            good: Good = ExchangePlanView.goods_content.selected
+            address: Address = ExchangePlanView.address_content.selected
+            if account is not None and good is not None and (address is not None or good.is_visual):
+                ExchangePlanView.finish_content.button_submit.enable()
+                ExchangePlanView.finish_content.button_test.enable()
+            else:
+                ExchangePlanView.finish_content.button_submit.disable()
+                ExchangePlanView.finish_content.button_test.disable()
+
         self.refresh()
 
     def render(self) -> RenderableType:
@@ -631,13 +645,29 @@ class CheckOutText(StaticStatus):
 
 class FinishContent(ExchangePlanContent):
     check_out_text = CheckOutText()
-    button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit")
-    button_test = ControllableButton("测试兑换", id="button-finish-test")
+    button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit", disabled=True)
+    button_test = ControllableButton("测试兑换", id="button-finish-test", disabled=True)
     loading = LoadingDisplay()
+    loading.hide()
 
     def compose(self) -> ComposeResult:
         yield self.check_out_text
         yield Horizontal(self.button_submit, self.button_test, self.loading)
+
+    def _on_button_pressed(self, event: ControllableButton.Pressed):
+        if event.button.id == "button-finish-submit":
+            account: UserAccount = self.account_content.selected
+            good: Good = self.goods_content.selected
+            address: Address = self.address_content.selected
+            conf.exchange_plans.add(ExchangePlan(good_id=good.goods_id,
+                                                    address_id=address.id,
+                                                    account=account,
+                                                    game_uid=...)
+                                       )
+            conf.save()
+            self.app.notice(f"[bold green]已保存兑换计划：[/]")
+        elif event.button.id == "button-finish-test":
+            ...
 
 
 class ExchangePlanView(Container):
