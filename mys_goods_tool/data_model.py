@@ -78,11 +78,10 @@ class Good(BaseModel):
         如果返回`None`，说明任何时间均可兑换或兑换已结束
         """
         # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
-        # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
-        if self.type != 1 and self.next_time == 0:
+        if self.next_time == 0:
             return None
-        elif self.sale_start_time is not None:
-            return int(self.sale_start_time)
+        # elif self.sale_start_time is not None:
+        #     return int(self.sale_start_time)
         else:
             return self.next_time
 
@@ -114,13 +113,14 @@ class Good(BaseModel):
         """
         是否为限时商品
         """
-        return self.type == 1
+        # 不限量被认为是不限时商品
+        return not self.unlimit
 
     def is_time_end(self):
         """
         兑换是否已经结束
         """
-        return self.type == 1 and self.next_time == 0
+        return self.next_time == 0
 
     @property
     def num(self):

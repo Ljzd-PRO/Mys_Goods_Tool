@@ -585,11 +585,7 @@ async def get_good_list(game: str, retry: bool = True) -> Tuple[
             logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(network_error=True), None
 
-    # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
-    # "type" 为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换
-    result = list(filter(lambda good: not good.is_time_end(), good_list))
-
-    return BaseApiStatus(success=True), result
+    return BaseApiStatus(success=True), good_list
 
 
 async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[Address]]]:
