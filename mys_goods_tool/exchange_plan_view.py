@@ -444,7 +444,7 @@ class GameRecordContent(BaseExchangePlan):
             for record in self.record_list:
                 preview_text = f"[list]" \
                                f"\n👓 昵称：[bold underline]{record.nickname}[/]" \
-                               f"\n📌 游戏UID：[bold underline]{record.game_id}[/]" \
+                               f"\n📌 游戏UID：[bold underline]{record.game_role_id}[/]" \
                                f"\n🌐 区服：[bold underline]{record.region_name}[/]" \
                                f"\n🔥 等级：[bold underline]{record.level}[/]" \
                                f"\n[/list]"
@@ -534,7 +534,7 @@ class GameRecordContent(BaseExchangePlan):
         """
         self.text_view.update(f"已选择游戏账号："
                               f"\n[list]"
-                              f"\n📌 游戏UID - [bold green]{record.game_id}[/]"
+                              f"\n📌 游戏UID - [bold green]{record.game_role_id}[/]"
                               f"\n[/list]")
 
         # 禁用 选项列表、保存按钮，启用 重置按钮
@@ -811,7 +811,7 @@ class CheckOutText(StaticStatus):
                 else:
                     self.game_uid_text = self.UNNEEDED_TEXT
             elif isinstance(value, GameRecord):
-                self.game_uid_text = finished_style_text(str(value.game_id))
+                self.game_uid_text = finished_style_text(str(value.game_role_id))
 
             account: UserAccount = ExchangePlanView.account_content.selected
             good: Good = ExchangePlanView.goods_content.selected
@@ -860,7 +860,7 @@ class FinishContent(ExchangePlanContent):
             conf.exchange_plans.add(ExchangePlan(good_id=good.goods_id,
                                                  address_id=address.id if address is not None else None,
                                                  account=account,
-                                                 game_uid=record.game_id if record is not None else None)
+                                                 game_uid=record.game_role_id if record is not None else None)
                                     )
             conf.save()
             self.app.notice(f"[bold green]已保存兑换计划：[/]")
