@@ -229,10 +229,13 @@ class ExchangePlan(BaseModel, extra=Extra.ignore):
     """商品ID"""
     address_id: Optional[str]
     """地址ID"""
-    account: Union[UserAccount, int]
-    """米游社账号（可为UserAccount账号数据 或 账号数据在Config.accounts中的位置）"""
+    account: UserAccount
+    """米游社账号"""
     game_uid: Optional[int]
     """商品对应的游戏的玩家账户UID"""
+
+    def __hash__(self):
+        return hash((self.good_id, self.address_id, self.account.bbs_uid, self.game_uid))
 
 
 class Preference(BaseSettings):
