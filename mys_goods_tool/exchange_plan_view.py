@@ -863,7 +863,7 @@ class FinishContent(ExchangePlanContent):
                                                  game_uid=record.game_role_id if record is not None else None)
                                     )
             conf.save()
-            self.app.notice(f"[bold green]已保存兑换计划：[/]")
+            self.app.notice(f"[bold green]已保存兑换计划[/]")
         elif event.button.id == "button-finish-test":
             ...
 
