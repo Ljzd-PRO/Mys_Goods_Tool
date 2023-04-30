@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from abc import abstractmethod
-from typing import Tuple, Optional, Set, List, Dict, Any, Callable
+from typing import Tuple, Optional, Set, List, Dict, Callable, Union, Type, TypeVar
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from textual import events
 from textual.app import ComposeResult
-from textual.reactive import reactive, Reactive
+from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import (
     TabbedContent, TabPane, OptionList
@@ -23,27 +22,7 @@ from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, Loadi
 from mys_goods_tool.data_model import Good, GameInfo, Address
 from mys_goods_tool.user_data import config as conf, UserAccount
 
-
-class ExchangePlanView(Container):
-    """
-    添加兑换计划 - 界面
-    """
-    def compose(self) -> ComposeResult:
-        with TabbedContent():
-            with TabPane("➕添加计划", id="tab-adding"):
-                with TabbedContent():
-                    with TabPane("1.选择账号", id="tab-adding-account"):
-                        yield AccountContent()
-                    with TabPane("2.选择目标商品", id="tab-adding-goods"):
-                        yield GoodsContent()
-                    with TabPane("3.选择收货地址", id="tab-adding-address"):
-                        yield AddressContent()
-                    with TabPane("4.完成添加", id="tab-adding-ending"):
-                        yield AccountContent()
-
-            with TabPane("✏️管理计划", id="tab-managing"):
-                yield Container()
-
+_T = TypeVar("_T")
 
 class BaseExchangePlan(ExchangePlanContent):
     DEFAULT_TEXT: RenderableType
@@ -57,11 +36,23 @@ class BaseExchangePlan(ExchangePlanContent):
     """刷新列表"""
     button_reset: ControllableButton
     """重置选择"""
-    selected: Reactive[Optional[Any]] = reactive(None)
+    _selected: Optional[Type[_T]] = None
     """已选内容"""
 
     empty_data_option: Option
     """可选列表为空时显示的视图"""
+
+    @property
+    def selected(self):
+        """已选内容"""
+        return self._selected
+
+    @selected.setter
+    def selected(self, value: Type[_T]):
+        """设置已选内容的同时更新CheckOutText兑换计划预览视图"""
+        type(self)._selected = value
+        FinishContent.check_out_text.set_check_item(value, type(self))
+
 
     @abstractmethod
     def reset_selected(self):
@@ -114,12 +105,7 @@ class AccountContent(BaseExchangePlan):
     """账号列表"""
     option_list = OptionList(*account_keys, disabled=True)
     """账号选项列表"""
-    selected: Reactive[Optional[UserAccount]] = reactive(None)
-    """选定的账号"""
     empty_data_option = Option("暂无账号数据 请尝试刷新", disabled=True)
-
-    loop: asyncio.AbstractEventLoop
-    loop_tasks: Set[asyncio.Task] = set()
 
     if account_keys:
         # 如果账号列表非空，启用 选择按钮、选项列表
@@ -130,30 +116,30 @@ class AccountContent(BaseExchangePlan):
 
     def __init__(self, *children: Widget):
         super().__init__(*children)
-        AccountContent.loop = asyncio.get_event_loop()
 
     def compose(self) -> ComposeResult:
         yield self.text_view
         yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
         yield self.option_list
 
-    def reset_selected(self):
+    def reset_selected(self, _: Optional[events.Message] = None):
         """
         重置账号选择
         """
+        # 刷新选项列表后检查是否为空
         if not self.account_keys:
-            # 选项列表为空时禁用 选择按钮、选项列表
             self.option_list.disabled = True
             self.button_select.disable()
         else:
-            # 否则启用 选择按钮、选项列表
             self.option_list.disabled = False
             self.button_select.enable()
-        self.button_reset.disable()
-        AddressContent.reset_account()
-        self.text_view.update(self.DEFAULT_TEXT)
 
-    def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
+        self.selected = None
+        self.button_reset.disable()
+        self.text_view.update(self.DEFAULT_TEXT)
+        ExchangePlanView.address_content.reset_account()
+
+    async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-account-select":
             # 按下“保存”按钮时触发的事件
 
@@ -161,10 +147,10 @@ class AccountContent(BaseExchangePlan):
                 self.app.notice("[bold red]请先从列表中选择账号！[/]")
                 return
 
-            selected = self.account_keys[self.option_list.highlighted]
-            AccountContent.selected = conf.accounts.get(selected)
-            if AccountContent.selected is None:
-                self.app.notice(f"未找到账号：[bold red]{selected}[/]")
+            account_key = self.account_keys[self.option_list.highlighted]
+            self.selected = conf.accounts.get(account_key)
+            if self.selected is None:
+                self.app.notice(f"未找到账号：[bold red]{account_key}[/]")
                 return
 
             # 禁用选择按钮、启用重置按钮、禁用选项列表
@@ -172,20 +158,17 @@ class AccountContent(BaseExchangePlan):
             self.button_reset.enable()
             self.option_list.disabled = True
 
-            AddressContent.text_view.update(AddressContent.DEFAULT_TEXT)
-            task = AccountContent.loop.create_task(AddressContent.update_address(self.app.notice))
-            AccountContent.loop_tasks.add(task)
-            task.add_done_callback(AccountContent.loop_tasks.discard)
-
             self.text_view.update(f"已选择账户"
                                   f"\n[list]"
-                                  f"\n🪪 通信证ID - [bold green]{selected}[/]"
+                                  f"\n🪪 通信证ID - [bold green]{account_key}[/]"
                                   f"\n[/list]")
-            if conf.accounts[selected].cookies.is_correct():
-                self.app.notice(f"选择的账号：[bold green]{selected}[/] Cookies完整，可继续")
+            if conf.accounts[account_key].cookies.is_correct():
+                self.app.notice(f"选择的账号：[bold green]{account_key}[/] Cookies完整，可继续")
             else:
                 self.app.notice(
-                    f"选择的账号：[bold red]{selected}[/] Cookies不完整，但你仍然可以尝试进行兑换")
+                    f"选择的账号：[bold red]{account_key}[/] Cookies不完整，但你仍然可以尝试进行兑换")
+
+            await ExchangePlanView.address_content.update_address()
 
         elif event.button.id == "button-account-refresh":
             # 按下“刷新”按钮时触发的事件
@@ -197,13 +180,13 @@ class AccountContent(BaseExchangePlan):
             if not self.account_keys:
                 self.option_list.add_option(self.empty_data_option)
             # 重置已选内容
-            self.reset_selected()
+            self.reset_selected(event)
             self.app.notice("[bold green]已刷新账号列表[/]")
 
         elif event.button.id == "button-account-reset":
             # 按下“重置”按钮时触发的事件
 
-            self.reset_selected()
+            self.reset_selected(event)
             self.app.notice("已重置账号选择")
 
 
@@ -230,8 +213,6 @@ class GoodsContent(BaseExchangePlan):
     """获取到的商品数据以及相关的控件"""
     selected_tuple: Optional[Tuple[GameInfo, int]] = None
     """已选择的商品位置"""
-    selected: Reactive[Optional[Good]] = reactive(None)
-    """已选择的商品"""
 
     empty_data_option = Option("暂无商品数据，可能是目前没有限时兑换的商品，可尝试刷新", disabled=True)
     """空的商品选项列表"""
@@ -284,7 +265,7 @@ class GoodsContent(BaseExchangePlan):
 
         for goods_data in self.good_dict.values():
             good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
-            good_list = list(filter(lambda x: x.is_time_limited(), good_list))
+            good_list = list(filter(lambda x: x.is_time_limited() and not x.is_time_end(), good_list))
 
             # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
             if good_list_status:
@@ -333,44 +314,47 @@ class GoodsContent(BaseExchangePlan):
         self.button_refresh.enable()
         self.loading.hide()
 
-    @classmethod
-    def reset_selected(cls):
+    def reset_selected(self):
         """
         重置商品选择
         """
-        cls.button_reset.disable()
-        cls.selected_tuple = None
-        for value in cls.good_dict.values():
+        # 刷新选项列表后检查是否为空
+        for value in self.good_dict.values():
             if value.good_list:
                 value.button_select.enable()
                 value.option_list.disabled = False
             else:
                 value.button_select.disable()
                 value.option_list.disabled = True
-        cls.text_view.update(cls.DEFAULT_TEXT)
+
+        self.selected = None
+        self.button_reset.disable()
+        self.selected_tuple = None
+        self.text_view.update(self.DEFAULT_TEXT)
+
+        AddressContent.check_good_type()
 
     async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
         if event.button.id.startswith("button-goods-select-"):
             # 按下“保存”按钮时触发的事件
 
             game = event.button.game
-            game_id = game.id
             if not game:
                 self.app.notice("[bold red]未找到对应的频道数据或频道不可用[/]")
                 return
-            option_list = self.good_dict[game_id].option_list
+            option_list = self.good_dict[game.id].option_list
             selected_index = option_list.highlighted
             if selected_index is None:
                 self.app.notice("[bold red]未选择商品！[/]")
                 return
-            good_dict_value = self.good_dict.get(game_id)
+            good_dict_value = self.good_dict.get(game.id)
             if not good_dict_value:
                 self.app.notice("[bold red]未找到对应的频道[/]")
                 return
 
             good = good_dict_value.good_list[selected_index]
             GoodsContent.selected_tuple = game, selected_index
-            GoodsContent.selected = good
+            self.selected = good
 
             # 启用重置按钮
             self.button_reset.enable()
@@ -380,6 +364,10 @@ class GoodsContent(BaseExchangePlan):
             for value in self.good_dict.values():
                 value.button_select.disable()
                 value.option_list.disabled = True
+
+            # 如果是虚拟商品，则不需要设置收货地址，并更改地址视图
+            # 如果是实物商品，则需要设置收货地址，并更改地址视图
+            AddressContent.check_good_type()
 
             self.text_view.update(f"已选择商品："
                                   f"\n[list]"
@@ -413,6 +401,8 @@ class AddressContent(BaseExchangePlan):
 
     DEFAULT_TEXT = Markdown("- 请选择一个收货地址")
     REQUIRE_ACCOUNT_TEXT = Markdown("- 请先完成账号选择")
+    UNNEEDED_TEXT = Markdown("- 兑换虚拟商品无需设置收货地址")
+
     text_view = StaticStatus(REQUIRE_ACCOUNT_TEXT)
 
     button_select = ControllableButton("💾 保存", id="button-address-select", disabled=True)
@@ -423,30 +413,29 @@ class AddressContent(BaseExchangePlan):
     loading.hide()
 
     empty_data_option = Option("暂无收货地址数据 请尝试刷新", disabled=True)
-    option_list = OptionList()
+    option_list = OptionList(REQUIRE_ACCOUNT_TEXT, disabled=True)
     """收货地址选项列表"""
+    option_list.highlighted = None
     address_list: List[Address] = []
     """收货地址列表"""
-    selected: Reactive[Optional[Address]] = reactive(None)
-    """已选地址数据"""
 
-    @classmethod
-    async def update_address(cls, notice: Callable[[RenderableType], None]):
+    async def update_address(self):
         """
         更新收货地址列表
         """
         if AccountContent.selected is None:
             return
 
-        # 进度条、刷新按钮
-        cls.loading.show()
-        cls.button_refresh.disable()
+        # 进度条、刷新按钮、选项列表
+        self.loading.show()
+        self.button_refresh.disable()
+        self.option_list.disabled = False
 
-        address_status, cls.address_list = await get_address(AccountContent.selected)
+        address_status, self.address_list = await get_address(AccountContent._selected)
         if address_status:
-            cls.option_list.clear_options()
-            cls.option_list.add_option(Separator())
-            for address_data in cls.address_list:
+            self.option_list.clear_options()
+            self.option_list.add_option(Separator())
+            for address_data in self.address_list:
                 preview_text = f"[list]" \
                                f"\n👓 收货人：[bold underline]{address_data.connect_name}[/]" \
                                f"\n📞 联系电话：[bold underline]{address_data.phone}[/]" \
@@ -457,27 +446,29 @@ class AddressContent(BaseExchangePlan):
                                f"\n     详细地址：[bold underline]{address_data.addr_ext}[/]" \
                                f"\n📌 地址ID：[bold underline]{address_data.id}[/]" \
                                f"\n[/list]"
-                cls.option_list.add_option(Option(preview_text))
-                cls.option_list.add_option(Separator())
-            if not cls.address_list:
-                cls.option_list.add_option(cls.empty_data_option)
+                self.option_list.add_option(Option(preview_text))
+                self.option_list.add_option(Separator())
+            if not self.address_list:
+                self.option_list.add_option(self.empty_data_option)
         else:
-            notice(f"[bold red]获取收货地址列表失败！[/]")
+            self.app.notice(f"[bold red]获取收货地址列表失败！[/]")
 
         # 进度条、刷新按钮
-        cls.loading.hide()
-        cls.button_refresh.enable()
+        self.loading.hide()
+        self.button_refresh.enable()
 
         #  重置已选地址
-        cls.reset_selected()
+        self.reset_selected()
+
+        # 检查选项列表是否为空的操作包含在 check_good_type 中
+        self.check_good_type()
 
     def compose(self) -> ComposeResult:
         yield self.text_view
         yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
         yield self.option_list
 
-    @classmethod
-    def reset_account(cls):
+    def reset_account(self):
         """
         重置已选账号
         - 重置已选地址
@@ -486,18 +477,19 @@ class AddressContent(BaseExchangePlan):
         - 禁用选项列表
         - 清空选项列表
         """
-        cls.selected = None
-        cls.text_view.update(cls.REQUIRE_ACCOUNT_TEXT)
-        cls.button_select.disable()
-        cls.button_reset.disable()
-        cls.button_refresh.disable()
-        cls.option_list.disabled = True
-        cls.option_list.clear_options()
+        self.selected = None
+        self.text_view.update(self.REQUIRE_ACCOUNT_TEXT)
+        self.option_list.disabled = True
+        self.option_list.clear_options()
+        self.option_list.add_option(self.REQUIRE_ACCOUNT_TEXT)
+        self.button_select.disable()
+        self.button_reset.disable()
+        self.button_refresh.disable()
 
     @classmethod
-    def reset_selected(cls):
+    def check_empty(cls):
         """
-        重置已选地址
+        检查选项列表是否为空
         """
         if cls.address_list:
             cls.button_select.enable()
@@ -505,9 +497,54 @@ class AddressContent(BaseExchangePlan):
         else:
             cls.button_select.disable()
             cls.option_list.disabled = True
-        cls.selected = None
-        cls.text_view.update(cls.DEFAULT_TEXT)
-        cls.button_reset.disable()
+
+    @classmethod
+    def check_good_type(cls):
+        """
+        检查商品类型是否是虚拟商品，并改变视图
+        """
+        cls.check_empty()
+        # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，此时不需要检查商品类型
+        if AccountContent._selected is not None:
+            good: Optional[Good] = GoodsContent._selected
+            if good is not None and good.is_visual:
+                cls.text_view.update(cls.UNNEEDED_TEXT)
+                cls.option_list.disabled = True
+                cls.button_select.disable()
+                cls.button_refresh.disable()
+            elif cls._selected is None:
+                cls.text_view.update(cls.DEFAULT_TEXT)
+                cls.option_list.disabled = False
+                cls.button_select.enable()
+                cls.button_refresh.enable()
+            else:
+                # 在已选地址不为空的情况下，视图被虚拟商品改变后的情况
+                ExchangePlanView.address_content._set_select_view(cls._selected)
+
+
+    def reset_selected(self):
+        """
+        重置已选地址
+        """
+        self.check_empty()
+        self.selected = None
+        self.button_reset.disable()
+        self.text_view.update(self.DEFAULT_TEXT)
+        self.check_good_type()
+
+    def _set_select_view(self, address: Address):
+        """
+        设置已选地址后改变视图
+        """
+        self.text_view.update(f"已选择收货地址："
+                              f"\n[list]"
+                              f"\n📌 地址ID - [bold green]{address.id}[/]"
+                              f"\n[/list]")
+
+        # 禁用 选项列表、保存按钮，启用 重置按钮
+        self.button_reset.enable()
+        self.button_select.disable()
+        self.option_list.disabled = True
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-address-select":
@@ -520,22 +557,15 @@ class AddressContent(BaseExchangePlan):
             if address_index >= len(self.address_list):
                 self.app.notice("[bold red]无法找到收货地址！[/]")
                 return
-            AddressContent.selected = self.address_list[address_index]
+            address = self.address_list[address_index]
+            self.selected = address
 
-            self.text_view.update(f"已选择收货地址："
-                                  f"\n[list]"
-                                  f"\n📌 地址ID - [bold green]{self.selected.id}[/]"
-                                  f"\n[/list]")
-
-            # 禁用 选项列表、保存按钮，启用 重置按钮
-            self.button_reset.enable()
-            self.button_select.disable()
-            self.option_list.disabled = True
+            self._set_select_view(address)
 
         elif event.button.id == "button-address-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            await self.update_address(self.app.notice)
+            await self.update_address()
 
         elif event.button.id == "button-address-reset":
             # 按下“重置”按钮时触发的事件
@@ -544,19 +574,93 @@ class AddressContent(BaseExchangePlan):
             self.app.notice("已重置收获地址选择")
 
 
+class CheckOutText(StaticStatus):
+    """
+    兑换计划预览文本
+    """
+    DEFAULT_TEXT = "[bold yellow]待选取[/]"
+    UNNEEDED_TEXT = "[bold gray]无需设置[/]"
+    account_text = reactive(DEFAULT_TEXT)
+    address_detail = reactive(DEFAULT_TEXT)
+    goods_name = reactive(DEFAULT_TEXT)
+    goods_time = reactive(DEFAULT_TEXT)
+
+    def set_check_item(self,
+                       value: Union[UserAccount, Address, Good, None],
+                       content_type: Optional[Type[BaseExchangePlan]] = None
+                       ):
+        """
+        传入 Union[UserAccount, Address, Good] 对象，设置对应的文本内容
+        :param value: 兑换计划所需的数据对象
+        :param content_type: 当 value 为 None 时，需要传入 BaseExchangePlan 对象，用于确定数据类型
+        """
+        def finished_style_text(text: str):
+            return f"[bold green]{text}[/]"
+
+        if value is None:
+            if content_type == AccountContent:
+                self.account_text = self.DEFAULT_TEXT
+            elif content_type == AddressContent:
+                good: Optional[Good] = GoodsContent._selected
+                if good is not None and not good.is_visual:
+                    self.address_detail = self.DEFAULT_TEXT
+            elif content_type == GoodsContent:
+                self.goods_name = self.DEFAULT_TEXT
+                self.goods_time = self.DEFAULT_TEXT
+                # 把“无需设置”还原为“待选取”
+                self.address_detail = self.DEFAULT_TEXT
+        elif isinstance(value, UserAccount):
+            self.account_text = finished_style_text(value.bbs_uid)
+        elif isinstance(value, Address):
+            self.address_detail = finished_style_text(value.addr_ext)
+        elif isinstance(value, Good):
+            self.goods_name = finished_style_text(value.general_name)
+            self.goods_time = finished_style_text(value.time_text)
+            if value.is_visual:
+                self.address_detail = self.UNNEEDED_TEXT
+        self.refresh()
+
+    def render(self) -> RenderableType:
+        return f"请确认兑换计划信息：" \
+               f"\n[list]" \
+               f"\n👓 账号 - {self.account_text}" \
+               f"\n📮 详细地址 - {self.address_detail}" \
+               f"\n📦 商品名称 - {self.goods_name}" \
+               f"\n📅 兑换时间 - {self.goods_time}" \
+               f"\n[/list]"
+
 class FinishContent(ExchangePlanContent):
-    text_view = StaticStatus(
-        f"请确认兑换计划信息："
-        f"\n[list]"
-        f"\n👓 账号 - [bold orange]{AccountContent.selected.bbs_uid}[/]"
-        f"\n📮 详细地址 - [bold orange]{AddressContent.selected.addr_ext}[/]"
-        f"\n📦 商品名称 - [bold orange]{GoodsContent.selected.general_name}[/]"
-        f"\n📅 兑换时间 - [bold orange]{GoodsContent.selected.time_text}[/]"
-    )
+    check_out_text = CheckOutText()
     button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit")
     button_test = ControllableButton("测试兑换", id="button-finish-test")
     loading = LoadingDisplay()
 
     def compose(self) -> ComposeResult:
-        yield self.text_view
+        yield self.check_out_text
         yield Horizontal(self.button_submit, self.button_test, self.loading)
+
+
+class ExchangePlanView(Container):
+    """
+    添加兑换计划 - 界面
+    """
+    account_content = AccountContent()
+    goods_content = GoodsContent()
+    address_content = AddressContent()
+    finish_content = FinishContent()
+
+    def compose(self) -> ComposeResult:
+        with TabbedContent():
+            with TabPane("➕添加计划", id="tab-adding"):
+                with TabbedContent():
+                    with TabPane("1.选择账号", id="tab-adding-account"):
+                        yield self.account_content
+                    with TabPane("2.选择目标商品", id="tab-adding-goods"):
+                        yield self.goods_content
+                    with TabPane("3.选择收货地址", id="tab-adding-address"):
+                        yield self.address_content
+                    with TabPane("4.完成添加", id="tab-adding-ending"):
+                        yield self.finish_content
+
+            with TabPane("✏️管理计划", id="tab-managing"):
+                yield Container()

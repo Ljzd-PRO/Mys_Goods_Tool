@@ -226,33 +226,33 @@ class ExchangePlanContent(Container):
     兑换计划的添加步骤视图
     """
     DEFAULT_CSS = """
-    PlanAddingWidget {
+    ExchangePlanContent {
         height: auto;
         width: 1fr;
         border: round #666;
         padding: 2;
     }
 
-    PlanAddingWidget OptionList {
+    ExchangePlanContent OptionList {
         height: auto;
         width: 1fr;
         padding: 1;
         border: round $primary;
     }
     
-    PlanAddingWidget OptionList Option {
+    ExchangePlanContent OptionList Option {
         margin: 1;
     }
     
-    PlanAddingWidget StaticStatus {
+    ExchangePlanContent StaticStatus {
         margin: 0 0 1 0;
     }
     
-    PlanAddingWidget Horizontal Button {
+    ExchangePlanContent Horizontal Button {
         margin: 0 1 0 0;
     }
     
-    PlanAddingWidget Horizontal LoadingIndicator {
+    ExchangePlanContent Horizontal LoadingIndicator {
         width: auto;
         min-width: 16;
         height: 3;
