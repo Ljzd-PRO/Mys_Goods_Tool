@@ -151,7 +151,9 @@ class PhoneForm(LoginForm):
     client: Optional[httpx.AsyncClient] = None
     """人机验证过程的连接对象"""
 
-    ButtonTuple = NamedTuple("ButtonTuple", send=ControllableButton, stop_geetest=ControllableButton,
+    ButtonTuple = NamedTuple("ButtonTuple",
+                             send=ControllableButton,
+                             stop_geetest=ControllableButton,
                              success=ControllableButton,
                              error=ControllableButton)
 
