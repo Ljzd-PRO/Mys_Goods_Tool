@@ -88,10 +88,21 @@ class BaseExchangePlan(ExchangePlanContent):
         """
         pass
 
+    def reset_all(self) -> None:
+        """
+        重置所有内容
+        - 重置已选游戏账号
+        - 重置文本内容
+        - 禁用所有按钮
+        - 禁用选项列表
+        - 清空选项列表
+        """
+        pass
+
 
 class AccountContent(BaseExchangePlan):
     """
-    选择账号 - 界面
+    选择账号视图
     """
     DEFAULT_TEXT = Markdown("- 请选择一个米游社账号")
     text_view = StaticStatus(DEFAULT_TEXT)
@@ -193,7 +204,7 @@ class AccountContent(BaseExchangePlan):
 
 class GoodsContent(BaseExchangePlan):
     """
-    选择商品 - 界面
+    选择商品视图
     """
     DEFAULT_CSS = """
     GoodsWidget TabbedContainer {
@@ -466,14 +477,6 @@ class GameRecordContent(BaseExchangePlan):
         self.check_good_type()
 
     def reset_all(self):
-        """
-        重置所有内容
-        - 重置已选游戏账号
-        - 重置文本内容
-        - 禁用所有按钮
-        - 禁用选项列表
-        - 清空选项列表
-        """
         self.selected = None
         self.text_view.update(self.REQUIRE_OTHER_TEXT)
         self.option_list.disabled = True
@@ -577,7 +580,7 @@ class GameRecordContent(BaseExchangePlan):
 
 class AddressContent(BaseExchangePlan):
     """
-    收货地址选择组件
+    收货地址选择视图
     """
 
     DEFAULT_TEXT = Markdown("- 请选择一个收货地址")
@@ -645,14 +648,6 @@ class AddressContent(BaseExchangePlan):
         self.check_good_type()
 
     def reset_all(self):
-        """
-        重置所有内容
-        - 重置已选地址
-        - 重置文本内容
-        - 禁用所有按钮
-        - 禁用选项列表
-        - 清空选项列表
-        """
         self.selected = None
         self.text_view.update(self.REQUIRE_ACCOUNT_TEXT)
         self.option_list.disabled = True
@@ -841,6 +836,9 @@ class CheckOutText(StaticStatus):
 
 
 class FinishContent(ExchangePlanContent):
+    """
+    完成兑换计划添加的视图
+    """
     check_out_text = CheckOutText()
     button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit", disabled=True)
     button_test = ControllableButton("测试兑换", id="button-finish-test", disabled=True)
