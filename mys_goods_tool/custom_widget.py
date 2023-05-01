@@ -16,6 +16,7 @@ from textual.widgets._tabbed_content import ContentTab
 
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.data_model import GameInfo
+from mys_goods_tool.user_data import ExchangePlan
 
 
 class RadioStatus(RadioButton, can_focus=False):
@@ -203,7 +204,7 @@ class DynamicTabbedContent(TabbedContent):
 
 class GameButton(ControllableButton):
     """
-    商品分区下的商品选择按钮
+    商品分区视图下的商品选择按钮
     """
 
     def __init__(
@@ -222,5 +223,30 @@ class GameButton(ControllableButton):
 
     class Pressed(Button.Pressed):
         def __init__(self, button: GameButton):
+            super().__init__(button)
+            self.button = button
+
+
+class PlanButton(ControllableButton):
+    """
+    编辑兑换计划视图下的按钮
+    """
+
+    def __init__(
+            self,
+            label: TextType | None = None,
+            variant: ButtonVariant = "default",
+            *,
+            name: str | None = None,
+            id: str | None = None,
+            classes: str | None = None,
+            disabled: bool = False,
+            plan: ExchangePlan
+    ):
+        super().__init__(label, variant, name=name, id=id, classes=classes, disabled=disabled)
+        self.plan = plan
+
+    class Pressed(Button.Pressed):
+        def __init__(self, button: PlanButton):
             super().__init__(button)
             self.button = button

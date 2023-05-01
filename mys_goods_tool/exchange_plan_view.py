@@ -10,14 +10,14 @@ from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import (
-    TabbedContent, TabPane, OptionList
+    TabbedContent, TabPane, OptionList, ListView, ListItem
 )
 from textual.widgets._option_list import Option, Separator
 
 from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
-    DynamicTabbedContent, GameButton
+    DynamicTabbedContent, GameButton, PlanButton
 from mys_goods_tool.data_model import Good, GameInfo, Address, GameRecord
 from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
 
@@ -349,7 +349,7 @@ class GoodsContent(BaseExchangePlan):
         GameRecordContent.check_good_type()
 
     async def _on_button_pressed(self, event: GameButton.Pressed) -> None:
-        if event.button.id.startswith("button-goods-select-"):
+        if event.button.id.startswith("button-goods-select"):
             # 按下“保存”按钮时触发的事件
 
             game = event.button.game
@@ -748,6 +748,7 @@ class AddressContent(BaseExchangePlan):
         yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
         yield self.option_list
 
+
 class CheckOutText(StaticStatus):
     """
     兑换计划预览文本
@@ -813,8 +814,8 @@ class CheckOutText(StaticStatus):
             address: Address = ExchangePlanView.address_content.selected
             record: GameRecord = ExchangePlanView.game_record_content.selected
             if account is not None \
-                    and good is not None\
-                    and (address is not None or good.is_visual)\
+                    and good is not None \
+                    and (address is not None or good.is_visual) \
                     and (record is not None or not good.is_visual):
                 ExchangePlanView.finish_content.button_submit.enable()
                 ExchangePlanView.finish_content.button_test.enable()
@@ -855,16 +856,108 @@ class FinishContent(ExchangePlanContent):
             good: Good = ExchangePlanView.goods_content.selected
             address: Optional[Address] = ExchangePlanView.address_content.selected
             record: Optional[GameRecord] = ExchangePlanView.game_record_content.selected
-            conf.exchange_plans.add(ExchangePlan(good_id=good.goods_id,
-                                                 address_id=address.id if address is not None else None,
+            conf.exchange_plans.add(ExchangePlan(good=good,
+                                                 address=address,
                                                  account=account,
-                                                 game_uid=record.game_role_id if record is not None else None)
+                                                 game_record=record)
                                     )
-            conf.save()
-            self.app.notice(f"[bold green]已保存兑换计划[/]")
+            if conf.save():
+                self.app.notice(f"[bold green]已保存兑换计划[/]")
+            else:
+                self.app.notice(f"[bold red]保存兑换计划失败[/]")
+                # TODO: 保存失败的具体原因提示
         elif event.button.id == "button-finish-test":
             # TODO: 测试兑换
             ...
+
+
+class ExchangePlanRow(Container):
+    """
+    兑换计划行
+    """
+
+    def __init__(self, plan: ExchangePlan):
+        self.plan = plan
+        self.button_delete = PlanButton("删除计划",
+                                        variant="warning",
+                                        id=f"button-plan_row-delete-{plan.__hash__()}",
+                                        plan=plan)
+        self.button_confirm = PlanButton("确认删除",
+                                         variant="error",
+                                         id=f"button-plan_row-confirm-{plan.__hash__()}",
+                                         plan=plan,
+                                         disabled=True)
+        self.button_test = PlanButton("测试兑换",
+                                      id=f"button-plan_row-test-{plan.__hash__()}",
+                                      plan=plan)
+        self.button_cancel = PlanButton("取消删除",
+                                        variant="warning",
+                                        id=f"button-plan_row-cancel-{plan.__hash__()}",
+                                        plan=plan,
+                                        disabled=True)
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        yield StaticStatus(f"\n[list]"
+                           f"\n👓 米游社账号 - {self.plan.account.bbs_uid}"
+                           f"\n📦 商品名称 - {self.plan.good.goods_id}"
+                           f"\n📅 兑换时间 - {self.plan.good.time_text}"
+                           f"\n🎮 游戏UID - {self.plan.game_record.game_role_id}"
+                           f"\n📮 收货地址 - {self.plan.address.id}"
+                           f"\n[/list]")
+        with Horizontal():
+            yield self.button_delete
+            yield self.button_confirm
+            yield self.button_test
+            yield self.button_cancel
+
+    async def _on_button_pressed(self, event: PlanButton.Pressed):
+        if event.button.id.startswith("button-plan_row-delete"):
+            self.button_delete.hide()
+            self.button_confirm.show()
+            self.button_test.hide()
+            self.button_cancel.show()
+
+        elif event.button.id.startswith("button-plan_row-confirm"):
+            conf.exchange_plans.remove(event.button.plan)
+            conf.save()
+            self.app.notice(f"[bold red]已删除兑换计划[/]")
+            await ManagerContent.list_view.query(event.button.plan.__hash__()).remove()
+            ManagerContent.list_view.index = None
+
+        elif event.button.id.startswith("button-plan_row-test"):
+            # TODO: 测试兑换
+            ...
+
+        elif event.button.id.startswith("button-plan_row-cancel"):
+            self.button_delete.show()
+            self.button_confirm.hide()
+            self.button_test.show()
+            self.button_cancel.hide()
+
+
+class ManagerContent(ExchangePlanContent):
+    """
+    管理兑换计划的视图
+    """
+    list_view = ListView(
+        *map(lambda x: ListItem(ExchangePlanRow(x), id=x.__hash__()), conf.exchange_plans),
+        initial_index=None
+    )
+    button_refresh = ControllableButton("刷新计划列表", id="button-manager-refresh")
+
+    def compose(self) -> ComposeResult:
+        yield self.button_refresh
+        yield self.list_view
+
+    async def _on_button_pressed(self, event: ControllableButton.Pressed):
+        if event.button.id == "button-manager-refresh":
+            await self.list_view.clear()
+            for plan in conf.exchange_plans:
+                await self.list_view.append(ListItem(
+                    ExchangePlanRow(plan),
+                    id=plan.__hash__())
+                )
 
 
 class ExchangePlanView(Container):
@@ -893,4 +986,4 @@ class ExchangePlanView(Container):
                         yield self.finish_content
 
             with TabPane("✏️管理计划", id="tab-managing"):
-                yield Container()
+                yield ManagerContent()

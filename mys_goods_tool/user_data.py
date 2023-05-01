@@ -10,7 +10,7 @@ from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 
-from mys_goods_tool.data_model import BaseModelWithSetter
+from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord
 
 ROOT_PATH = Path("./")
 """程序所在目录"""
@@ -227,17 +227,24 @@ class ExchangePlan(BaseModel):
     """
     兑换计划数据类
     """
-    good_id: str
-    """商品ID"""
-    address_id: Optional[str]
+    good: Good
+    """商品"""
+    address: Optional[Address]
     """地址ID"""
     account: UserAccount
     """米游社账号"""
-    game_uid: Optional[int]
-    """商品对应的游戏的玩家账户UID"""
+    game_record: Optional[GameRecord]
+    """商品对应的游戏的玩家账号"""
 
     def __hash__(self):
-        return hash((self.good_id, self.address_id, self.account.bbs_uid, self.game_uid))
+        return hash(
+            (
+                self.good.goods_id,
+                self.address.id if self.address else None,
+                self.account.bbs_uid,
+                self.game_record.game_role_id if self.game_record else None
+            )
+        )
 
 
 class Preference(BaseSettings):
@@ -422,9 +429,17 @@ class Config(BaseModel):
 def write_config_file(conf: Config = Config()):
     """
     写入配置文件
+
+    :param conf: 配置对象
     """
+    try:
+        str_data = conf.json(indent=4)
+    except (AttributeError, TypeError, ValueError):
+        logger.exception("数据对象序列化失败，可能是数据类型错误")
+        return False
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        return f.write(conf.json(indent=4))
+        f.write(str_data)
+    return True
 
 
 def load_config():
