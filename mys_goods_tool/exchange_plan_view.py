@@ -140,7 +140,10 @@ class AccountContent(BaseExchangePlan):
 
     def compose(self) -> ComposeResult:
         yield self.text_view
-        yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
+        with Horizontal():
+            yield self.button_select
+            yield self.button_refresh
+            yield self.button_reset
         yield self.option_list
 
     def reset_selected(self):
@@ -281,7 +284,10 @@ class GoodsContent(BaseExchangePlan):
 
     def compose(self) -> ComposeResult:
         yield self.text_view
-        yield Horizontal(self.button_refresh, self.button_reset, self.loading)
+        with Horizontal():
+            yield self.button_refresh
+            yield self.button_reset
+            yield self.loading
         yield self.tabbed_content
 
     async def update_data(self):
@@ -591,7 +597,11 @@ class GameRecordContent(BaseExchangePlan):
 
     def compose(self) -> ComposeResult:
         yield self.text_view
-        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
+        with Horizontal():
+            yield self.button_select
+            yield self.button_refresh
+            yield self.button_reset
+            yield self.loading
         yield self.option_list
 
 
@@ -761,7 +771,11 @@ class AddressContent(BaseExchangePlan):
 
     def compose(self) -> ComposeResult:
         yield self.text_view
-        yield Horizontal(self.button_select, self.button_refresh, self.button_reset, self.loading)
+        with Horizontal():
+            yield self.button_select
+            yield self.button_refresh
+            yield self.button_reset
+            yield self.loading
         yield self.option_list
 
 
@@ -864,7 +878,10 @@ class FinishContent(ExchangePlanContent):
 
     def compose(self) -> ComposeResult:
         yield self.check_out_text
-        yield Horizontal(self.button_submit, self.button_test, self.loading)
+        with Horizontal():
+            yield self.button_submit
+            yield self.button_test
+            yield self.loading
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id.startswith("button-finish"):
