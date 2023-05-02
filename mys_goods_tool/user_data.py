@@ -15,8 +15,8 @@ from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRe
 ROOT_PATH = Path("./")
 """程序所在目录"""
 
-CONFIG_PATH = ROOT_PATH / "config.json"
-"""配置文件默认路径"""
+CONFIG_PATH = ROOT_PATH / "user_data.json"
+"""用户数据文件默认路径"""
 
 
 class BBSCookies(BaseModelWithSetter):
@@ -391,7 +391,7 @@ class UserData(BaseModel):
 
     def save(self):
         """
-        保存配置文件
+        保存用户数据文件
         """
         return write_config_file(self)
 
@@ -431,7 +431,7 @@ class UserData(BaseModel):
 
 def write_config_file(conf: UserData = UserData()):
     """
-    写入配置文件
+    写入用户数据文件
 
     :param conf: 配置对象
     """
@@ -447,17 +447,17 @@ def write_config_file(conf: UserData = UserData()):
 
 def load_config():
     """
-    加载配置文件
+    加载用户数据文件
     """
     if os.path.isfile(CONFIG_PATH):
         try:
             return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
-            logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 格式是否正确。")
+            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确。")
             logger.debug(traceback.format_exc())
             exit(1)
         except:
-            logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入。")
+            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入。")
             logger.debug(traceback.format_exc())
             exit(1)
     else:
@@ -465,10 +465,10 @@ def load_config():
         try:
             write_config_file(user_data)
         except PermissionError:
-            logger.error(f"创建配置文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
+            logger.error(f"创建用户数据文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
             logger.debug(traceback.format_exc())
             exit(1)
-        # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
+        # logger.info(f"用户数据文件 {CONFIG_PATH} 不存在，已创建默认用户数据文件。")
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
 
         return user_data
