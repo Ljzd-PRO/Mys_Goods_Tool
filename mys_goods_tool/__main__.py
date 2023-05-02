@@ -4,6 +4,7 @@ from typing import Optional
 from textual.app import App
 
 import mys_goods_tool.user_data
+from mys_goods_tool.exchange_mode import exchange_mode_simple
 from mys_goods_tool.user_data import load_config
 
 VERSION = "v2.0.0-dev"
@@ -22,8 +23,7 @@ def main(textual_app: Optional[App]):
         # TODO 兑换模式
         ...
     elif arg.mode == "exchange-simple":
-        # TODO 兑换模式 simple
-        ...
+        exchange_mode_simple()
 
 
 USAGE = """
@@ -63,7 +63,7 @@ TEXTUAL_DEBUG = False
 if __name__ == "__main__":
     app: Optional[App] = None
     if TEXTUAL_DEBUG:
-        from .tui import TuiApp
+        from mys_goods_tool.tui import TuiApp
 
         app = TuiApp()
     main(app)
