@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from importlib.metadata import version
 from io import StringIO
 
@@ -275,6 +276,36 @@ class TuiApp(App):
                     LocationLink("⏰ 进入兑换模式", ".location-exchange_mode"),
                 )
     """快速访问菜单"""
+    disable_required_column = (
+        Column(
+            Section(
+                SectionTitle("米游社账号登录绑定"),
+                LoginView(),
+            ),
+            classes="location-login location-first",
+        ),
+        Column(
+            Section(
+                SectionTitle("管理米游币商品兑换计划"),
+                ExchangePlanView(),
+            ),
+            classes="location-add_plan",
+        )
+    )
+    """进入兑换模式后需要禁用的Column"""
+    body = Body(
+                quick_access,
+                AboveFold(Welcome(), classes="location-top"),
+                *disable_required_column,
+                Column(
+                    Section(
+                        SectionTitle("定时兑换模式"),
+                        ExchangeModeView(),
+                    ),
+                    classes="location-exchange_mode",
+                )
+            )
+    """主体内容"""
 
     def notice(self, renderable: RenderableType) -> None:
         """
@@ -297,31 +328,7 @@ class TuiApp(App):
             Sidebar(classes="-hidden"),
             Header(show_clock=False),
             self.text_log,
-            Body(
-                self.quick_access,
-                AboveFold(Welcome(), classes="location-top"),
-                Column(
-                    Section(
-                        SectionTitle("米游社账号登录绑定"),
-                        LoginView(),
-                    ),
-                    classes="location-login location-first",
-                ),
-                Column(
-                    Section(
-                        SectionTitle("管理米游币商品兑换计划"),
-                        ExchangePlanView(),
-                    ),
-                    classes="location-add_plan",
-                ),
-                Column(
-                    Section(
-                        SectionTitle("定时兑换模式"),
-                        ExchangeModeView(),
-                    ),
-                    classes="location-exchange_mode",
-                )
-            ),
+            self.body
         )
         yield Footer()
 
@@ -340,10 +347,19 @@ class TuiApp(App):
             event.static_status.update(event.renderable)
             if event.text_align:
                 event.static_status.styles.text_align = event.text_align
+
         elif isinstance(event, EnterExchangeMode):
             self.quick_access.disabled = True
+            for column in self.disable_required_column:
+                column.disabled = True
+            self.body.styles.overflow_y = "hidden"
+            self.app.query_one(".location-exchange_mode").scroll_visible(top=True, duration=0.5, force=True)
+
         elif isinstance(event, ExitExchangeMode):
             self.quick_access.disabled = False
+            for column in self.disable_required_column:
+                column.disabled = False
+            self.body.styles.overflow_y = "scroll"
         await super().on_event(event)
 
     def action_open_link(self, link: str) -> None:
