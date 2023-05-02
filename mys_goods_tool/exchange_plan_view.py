@@ -10,14 +10,14 @@ from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import (
-    TabbedContent, TabPane, OptionList, ListView, ListItem
+    TabbedContent, TabPane, OptionList, ListView
 )
 from textual.widgets._option_list import Option, Separator
 
 from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record, good_exchange
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
-    DynamicTabbedContent, GameButton, PlanButton
+    DynamicTabbedContent, GameButton, PlanButton, UnClickableItem
 from mys_goods_tool.data_model import Good, GameInfo, Address, GameRecord
 from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
 
@@ -903,7 +903,7 @@ class FinishContent(ExchangePlanContent):
                     else:
                         self.app.notice(f"[bold red]保存兑换计划失败[/]")
                         # TODO: 保存失败的具体原因提示
-                    await ExchangePlanView.manager_content.update_plans()
+                    await ExchangePlanView.manager_content.update_data()
             elif event.button.id == "button-finish-test":
                 exchange_status, _ = await good_exchange(plan)
                 if not exchange_status.network_error:
@@ -964,7 +964,7 @@ class ExchangePlanRow(Container):
             conf.exchange_plans.remove(event.button.plan)
             conf.save()
             self.app.notice(f"[bold red]已删除兑换计划[/]")
-            await ExchangePlanView.manager_content.update_plans()
+            await ExchangePlanView.manager_content.update_data()
             # TODO: 删除计划后不刷新整个列表，而是单独删除该行，但目前测试这种方法无效
             # await ManagerContent.list_view.query(ManagerContent.list_item_id(event.button.plan)).remove()
             # ManagerContent.list_view.index = None
@@ -988,6 +988,11 @@ class ManagerContent(ExchangePlanContent):
     """
     管理兑换计划的视图
     """
+    DEFAULT_CSS = """
+    ManagerContent UnClickableItem {
+        padding: 1;
+    }
+    """
     button_refresh = ControllableButton("🔄 刷新计划列表", id="button-manager-refresh")
     list_view = ListView(initial_index=None)
 
@@ -1005,13 +1010,13 @@ class ManagerContent(ExchangePlanContent):
         """
         :return: 没有数据时的列表项
         """
-        return ListItem(Static("暂无兑换计划数据 请尝试刷新"), disabled=True)
+        return UnClickableItem(Static("暂无兑换计划数据 请尝试刷新"), disabled=True)
 
     def compose(self) -> ComposeResult:
         yield self.button_refresh
         yield self.list_view
 
-    async def update_plans(self):
+    async def update_data(self):
         """
         刷新兑换计划列表
         """
@@ -1019,7 +1024,7 @@ class ManagerContent(ExchangePlanContent):
         for plan in conf.exchange_plans:
             self.list_view.disabled = False
             await self.list_view.append(
-                ListItem(
+                UnClickableItem(
                     ExchangePlanRow(plan),
                     id=self.list_item_id(plan)
                 )
@@ -1030,10 +1035,10 @@ class ManagerContent(ExchangePlanContent):
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-manager-refresh":
-            await self.update_plans()
+            await self.update_data()
 
     async def _on_mount(self, event: events.Mount) -> None:
-        await self.update_plans()
+        await self.update_data()
 
 
 class ExchangePlanView(Container):
