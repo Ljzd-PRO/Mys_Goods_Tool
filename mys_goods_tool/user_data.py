@@ -1,4 +1,3 @@
-import json
 import os
 import traceback
 from json import JSONDecodeError
@@ -9,6 +8,7 @@ import pydantic.typing
 from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
+from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord
 
@@ -366,7 +366,7 @@ class DeviceConfig(BaseSettings):
         pass
 
 
-class Config(BaseModel):
+class UserData(BaseModel):
     """
     配置类
     """
@@ -429,7 +429,7 @@ class Config(BaseModel):
         self.exchange_plans = set_plans
         return json_data
 
-def write_config_file(conf: Config = Config()):
+def write_config_file(conf: UserData = UserData()):
     """
     写入配置文件
 
@@ -451,7 +451,7 @@ def load_config():
     """
     if os.path.isfile(CONFIG_PATH):
         try:
-            return Config.parse_file(CONFIG_PATH)
+            return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
             logger.error(f"读取配置文件失败，请检查配置文件 {CONFIG_PATH} 格式是否正确。")
             logger.debug(traceback.format_exc())
@@ -461,9 +461,9 @@ def load_config():
             logger.debug(traceback.format_exc())
             exit(1)
     else:
-        config = Config()
+        user_data = UserData()
         try:
-            write_config_file(config)
+            write_config_file(user_data)
         except PermissionError:
             logger.error(f"创建配置文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
             logger.debug(traceback.format_exc())
@@ -471,7 +471,7 @@ def load_config():
         # logger.info(f"配置文件 {CONFIG_PATH} 不存在，已创建默认配置文件。")
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
 
-        return config
+        return user_data
 
 
 config = load_config()
