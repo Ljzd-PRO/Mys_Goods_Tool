@@ -14,7 +14,7 @@ from textual.widgets import (
 )
 from textual.widgets._option_list import Option, Separator
 
-from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record
+from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record, good_exchange
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton, PlanButton
@@ -867,7 +867,7 @@ class FinishContent(ExchangePlanContent):
         yield Horizontal(self.button_submit, self.button_test, self.loading)
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
-        if event.button.id == "button-finish-submit":
+        if event.button.id.startswith("button-finish"):
             account: UserAccount = ExchangePlanView.account_content.selected
             good: Good = ExchangePlanView.goods_content.selected
             address: Optional[Address] = ExchangePlanView.address_content.selected
@@ -876,19 +876,23 @@ class FinishContent(ExchangePlanContent):
                                 address=address,
                                 account=account,
                                 game_record=record)
-            if plan in conf.exchange_plans:
-                self.app.notice(f"[bold yellow]该兑换计划已存在[/]")
-            else:
-                conf.exchange_plans.add(plan)
-                if conf.save():
-                    self.app.notice(f"[bold green]已保存兑换计划[/]")
+            if event.button.id == "button-finish-submit":
+                if plan in conf.exchange_plans:
+                    self.app.notice(f"[bold yellow]该兑换计划已存在[/]")
                 else:
-                    self.app.notice(f"[bold red]保存兑换计划失败[/]")
-                    # TODO: 保存失败的具体原因提示
-                await ExchangePlanView.manager_content.update_plans()
-        elif event.button.id == "button-finish-test":
-            # TODO: 测试兑换
-            ...
+                    conf.exchange_plans.add(plan)
+                    if conf.save():
+                        self.app.notice(f"[bold green]已保存兑换计划[/]")
+                    else:
+                        self.app.notice(f"[bold red]保存兑换计划失败[/]")
+                        # TODO: 保存失败的具体原因提示
+                    await ExchangePlanView.manager_content.update_plans()
+            elif event.button.id == "button-finish-test":
+                exchange_status, _ = await good_exchange(plan)
+                if not exchange_status.network_error:
+                    self.app.notice(f"[bold green]兑换请求已发送，请查看日志[/]")
+                else:
+                    self.app.notice(f"[bold red]兑换请求发送失败，请检查网络连接[/]")
 
 
 class ExchangePlanRow(Container):
@@ -950,8 +954,11 @@ class ExchangePlanRow(Container):
             # ManagerContent.list_view.refresh()
 
         elif event.button.id.startswith("button-plan_row-test"):
-            # TODO: 测试兑换
-            ...
+            exchange_status, _ = await good_exchange(event.button.plan)
+            if not exchange_status.network_error:
+                self.app.notice(f"[bold green]兑换请求已发送，请查看日志[/]")
+            else:
+                self.app.notice(f"[bold red]兑换请求发送失败，请检查网络连接[/]")
 
         elif event.button.id.startswith("button-plan_row-cancel"):
             self.button_delete.show()
