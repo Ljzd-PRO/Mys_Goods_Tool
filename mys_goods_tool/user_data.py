@@ -8,7 +8,6 @@ from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_
 from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
-import pydantic.fields
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord
 
@@ -20,6 +19,7 @@ CONFIG_PATH = ROOT_PATH / "user_data.json"
 
 if TYPE_CHECKING:
     IntStr = Union[int, str]
+    DictStrAny = Dict[str, Any]
     AbstractSetIntStr = AbstractSet[IntStr]
     MappingIntStrAny = Mapping[IntStr, Any]
 
@@ -152,12 +152,12 @@ class BBSCookies(BaseModelWithSetter):
             self.parse_obj(self_dict)
 
     def dict(self, *,
-             include: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
-             exclude: Optional[Union['pydantic.typing.AbstractSetIntStr', 'pydantic.typing.MappingIntStrAny']] = None,
+             include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+             exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
              by_alias: bool = False,
              skip_defaults: Optional[bool] = None, exclude_unset: bool = False, exclude_defaults: bool = False,
              exclude_none: bool = False, v2_stoken: bool = False,
-             cookie_type: bool = False) -> 'pydantic.typing.DictStrAny':
+             cookie_type: bool = False) -> 'DictStrAny':
         """
         获取Cookies字典
 
