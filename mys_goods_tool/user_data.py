@@ -2,13 +2,13 @@ import os
 import traceback
 from json import JSONDecodeError
 from pathlib import Path
-from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable
+from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
+    Mapping
 
-import pydantic.typing
 from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
-from pydantic.typing import AbstractSetIntStr, MappingIntStrAny
+import pydantic.fields
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord
 
@@ -18,6 +18,10 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
+if TYPE_CHECKING:
+    IntStr = Union[int, str]
+    AbstractSetIntStr = AbstractSet[IntStr]
+    MappingIntStrAny = Mapping[IntStr, Any]
 
 class BBSCookies(BaseModelWithSetter):
     """
