@@ -104,7 +104,7 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
     ```
 
 ### 3. 偏好设置（可选）
-默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/dev/mys_goods_tool/user_data.py) 进行配置。
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/stable/mys_goods_tool/user_data.py) 进行配置。
 
 默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
 
