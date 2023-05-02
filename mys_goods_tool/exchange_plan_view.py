@@ -923,9 +923,11 @@ class ExchangePlanRow(Container):
             conf.exchange_plans.remove(event.button.plan)
             conf.save()
             self.app.notice(f"[bold red]已删除兑换计划[/]")
-            await ManagerContent.list_view.query(ManagerContent.list_item_id(event.button.plan)).remove()
-            ManagerContent.list_view.index = None
-            ManagerContent.list_view.refresh()
+            await ExchangePlanView.manager_content.update_plans()
+            # TODO: 删除计划后不刷新整个列表，而是单独删除该行，但目前测试这种方法无效
+            # await ManagerContent.list_view.query(ManagerContent.list_item_id(event.button.plan)).remove()
+            # ManagerContent.list_view.index = None
+            # ManagerContent.list_view.refresh()
 
         elif event.button.id.startswith("button-plan_row-test"):
             # TODO: 测试兑换
@@ -999,6 +1001,7 @@ class ExchangePlanView(Container):
     game_record_content = GameRecordContent()
     address_content = AddressContent()
     finish_content = FinishContent()
+    manager_content = ManagerContent()
 
     def compose(self) -> ComposeResult:
         with TabbedContent():
@@ -1016,4 +1019,4 @@ class ExchangePlanView(Container):
                         yield self.finish_content
 
             with TabPane("✏️管理计划"):
-                yield ManagerContent()
+                yield self.manager_content
