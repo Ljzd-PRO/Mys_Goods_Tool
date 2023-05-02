@@ -14,7 +14,8 @@ from textual.widgets import (
 )
 from textual.widgets._option_list import Option, Separator
 
-from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record, good_exchange
+from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record, good_exchange, \
+    get_good_detail
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton, PlanButton, UnClickableItem
@@ -392,6 +393,16 @@ class GoodsContent(BaseExchangePlan):
 
             good = good_dict_value.good_list[selected_index]
             GoodsContent.selected_tuple = game, selected_index
+
+            # 获取商品详情
+            self.loading.show()
+            good_detail_status, good_detail = await get_good_detail(good.goods_id)
+            self.loading.hide()
+            if not good_detail_status:
+                # TODO 待补充各种错误情况
+                self.app.notice("[bold red]获取商品详情(game_biz)失败，但你仍然可以尝试进行兑换[/]")
+            else:
+                good.game_biz = good_detail.game_biz
             self.selected = good
 
             # 启用重置按钮
@@ -418,7 +429,7 @@ class GoodsContent(BaseExchangePlan):
                                   f"\n📌 商品ID：[bold green]{good.goods_id}[/]"
                                   f"\n[/list]")
 
-            if good.is_visual and AccountContent._selected is not None:
+            if good.is_virtual and AccountContent._selected is not None:
                 await ExchangePlanView.game_record_content.update_data()
 
         elif event.button.id == "button-goods-refresh":
@@ -532,7 +543,7 @@ class GameRecordContent(BaseExchangePlan):
         # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
         if GoodsContent._selected is not None:
             good: Optional[Good] = GoodsContent._selected
-            if good is not None and not good.is_visual:
+            if good is not None and not good.is_virtual:
                 cls.text_view.update(cls.UNNEEDED_TEXT)
                 cls.option_list.disabled = True
                 cls.button_select.disable()
@@ -706,7 +717,7 @@ class AddressContent(BaseExchangePlan):
         # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
         if AccountContent._selected is not None:
             good: Optional[Good] = GoodsContent._selected
-            if good is not None and good.is_visual:
+            if good is not None and good.is_virtual:
                 cls.text_view.update(cls.UNNEEDED_TEXT)
                 cls.option_list.disabled = True
                 cls.button_select.disable()
@@ -809,7 +820,7 @@ class CheckOutText(StaticStatus):
                 self.account_text = self.DEFAULT_TEXT
             elif content_type == AddressContent:
                 good: Optional[Good] = ExchangePlanView.goods_content.selected
-                if good is not None and not good.is_visual:
+                if good is not None and not good.is_virtual:
                     self.address_detail = self.DEFAULT_TEXT
             elif content_type == GoodsContent:
                 self.goods_name = self.DEFAULT_TEXT
@@ -819,7 +830,7 @@ class CheckOutText(StaticStatus):
                 self.game_uid_text = self.DEFAULT_TEXT
             elif content_type == GameRecordContent:
                 good: Optional[Good] = ExchangePlanView.goods_content.selected
-                if good is not None and good.is_visual:
+                if good is not None and good.is_virtual:
                     self.game_uid_text = self.DEFAULT_TEXT
 
             ExchangePlanView.finish_content.button_submit.disable()
@@ -832,7 +843,7 @@ class CheckOutText(StaticStatus):
             elif isinstance(value, Good):
                 self.goods_name = finished_style_text(value.general_name)
                 self.goods_time = finished_style_text(value.time_text)
-                if value.is_visual:
+                if value.is_virtual:
                     self.address_detail = self.UNNEEDED_TEXT
                 else:
                     self.game_uid_text = self.UNNEEDED_TEXT
@@ -845,8 +856,8 @@ class CheckOutText(StaticStatus):
             record: GameRecord = ExchangePlanView.game_record_content.selected
             if account is not None \
                     and good is not None \
-                    and (address is not None or good.is_visual) \
-                    and (record is not None or not good.is_visual):
+                    and (address is not None or good.is_virtual) \
+                    and (record is not None or not good.is_virtual):
                 ExchangePlanView.finish_content.button_submit.enable()
                 ExchangePlanView.finish_content.button_test.enable()
             else:

@@ -49,7 +49,7 @@ class Good(BaseModel):
     account_cycle_type: Literal["forever", "month"]
     """限购类型"""
     game_biz: Optional[str]
-    """商品对应的游戏区服"""
+    """商品对应的游戏区服（如 hk4e_cn）（单独查询一个商品时）"""
     game: Optional[str]
     """商品对应的游戏"""
     unlimit: Optional[bool]
@@ -142,7 +142,7 @@ class Good(BaseModel):
                 self.account_cycle_limit, self.account_cycle_type)
 
     @property
-    def is_visual(self):
+    def is_virtual(self):
         """
         是否为虚拟商品
         """
