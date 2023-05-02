@@ -850,7 +850,7 @@ class FinishContent(ExchangePlanContent):
         yield self.check_out_text
         yield Horizontal(self.button_submit, self.button_test, self.loading)
 
-    def _on_button_pressed(self, event: ControllableButton.Pressed):
+    async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-finish-submit":
             account: UserAccount = ExchangePlanView.account_content.selected
             good: Good = ExchangePlanView.goods_content.selected
@@ -869,6 +869,7 @@ class FinishContent(ExchangePlanContent):
                 else:
                     self.app.notice(f"[bold red]保存兑换计划失败[/]")
                     # TODO: 保存失败的具体原因提示
+                await ExchangePlanView.manager_content.update_plans()
         elif event.button.id == "button-finish-test":
             # TODO: 测试兑换
             ...
