@@ -26,37 +26,6 @@ from mys_goods_tool.utils import logger, LOG_FORMAT
 
 # TODO: ntp 时间同步
 
-_T = TypeVar("_T")
-
-ExchangeCallback = Callable[[ExchangeStatus, Optional[ExchangeResult]], None]
-"""兑换回调函数类型"""
-
-
-def _on_fail(status: ExchangeStatus, result: Optional[ExchangeResult]):
-    if status.network_error:
-        error = "网络错误"
-    elif status.missing_stoken:
-        error = "商品为游戏内物品，但 Cookies 缺少 stoken"
-    elif status.missing_mid:
-        error = "商品为游戏内物品，但 stoken 为 'v2' 类型同时 Cookies 缺少 mid"
-    elif status.missing_address:
-        error = "商品为实体物品，但未配置收货地址"
-    elif status.missing_game_uid:
-        error = "商品为游戏内物品，但未配置对应游戏的账号UID"
-    elif status.unsupported_game:
-        error = "暂不支持兑换对应分区/游戏的商品"
-    elif status.failed_getting_game_record:
-        error = "获取用户 GameRecord 失败"
-    elif status.init_required:
-        error = "未进行兑换任务初始化"
-    elif status.account_not_found:
-        error = "账号不存在"
-    else:
-        error = "未知错误"
-
-    logger.error(f"用户 {result.plan.account.bbs_uid} - {result.plan.good.general_name} 兑换失败，原因：{error}")
-
-
 def _get_api_host() -> Optional[str]:
     """
     获取商品兑换API服务器地址
@@ -78,8 +47,6 @@ def _connection_test():
         logger.info(f"Ping 商品兑换API服务器 {hostname} 超时")
     elif result is False:
         logger.info(f"Ping 商品兑换API服务器 {hostname} 失败")
-    else:
-        logger.info(f"Ping 商品兑换API服务器 {hostname} 延迟 {round(result, 2)} ms")
     return result
 
 
@@ -145,6 +112,10 @@ def exchange_mode_simple():
             else:
                 logger.error(
                     f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换失败")
+        elif event.job_id == "exchange-connection_test":
+            result: Union[float, bool, None] = event.retval
+            if result:
+                print(f"Ping 商品兑换API服务器 {_get_api_host() or 'N/A'} - 延迟 {round(result, 2)} ms")
 
     try:
         scheduler.start()
