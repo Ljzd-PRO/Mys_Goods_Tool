@@ -15,7 +15,7 @@
 v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚发布这段时间测试可能不太够，可能不太稳定。
 
 ## 功能和特性
-- [x] 使用 Textual 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
+- [x] 使用 [Textual](https://github.com/Textualize/textual) 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
 - [x] 短信验证码登录（只需接收一次验证码）
 - [x] 内置人机验证页面，无需前往官网验证
 - [x] 多账号支持
@@ -25,11 +25,29 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
 - [ ] 支持在图形界面中编辑偏好设置
 - [ ] 密码登录
 
+### 预览图
+<details>
+<summary>短信验证登录</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235790425-7c502a69-baac-4ced-ba07-d068a88a7ae9.png" alt="短信验证登录页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235790979-85954be8-023f-47e0-bb69-bb16385905d4.png" alt="人机验证页面" />
+</details>
+
+<details>
+<summary>管理兑换计划</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235791200-d1a7c8f0-9a9a-4fcc-91bf-69fe397e6420.png" alt="选择目标商品页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235791332-3d8ea836-7d0b-4dbf-b643-81c65eaa5082.png" alt="确认添加计划页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235791435-69edf6f7-9abf-4c81-8da4-44a486c6d362.png" alt="管理计划页面" />
+</details>
+
+<details>
+<summary>进入兑换模式</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235791620-bf32692d-a521-49b3-bf2a-23d7012b6fff.png" alt="兑换模式页面" />
+</details>
 
 ## 使用说明
 
 ### 1. 下载安装
-有两种方案，**配置 Python 环境并从 PyPI 安装包** 或者 **直接下载可执行文件**。
+有两种方案，配置 Python 环境并从 PyPI 安装包 **或者** 直接下载可执行文件。
 
 #### 配置 Python 环境并从 PyPI 安装包
 1. 配置 Python 环境
@@ -75,9 +93,11 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
     ```
 
 ### 3. 偏好设置（可选）
-默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`]() 进行配置。
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/dev/mys_goods_tool/user_data.py) 进行配置。
 
 默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
+
+默认日志文件路径为 `./logs/mys_goods_tool.log`，可以通过修改配置文件中的偏好设置来指定日志输出路径。
 
 ## 其他
 - 仅供学习时参考
