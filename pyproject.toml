@@ -43,12 +43,17 @@ pytest = "^7.3.1"
 pytest-html = "^3.2.0"
 pytest-asyncio = "^0.21.0"
 flake8 = "^6.0.0"
+
+[tool.poetry.group.dev.dependencies]
 pydevd-pycharm = "231.8109.197"
 
 [tool.poetry.group.pyinstaller]
 optional = true
 
 [tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.dev]
 optional = true
 
 [build-system]
