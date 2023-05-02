@@ -1,42 +1,28 @@
 from argparse import ArgumentParser
+from typing import Optional
+
+from textual.app import App
 
 import mys_goods_tool.user_data
 from mys_goods_tool.user_data import load_config
-from .tui import TuiApp
-
-pyperclip_import_result = True
-try:
-    import pyperclip
-except ImportError:
-    print("pyperclip 剪切板模块导入失败，程序将不会自动复制文本到剪切板...")
-    pyperclip_import_result = False
 
 VERSION = "v2.0.0-dev"
 """程序当前版本"""
-NTP_MAX_RETRY_TIMES = 5
-"""网络时间校对失败后最多重试次数"""
 
 
-def guide_mode(textual_app: TuiApp):
-    textual_app.run()
-
-
-def main(textual_app: TuiApp):
+def main(textual_app: Optional[App]):
     arg = arg_parser.parse_args()
 
     if arg.conf is not None:
         mys_goods_tool.user_data.CONFIG_PATH = arg.conf
         mys_goods_tool.user_data.config = load_config()
     if arg.mode == "guide":
-        guide_mode(textual_app)
+        textual_app.run()
     elif arg.mode == "exchange":
         # TODO 兑换模式
         ...
     elif arg.mode == "exchange-simple":
         # TODO 兑换模式 simple
-        ...
-    elif arg.mode == "test":
-        # TODO 测试模式
         ...
 
 
@@ -50,7 +36,6 @@ Mys_Goods_Tool
         guide 指引模式（默认）
         exchange 兑换模式，等待到达兑换时间并自动兑换
         exchange-simple 兑换模式，无TUI界面，仅输出日志文本
-        test 测试模式，测试用户数据文件是否正确以及是否可能可以成功兑换
     -c, --conf <参数> 指定用户数据文件路径
 例如：
     %(prog)s -m exchange -c ./workplace/user_data.json
@@ -69,10 +54,16 @@ class ArgumentParserWithHelp(ArgumentParser):
 
 
 arg_parser = ArgumentParserWithHelp(description="Mys_Goods_Tool", usage=USAGE)
-arg_parser.add_argument("-m", "--mode", dest="mode", choices=["guide", "exchange", "exchange-simple", "test"],
+arg_parser.add_argument("-m", "--mode", dest="mode", choices=["guide", "exchange", "exchange-simple"],
                         default="guide")
 arg_parser.add_argument("-c", "--conf", type=str, dest="conf", default=None)
 
+TEXTUAL_DEBUG = False
+
 if __name__ == "__main__":
-    app = TuiApp()
+    app: Optional[App] = None
+    if TEXTUAL_DEBUG:
+        from .tui import TuiApp
+
+        app = TuiApp()
     main(app)
