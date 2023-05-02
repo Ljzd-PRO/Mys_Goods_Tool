@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "mys-goods-tool"
+version = "2.0.0-beta.1"
+description = "米游社商品兑换工具|短信验证登录|终端TUI界面"
+authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
+readme = "README.md"
+homepage = "https://github.com/Ljzd-PRO/Mys_Goods_Tool"
+repository = "https://github.com/Ljzd-PRO/Mys_Goods_Tool"
+documentation = "https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki"
+keywords = ["mihoyo", "mihoyobbs", "genshin impact", "textual", "tui"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 5 - Production/Stable"
+]
+
+packages = [{ include = "mys_goods_tool" }]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+tenacity = "^8.2.2"
+requests = "^2.29.0"
+ping3 = "^4.0.4"
+ntplib = "^0.4.0"
+pyperclip = "^1.8.2"
+pydantic = "^1.10.6"
+loguru = "^0.7.0"
+httpx = "^0.24.0"
+rich = "^13.3.5"
+textual = "^0.22.3"
+socksio = "^1.0.0"
+apscheduler = "^3.10.1"
+
+[tool.poetry.group.pyinstaller.dependencies]
+pyinstaller = "==5.10.1"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.3.1"
+pytest-html = "^3.2.0"
+pytest-asyncio = "^0.21.0"
+flake8 = "^6.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pydevd-pycharm = "231.8109.197"
+
+[tool.poetry.group.pyinstaller]
+optional = true
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.dev]
+optional = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- v0.1.1-dev -->
+<html lang="zh-CN">
+<head>
+    <link rel="shortcut icon" href="//www.geetest.com/static/imgs/favicon.ico"/>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>GEETEST 行为验证</title>
+    <style>
+        body {
+            margin: 50px 0;
+            text-align: center;
+            font-family: "PingFangSC-Regular", "Open Sans", Arial, "Hiragino Sans GB", "Microsoft YaHei", "STHeiti", "WenQuanYi Micro Hei", SimSun, sans-serif;
+        }
+
+        #captcha {
+            width: 300px;
+            display: inline-block;
+        }
+
+        label {
+            vertical-align: top;
+            display: inline-block;
+            width: 80px;
+            text-align: right;
+        }
+
+        #wait {
+            color: #666;
+            margin: 0;
+            display: none;
+        }
+
+        #successText {
+            color: green;
+            display: none;
+        }
+
+        #geetestResultDiv {
+            color: green;
+            display: none;
+        }
+
+        #errorText {
+            color: crimson;
+            display: none;
+        }
+
+        #errorDiv {
+            color: crimson;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<h1>GEETEST 行为验证前端</h1>
+<h2><a href="https://github.com/Ljzd-PRO">By Ljzd-PRO (GitHub)</a></h2>
+<h3>适用于 GEETEST gt3</h3>
+<form id="form">
+    <div>
+        <div id="captcha">
+            <p class="hidden" id="wait">正在加载验证码...</p>
+            <p class="hidden" id="successText">成功</p>
+            <div class="hidden" id="geetestResultDiv">
+                <h2>人机验证结果数据：</h2>
+                <h3>validate: </h3>
+                <p id="geetestValidate"></p>
+                <h3>seccode: </h3>
+                <p id="geetestSeccode"></p>
+            </div>
+            <p class="hidden" id="errorText">出现了错误</p>
+            <div class="hidden" id="errorDiv">
+                <h2>返回信息：</h2>
+                <h3>code: </h3>
+                <p id="errorCode"></p>
+                <h3>message: </h3>
+                <p id="errorMessage"></p>
+                <h3>description: </h3>
+                <p id="errorDescription"></p>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- 注意，验证码本身是不需要 jquery 库，此处使用 jquery 仅为了在 demo 中使用，减少代码量 -->
+<script src="//apps.bdimg.com/libs/jquery/1.9.1/jquery.js"></script>
+<!-- 引入 gt.js，既可以使用其中提供的 initGeetest 初始化函数 -->
+<script src="//static.geetest.com/static/tools/gt.js"></script>
+<script>
+    let success = false;
+
+    /**
+     * 显示错误信息
+     * @param {string} text 提示文本
+     * @param {Error} error GeetestError 错误对象
+     */
+    function displayError(text, error = null) {
+        $("#wait").hide();
+        const errorText = $("#errorText");
+        errorText.text(text);
+        if (error) {
+            $("#errorCode").text(error.code);
+            $("#errorMessage").text(error.msg);
+            $("#errorDescription").text(error.user_error);
+            $("#errorDiv").show();
+        }
+        errorText.show();
+    }
+
+    /**
+     * 显示成功信息
+     * @param {string} text 提示文本
+     */
+    function displaySuccess(text) {
+        $("#wait").hide();
+        const successText = $("#successText");
+        successText.text(text);
+        successText.show();
+    }
+
+    /**
+     * 显示验证结果
+     * @param {string} text 提示文本
+     * @param {string} validate 验证码验证结果 validate
+     * @param {string} seccode 验证码验证结果 seccode
+     */
+    function displayGeetestResult(text, validate, seccode) {
+        displaySuccess(text);
+        $("#geetestValidate").text(validate);
+        $("#geetestSeccode").text(seccode);
+        $("#geetestResultDiv").show();
+    }
+
+    const handler = function (captchaObj) {
+
+        captchaObj.appendTo('#captcha');
+        captchaObj.onError(function (error) {
+            if (error.code === "error_02") {
+                displayError("使用了旧的验证任务数据，请尝试重新申请人机验证任务", error);
+            } else if (error.code === "error_21") {
+                displayError("生成验证任务失败，可能是已经成功完成了验证", error);
+            } else {
+                displayError("生成验证任务失败", error);
+            }
+        });
+        captchaObj.onReady(function () {
+            $("#wait").hide();
+        });
+        // 更多前端接口说明请参见：http://docs.geetest.com/install/client/web-front/
+
+        setInterval(function () {
+            const result = captchaObj.getValidate();
+            if (result && !success) {
+                success = true;
+                displayGeetestResult("已成功获取验证结果", result.geetest_validate, result.geetest_seccode);
+                $.get("/result", {validate: result.geetest_validate, seccode: result.geetest_seccode})
+                    .done(function (_) {
+                        displaySuccess("已成功将验证结果发送至服务器");
+                    })
+                    .fail(function (error) {
+                        displayError("发送验证结果至服务器失败", error);
+                    });
+            }
+        }, 1000);
+    };
+
+    function start() {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const gt = urlParams.get('gt');
+        const challenge = urlParams.get('challenge');
+        let newCaptcha = Boolean(urlParams.get('newCaptcha'));
+
+        let wait = $("#wait");
+
+        if (!gt || !challenge) {
+            displayError("URL参数需要提供 gt 和 challenge");
+            return alert("URL参数需要提供 gt 和 challenge");
+        }
+
+        // newCaptcha 默认为true
+        if (!newCaptcha) {
+            newCaptcha = true;
+        }
+
+        wait.show();
+
+        // 调用 initGeetest 进行初始化
+        // 参数1：配置参数
+        // 参数2：回调，回调的第一个参数验证码对象，之后可以使用它调用相应的接口
+        initGeetest({
+            // 以下 4 个配置参数为必须，不能缺少
+            gt: gt,
+            challenge: challenge,
+            new_captcha: newCaptcha, // 用于宕机时表示是新验证码的宕机
+
+            product: "popup", // 产品形式，包括：float，popup
+            width: "300px"
+            // 更多前端配置参数说明请参见：http://docs.geetest.com/install/client/web-front/
+        }, handler);
+    }
+
+    start();
+</script>
+</body>
+</html>

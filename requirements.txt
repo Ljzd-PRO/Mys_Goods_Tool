@@ -1,3 +1,25 @@
-ping3
-requests
-ntplib
+# Dependencies for development only
+
+## main.dependencies
+tenacity~=8.2.2
+requests~=2.29.0
+ping3~=4.0.4
+ntplib~=0.4.0
+pyperclip~=1.8.2
+pydantic~=1.10.6
+loguru~=0.7.0
+httpx~=0.24.0
+rich~=13.3.5
+textual~=0.22.3
+socksio~=1.0.0
+apscheduler~=3.10.1
+
+## pyinstaller.dependencies
+pyinstaller==5.10.1
+
+## test.dependencies
+pytest~=7.3.1
+pytest-html~=3.2.0
+pytest-asyncio~=0.21.0
+flake8~=6.0.0
+pydevd-pycharm~=231.8109.197

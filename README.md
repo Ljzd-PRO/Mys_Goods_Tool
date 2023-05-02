@@ -1,4 +1,14 @@
-# 米游社商品兑换工具
+<div>
+  <a>
+    <img alt="Mys_Goods_Tool 预览" src="https://user-images.githubusercontent.com/63289359/235797444-21a86294-609e-4c7a-9d7d-5d3683fe6ab2.png" width="45%" />
+  </a>
+  <a>
+    <img alt="Mys_Goods_Tool 预览2" src="https://user-images.githubusercontent.com/63289359/235799237-3039c3e0-8fdb-4c12-957b-afb50f34625c.png" width="45%" />
+  <a>
+</div>
+
+# Mys_Goods_Tool 米游社商品兑换工具
+
 <div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
     <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
@@ -11,60 +21,94 @@
   </a>
 </div>
 
-**🎉 iOS
-iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
-可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
-*（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
 
-米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
+### 更新说明
+v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚发布这段时间测试可能不太够，可能不太稳定。
 
-建议同时自己也用手机操作去抢，以免脚本出问题。
+## 功能和特性
+- [x] 使用 [Textual](https://github.com/Textualize/textual) 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
+- [x] 短信验证码登录（只需接收一次验证码）
+- [x] 内置人机验证页面，无需前往官网验证
+- [x] 多账号支持
+- [x] 支持米游社所有分区的商品兑换
+
+### TODO
+- [ ] 支持在图形界面中编辑偏好设置
+- [ ] 密码登录
+
+### 预览图
+<details>
+<summary>短信验证登录</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235790425-7c502a69-baac-4ced-ba07-d068a88a7ae9.png" alt="短信验证登录页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235790979-85954be8-023f-47e0-bb69-bb16385905d4.png" alt="人机验证页面" />
+</details>
+
+<details>
+<summary>管理兑换计划</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235791200-d1a7c8f0-9a9a-4fcc-91bf-69fe397e6420.png" alt="选择目标商品页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235791332-3d8ea836-7d0b-4dbf-b643-81c65eaa5082.png" alt="确认添加计划页面" />
+<img src="https://user-images.githubusercontent.com/63289359/235791435-69edf6f7-9abf-4c81-8da4-44a486c6d362.png" alt="管理计划页面" />
+</details>
+
+<details>
+<summary>进入兑换模式</summary>
+<img src="https://user-images.githubusercontent.com/63289359/235791620-bf32692d-a521-49b3-bf2a-23d7012b6fff.png" alt="兑换模式页面" />
+</details>
 
 ## 使用说明
 
-### 第1⃣️步 配置`config.ini`文件，包含以下参数
+### 1. 下载安装
+有两种方案，配置 Python 环境并从 PyPI 安装包 **或者** 直接下载可执行文件。
 
-**[Config]**
-|  参数   | 说明  |
-|  ----  | ----  |
-| Cookie | **用户Cookies数据**<br>可通过`tool.py`工具直接获取（示例中两端的引号可有可无）<br>**兑换游戏内物品时 `stoken` 为必需项**<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
-| Time | **商品兑换活动开始时间**<br>（按照 `2022-1-1 00:00:00` 格式） |
-| Address_ID | **送货地址ID**<br>可用 `tool.py` 信息查询工具进行查询<br>*（附：[🔗`Address_ID` ~~手动抓包~~获取方法](./Docs/Address_ID.md)）* |
-| Good_ID | **要兑换的商品ID列表**<br>所有兑换任务会同时执行。可用 `tool.py` 信息查询工具进行查询（用逗号 , 分隔）<br>*（附：[🔗`tool` 工具使用说明](./Docs/tool.md)）* |
-| UID | **游戏UID**<br>可选，如果要兑换游戏内物品则需要填写，只能填写一个UID。 |
+#### 配置 Python 环境并从 PyPI 安装包
+1. 配置 Python 环境
+2. 进行安装
+    ```shell
+    pip install mys-goods-tool
+    ```
+3. 运行
+    ```shell
+    python -m mys_goods_tool
+    ```
 
-**[Preference]**
-|  参数   | 说明  |
-|  ----  | ----  |
-| Check_Network | 是否自动检测网络连接情况<br>（是: 填入 1, 否: 填入 0）(`ping api-takumi.mihoyo.com`) |
-| Check_Time | 每隔多久检查一次网络连接情况<br>（单位 秒） |
-| Stop_Check | 距离开始兑换还剩多久停止检查网络<br>（单位 秒） |
-| Thread | 每个商品使用多少线程进行兑换<br>（避免出现卡在单个兑换请求的现象，如果目标可兑换数量超过一个建议线程为1） |
+#### 直接下载可执行文件
+- 前往 [🔗 Releases](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 下载最新版本可执行文件
+- 双击打开或在可执行文件目录下运行
+    - Windows
+        ```shell
+        .\Mys_Goods_Tool.exe
+        ```
+    - Linux / macOS
+        ```shell
+        chmod +x ./Mys_Goods_Tool
+        ./Mys_Goods_Tool
+        ```
 
-#### **更多说明: [🔗config.ini](./config.ini)**
-#### **示例**
-```ini
-[Config]
-cookie = "ltuid=123456789;login_ticket=abcDEFijkLMN;account_id=123456789;ltoken=DEFijkLMNabc;cookie_token=ijkLMNabcDEF;stoken=LMNabcDEFijk;"
-time = 2022-6-8 19:00:00
-address_id = 13911
-good_id = 2022053111713, 2022053111397
-uid = 987654321
+### 2. 自定义启动参数（可选）
+- `%(prog)s` 即为程序路径
+    ```shell
+    Mys_Goods_Tool
+    使用说明:
+    %(prog)s [-m <运行模式>] [-c <用户数据文件路径>]
+    选项:
+        -h, --help 显示此帮助信息
+        -m, --mode <参数> 指定运行模式
+            guide TUI指引模式 包含登陆绑定 管理兑换计划和开始兑换等功能 默认
+            exchange-simple 兑换模式 无TUI界面 仅输出日志文本
+        -c, --conf <参数> 指定用户数据文件路径
+    例如:
+        ./Mys_Goods_Tool -m exchange-simple -c ./workplace/user_data.json
+            通过该命令运行本程序 将读取 ./workplace/user_data.json 用户数据文件 并直接进入无TUI界面的兑换模式 等待到达兑换时间并执行兑换
+        ./Mys_Goods_Tool
+            通过该命令运行本程序或直接双击打开程序 将读取程序目录下的用户数据文件user_data.json 并提供登录绑定 管理兑换计划等功能
+    ```
 
-[Preference]
-check_network = 1
-check_time = 10
-stop_check = 30
-thread = 3
-```
+### 3. 偏好设置（可选）
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/dev/mys_goods_tool/user_data.py) 进行配置。
 
-### 第2⃣️步 运行`main.py`或运行[🔗已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)
+默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
 
-- 在兑换开始之前运行主程序。
-
-- 建议先把兑换时间设定为当前时间往后的一两分钟，测试一下是否能正常兑换，如果返回未到时间或者库存不足就基本没有问题。
-
-- **可前往`./logs/mys_goods_tool.log`查看日志**
+默认日志文件路径为 `./logs/mys_goods_tool.log`，可以通过修改配置文件中的偏好设置来指定日志输出路径。
 
 ## 其他
 - 仅供学习时参考

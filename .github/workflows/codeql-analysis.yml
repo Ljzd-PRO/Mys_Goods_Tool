@@ -12,16 +12,21 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches:
-    - stable
-    - dev
-    
   pull_request:
     # The branches below must be a subset of the branches above
     branches:
-    - stable
-    - dev
+      - stable
+      - dev
+    paths:
+      - 'mys_goods_tool/**'
+      - 'mys_goods_tool_v1/**'
+
+permissions:
+  contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
 
 jobs:
   analyze:
@@ -35,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python' ]
+        language: [ 'python', 'javascript' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 

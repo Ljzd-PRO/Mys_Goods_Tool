@@ -18,7 +18,7 @@ import ntplib
 import requests
 from ping3 import ping
 
-VERSION = "v1.4.5"
+VERSION = "v1.4.4"
 """程序当前版本"""
 TIME_OUT = 5
 """网络请求的超时时间（商品和游戏账户详细信息查询）"""
@@ -87,8 +87,8 @@ def to_log(info_type: str = "", info: str = "") -> str:
     """
     now = ""
     try:
-        if not os.path.exists(get_file_path("logs")):
-            os.mkdir(get_file_path("logs/"))
+        if not os.path.exists(get_file_path("../logs")):
+            os.mkdir(get_file_path("../logs/"))
         try:
             now = time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.localtime(NtpTime.time()))
@@ -98,7 +98,7 @@ def to_log(info_type: str = "", info: str = "") -> str:
         except:
             now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log = now + "  " + info_type + "  " + info
-        with open(get_file_path("logs/mys_goods_tool.log"), "a",
+        with open(get_file_path("../logs/mys_goods_tool.log"), "a",
                   encoding="utf-8") as log_a_file_io:
             log_a_file_io.write(log + "\n")
         return log
@@ -220,17 +220,16 @@ class Good:
         if stoken != "..." and stoken != "" and "stoken" not in cookie:
             cookie.setdefault("stoken", stoken)
         # 若 Cookie 中存在stoken，获取其中的stoken信息
-        elif "stoken" in cookie:
+        elif "stoken" not in cookie:
             stoken = cookie["stoken"]
         else:
             stoken = None
 
-        # 从 Cookie 中获取米游社 UID
-        bbs_uid = ""
+        # 从 Cookie 中获取游戏UID
         for target in ("ltuid", "account_id", "stuid"):
-            if target in cookie:
-                bbs_uid = cookie[target]
-                break
+            if target not in cookie:
+                continue
+            bbs_uid = cookie[target]
     except KeyboardInterrupt:
         print(to_log("WARN", "用户强制结束程序"))
         exit(1)
@@ -316,7 +315,7 @@ class Good:
                                     self.id)))
                         self.result = -1
                         return
-                    if Good.stoken.find("v2__") == 0 and "mid" not in Good.cookie:
+                    if Good.cookie["stoken"].find("v2__") == 0 and "mid" not in Good.cookie:
                         print(
                             to_log(
                                 "ERROR",
