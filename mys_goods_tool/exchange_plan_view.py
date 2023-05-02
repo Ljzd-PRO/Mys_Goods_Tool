@@ -132,7 +132,7 @@ class AccountContent(BaseExchangePlan):
         yield Horizontal(self.button_select, self.button_refresh, self.button_reset)
         yield self.option_list
 
-    def reset_selected(self, _: Optional[events.Message] = None):
+    def reset_selected(self):
         """
         重置账号选择
         """
@@ -149,6 +149,19 @@ class AccountContent(BaseExchangePlan):
         self.text_view.update(self.DEFAULT_TEXT)
         ExchangePlanView.address_content.reset_all()
         ExchangePlanView.game_record_content.reset_all()
+
+    def update_accounts(self):
+        """
+        更新账号列表
+        """
+        self.account_keys = list(conf.accounts.keys())
+        self.option_list.clear_options()
+        for account in self.account_keys:
+            self.option_list.add_option(account)
+        if not self.account_keys:
+            self.option_list.add_option(self.empty_data_option)
+        # 重置已选内容
+        self.reset_selected()
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed) -> None:
         if event.button.id == "button-account-select":
@@ -185,20 +198,13 @@ class AccountContent(BaseExchangePlan):
         elif event.button.id == "button-account-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            self.account_keys = list(conf.accounts.keys())
-            self.option_list.clear_options()
-            for account in self.account_keys:
-                self.option_list.add_option(account)
-            if not self.account_keys:
-                self.option_list.add_option(self.empty_data_option)
-            # 重置已选内容
-            self.reset_selected(event)
+            self.update_accounts()
             self.app.notice("[bold green]已刷新米游社账号列表[/]")
 
         elif event.button.id == "button-account-reset":
             # 按下“重置”按钮时触发的事件
 
-            self.reset_selected(event)
+            self.reset_selected()
             self.app.notice("已重置米游社账号选择")
 
 

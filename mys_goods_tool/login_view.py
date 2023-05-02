@@ -16,6 +16,7 @@ from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_tick
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
+from mys_goods_tool.exchange_plan_view import ExchangePlanView
 from mys_goods_tool.geetest import GeetestProcessManager, SetAddressProcessManager
 from mys_goods_tool.user_data import config as conf, UserAccount, CONFIG_PATH
 from mys_goods_tool.utils import logger
@@ -482,6 +483,8 @@ class CaptchaForm(LoginForm):
                             CaptchaLoginInformation.radio_tuple.login_finished.turn_on()
                             self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
                             self.button.success.show()
+
+                            ExchangePlanView.account_content.update_accounts()
 
         self.loading.hide()
         if not login_status:
