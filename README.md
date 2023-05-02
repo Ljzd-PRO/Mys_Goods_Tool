@@ -15,7 +15,7 @@
 v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚发布这段时间测试可能不太够，可能不太稳定。
 
 ## 功能和特性
-- [x] 使用 Textual 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
+- [x] 使用 [Textual](https://github.com/Textualize/textual) 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
 - [x] 短信验证码登录（只需接收一次验证码）
 - [x] 内置人机验证页面，无需前往官网验证
 - [x] 多账号支持
@@ -93,9 +93,11 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
     ```
 
 ### 3. 偏好设置（可选）
-默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`]() 进行配置。
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/dev/mys_goods_tool/user_data.py) 进行配置。
 
 默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
+
+默认日志文件路径为 `./logs/mys_goods_tool.log`，可以通过修改配置文件中的偏好设置来指定日志输出路径。
 
 ## 其他
 - 仅供学习时参考
