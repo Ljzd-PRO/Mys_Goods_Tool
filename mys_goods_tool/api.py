@@ -1173,156 +1173,56 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
             return GetCookieStatus(network_error=True), None
 
 
-class Exchange:
+async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:
     """
-    米游币商品兑换任务
+    米游币商品兑换
+
+    :param plan: 兑换计划
     """
-
-    def __init__(self, exchange_plan: ExchangePlan, account: Optional[UserAccount] = None) -> None:
-        """
-        初始化兑换任务(仅导入参数)
-
-        :param exchange_plan: 兑换计划数据
-        :param account: 用户账户数据
-        """
-        self.initialized = False
-        self.exchange_plan = exchange_plan
-        if not account:
-            account_in_plan = exchange_plan.account
-            if isinstance(account_in_plan, str):
-                find_account = conf.accounts.get(account_in_plan)
-                if find_account:
-                    self.account = find_account
-                else:
-                    self.account = None
-                    logger.error(f"兑换计划的账户 {account_in_plan} 不存在")
-                    return
-
-            else:
-                self.account = account_in_plan
+    headers = HEADERS_EXCHANGE
+    headers["x-rpc-device_id"] = plan.account.device_id_ios
+    content = {
+        "app_id": 1,
+        "point_sn": "myb",
+        "goods_id": plan.good.goods_id,
+        "exchange_num": 1,
+    }
+    if plan.address is not None:
+        content.setdefault("address_id", plan.address.id)
+    if plan.game_record is not None:
+        content.setdefault("uid", plan.game_record.game_role_id)
+        # 例: cn_gf01
+        content.setdefault("region", plan.game_record.region)
+        # 例: hk4e_cn
+        content.setdefault("game_biz", plan.good.game_biz)
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(
+                URL_EXCHANGE, headers=headers, json=content, cookies=plan.account.cookies.dict(),
+                timeout=conf.preference.timeout)
+        api_result = ApiResultHandler(res.json())
+        if api_result.login_expired:
+            logger.info(
+                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 登录失效")
+            logger.debug(f"网络请求返回: {res.text}")
+            return ExchangeStatus(login_expired=True), None
+        if api_result.success:
+            logger.info(
+                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认。")
+            logger.debug(f"网络请求返回: {res.text}")
+            return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json())
         else:
-            self.account = account
-        self.content = {
-            "app_id": 1,
-            "point_sn": "myb",
-            "goods_id": self.exchange_plan.good_id,
-            "exchange_num": 1
-        }
-        if self.exchange_plan.address_id:
-            self.content.setdefault("address_id", self.exchange_plan.address_id)
-
-    async def init_plan(self, retry: bool = True) -> ExchangeStatus:
-        """
-        初始化兑换任务
-
-        :param retry: 是否重试
-        """
-        if not self.account:
-            logger.error(f"米游币商品兑换 - 初始化兑换任务: 未找到兑换计划的账户（可能是对象初始化失败）")
-            return ExchangeStatus(account_not_found=True)
-        try:
-            async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
-                                                        wait=tenacity.wait_fixed(conf.preference.retry_interval)):
-                with attempt:
-                    async with httpx.AsyncClient() as client:
-                        res = await client.get(
-                            URL_CHECK_GOOD.format(self.exchange_plan.good_id), timeout=conf.preference.timeout)
-                    api_result = ApiResultHandler(res.json())
-                    good_info = Good.parse_obj(api_result.data)
-                    if good_info.type == 2 and good_info.game_biz != "bbs_cn":
-                        if not self.account.cookies.stoken:
-                            logger.error(
-                                f"米游币商品兑换 - 初始化兑换任务: 商品 {self.exchange_plan.good_id} 为游戏内物品，由于未配置stoken，放弃兑换")
-                            return ExchangeStatus(missing_stoken=True)
-                        elif self.account.cookies.stoken.find("v2__") == 0 and not self.account.cookies.mid:
-                            logger.error(
-                                f"米游币商品兑换 - 初始化兑换任务: 商品 {self.exchange_plan.good_id} 为游戏内物品，由于stoken为\"v2\"类型，且Cookies缺少mid，放弃兑换")
-                            return ExchangeStatus(missing_mid=True)
-                        elif not self.exchange_plan.game_uid:
-                            logger.error(
-                                f"米游币商品兑换 - 初始化兑换任务: 商品 {self.exchange_plan.good_id} 为游戏内物品，由于未配置对应游戏的账号UID，放弃兑换")
-                            return ExchangeStatus(missing_game_uid=True)
-                    # 若商品非游戏内物品，则直接返回，不进行下面的操作
-                    else:
-                        if not self.exchange_plan.address_id:
-                            logger.error(
-                                f"米游币商品兑换 - 初始化兑换任务: 商品 {self.exchange_plan.good_id} 为实体物品，由于未配置地址ID，放弃兑换")
-                            return ExchangeStatus(missing_address=True)
-
-                    if good_info.game not in ("bh3", "hk4e", "bh2", "nxx"):
-                        logger.warning(
-                            f"米游币商品兑换 - 初始化兑换任务: 暂不支持商品 {self.exchange_plan.good_id} 所属的游戏")
-                        return ExchangeStatus(unsupported_game=True)
-
-                    game_record_result = await get_game_record(self.account)
-                    if not game_record_result[0]:
-                        return ExchangeStatus(failed_getting_game_record=True)
-                    else:
-                        record_list = game_record_result[1]
-
-                    for record in record_list:
-                        if record.uid == self.exchange_plan.game_uid:
-                            self.content.setdefault("uid", record.uid)
-                            # 例: cn_gf01
-                            self.content.setdefault("region", record.region)
-                            # 例: hk4e_cn
-                            self.content.setdefault(
-                                "game_biz", good_info.game_biz)
-                            break
-
-                    self.initialized = True
-                    return ExchangeStatus(success=True)
-        except tenacity.RetryError as e:
-            if is_incorrect_return(e):
-                logger.error(f"米游币商品兑换 - 初始化兑换任务: 服务器没有正确返回")
-                logger.debug(f"网络请求返回: {res.text}")
-                logger.debug(f"{traceback.format_exc()}")
-                return ExchangeStatus(incorrect_return=True)
-            else:
-                logger.error(f"米游币商品兑换 - 初始化兑换任务: 网络请求失败")
-                logger.debug(f"{traceback.format_exc()}")
-                return ExchangeStatus(network_error=True)
-
-    async def start(self) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:
-        """
-        执行兑换操作
-        """
-        if not self.initialized:
-            logger.error(f"商品：{self.exchange_plan.good_id} 未进行兑换任务初始化，放弃兑换")
-            return ExchangeStatus(init_required=True), None
+            logger.info(
+                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认。")
+            logger.debug(f"网络请求返回: {res.text}")
+            return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json())
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.error(
+                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            return ExchangeStatus(incorrect_return=True), None
         else:
-            headers = HEADERS_EXCHANGE
-            headers["x-rpc-device_id"] = self.account.device_id_ios
-            try:
-                async with httpx.AsyncClient() as client:
-                    res = await client.post(
-                        URL_EXCHANGE, headers=headers, json=self.content, cookies=self.account.cookies.dict(),
-                        timeout=conf.preference.timeout)
-                api_result = ApiResultHandler(res.json())
-                if api_result.login_expired:
-                    logger.info(
-                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 登录失效")
-                    logger.debug(f"网络请求返回: {res.text}")
-                    return ExchangeStatus(login_expired=True), None
-                if api_result.success:
-                    logger.info(
-                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 兑换成功！可以自行确认。")
-                    logger.debug(f"网络请求返回: {res.text}")
-                    return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json())
-                else:
-                    logger.info(
-                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 兑换失败，可以自行确认。")
-                    logger.debug(f"网络请求返回: {res.text}")
-                    return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json())
-            except tenacity.RetryError as e:
-                if is_incorrect_return(e):
-                    logger.error(
-                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 服务器没有正确返回")
-                    logger.debug(f"网络请求返回: {res.text}")
-                    logger.debug(f"{traceback.format_exc()}")
-                    return ExchangeStatus(incorrect_return=True), None
-                else:
-                    logger.error(
-                        f"米游币商品兑换 - 执行兑换: 用户 {self.account.bbs_uid} 商品 {self.exchange_plan.good_id} 请求失败")
-                    logger.debug(f"{traceback.format_exc()}")
-                    return ExchangeStatus(network_error=True), None
+            logger.exception(
+                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 请求失败")
+            return ExchangeStatus(network_error=True), None
