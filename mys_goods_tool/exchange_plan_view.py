@@ -1023,6 +1023,12 @@ class ExchangePlanView(Container):
     """
     添加兑换计划 - 界面
     """
+    DEFAULT_CSS = """
+    ExchangePlanView {
+        overflow: auto;
+    }
+    """
+
     account_content = AccountContent()
     goods_content = GoodsContent()
     game_record_content = GameRecordContent()

@@ -26,6 +26,11 @@ class LoginView(Container):
     """
     登录页面
     """
+    DEFAULT_CSS = """
+    LoginView {
+        overflow: auto;
+    }
+    """
 
     def compose(self) -> ComposeResult:
         yield CaptchaLoginInformation()
@@ -38,16 +43,16 @@ class CaptchaLoginInformation(Container):
     短信验证登录页面的信息提示区域
     """
     DEFAULT_CSS = """
-        CaptchaLoginInformation {
-            height: auto;
-            margin: 1 0;
-            overflow: hidden;
-        }
+    CaptchaLoginInformation {
+        height: auto;
+        margin: 1 0;
+        overflow: hidden;
+    }
 
-        CaptchaLoginInformation Horizontal {
-            align: center middle;
-        }
-        """
+    CaptchaLoginInformation Horizontal {
+        align: center middle;
+    }
+    """
 
     class Tips(Container):
         """
