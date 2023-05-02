@@ -17,6 +17,9 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
+VERSION = "2.0.0-dev"
+"""程序当前版本"""
+
 if TYPE_CHECKING:
     IntStr = Union[int, str]
     DictStrAny = Dict[str, Any]
@@ -257,12 +260,12 @@ class Preference(BaseSettings):
     偏好设置
     """
     github_proxy: Optional[str] = "https://ghproxy.com/"
-    """GitHub加速代理"""
+    """GitHub加速代理 最终会拼接在原GitHub链接前面"""
     enable_connection_test: bool = True
     """是否开启连接测试"""
     connection_test_interval: Optional[float] = 30
     """连接测试间隔（单位：秒）"""
-    timeout: Optional[float] = 10
+    timeout: float = 10
     """网络请求超时时间（单位：秒）"""
     max_retry_times: Optional[int] = 3
     """最大网络请求重试次数"""
@@ -272,16 +275,16 @@ class Preference(BaseSettings):
     """是否开启NTP时间同步（将调整实际发出兑换请求的时间，而不是修改系统时间）"""
     ntp_server: Optional[str] = "ntp.aliyun.com"
     """NTP服务器地址"""
-    geetest_statics_path: Optional[Path] = None
+    timezone: Optional[str] = "Asia/Shanghai"
+    """兑换时所用的时区"""
+    geetest_statics_path: Optional[Path]
     """GEETEST行为验证 网站静态文件目录（默认读取本地包自带的静态文件）"""
     geetest_listen_address: Optional[Tuple[str, int]] = ("localhost", 0)
     """登录时使用的 GEETEST行为验证 WEB服务 本地监听地址"""
     exchange_thread_count: int = 3
     """兑换线程数"""
-    exchange_thread_interval: float = 0.05
-    """每个兑换线程之间等待的时间间隔（单位：秒）"""
-    exchange_latency: float = 0.03
-    """兑换时间延迟（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
+    exchange_latency: Tuple[float, float] = (0, 0.35)
+    """兑换时间延迟随机范围（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
     enable_log_output: bool = True
     """是否保存日志"""
     log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
@@ -373,8 +376,10 @@ class DeviceConfig(BaseSettings):
 
 class UserData(BaseModel):
     """
-    配置类
+    用户数据类
     """
+    version: str = VERSION
+    """创建用户数据的程序版本号"""
     exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
     """兑换计划列表"""
     preference: Preference = Preference()
