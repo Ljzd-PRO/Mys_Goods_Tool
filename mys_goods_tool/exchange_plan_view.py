@@ -856,16 +856,19 @@ class FinishContent(ExchangePlanContent):
             good: Good = ExchangePlanView.goods_content.selected
             address: Optional[Address] = ExchangePlanView.address_content.selected
             record: Optional[GameRecord] = ExchangePlanView.game_record_content.selected
-            conf.exchange_plans.add(ExchangePlan(good=good,
-                                                 address=address,
-                                                 account=account,
-                                                 game_record=record)
-                                    )
-            if conf.save():
-                self.app.notice(f"[bold green]已保存兑换计划[/]")
+            plan = ExchangePlan(good=good,
+                                address=address,
+                                account=account,
+                                game_record=record)
+            if plan in conf.exchange_plans:
+                self.app.notice(f"[bold yellow]该兑换计划已存在[/]")
             else:
-                self.app.notice(f"[bold red]保存兑换计划失败[/]")
-                # TODO: 保存失败的具体原因提示
+                conf.exchange_plans.add(plan)
+                if conf.save():
+                    self.app.notice(f"[bold green]已保存兑换计划[/]")
+                else:
+                    self.app.notice(f"[bold red]保存兑换计划失败[/]")
+                    # TODO: 保存失败的具体原因提示
         elif event.button.id == "button-finish-test":
             # TODO: 测试兑换
             ...
