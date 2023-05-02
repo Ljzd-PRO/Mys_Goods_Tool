@@ -484,7 +484,7 @@ class CaptchaForm(LoginForm):
                             self.app.notice(f"用户 [bold green]{phone_number}[/] 登录成功！")
                             self.button.success.show()
 
-                            ExchangePlanView.account_content.update_accounts()
+                            ExchangePlanView.account_content.update_data()
 
         self.loading.hide()
         if not login_status:

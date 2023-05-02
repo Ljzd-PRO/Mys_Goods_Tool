@@ -88,6 +88,17 @@ class BaseExchangePlan(ExchangePlanContent):
         """
         pass
 
+    @abstractmethod
+    def update_data(self):
+        """
+        更新数据
+        一般包含：
+            - 更新选项列表
+            - 如果列表为空，加入空数据提示项
+            - 重置已选内容
+        """
+        pass
+
     def reset_all(self) -> None:
         """
         重置所有内容
@@ -150,7 +161,7 @@ class AccountContent(BaseExchangePlan):
         ExchangePlanView.address_content.reset_all()
         ExchangePlanView.game_record_content.reset_all()
 
-    def update_accounts(self):
+    def update_data(self):
         """
         更新账号列表
         """
@@ -192,13 +203,13 @@ class AccountContent(BaseExchangePlan):
                 self.app.notice(
                     f"选择的米游社账号：[bold red]{account_key}[/] Cookies不完整，但你仍然可以尝试进行兑换")
 
-            await ExchangePlanView.address_content.update_address()
-            await ExchangePlanView.game_record_content.update_game_record()
+            await ExchangePlanView.address_content.update_data()
+            await ExchangePlanView.game_record_content.update_data()
 
         elif event.button.id == "button-account-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            self.update_accounts()
+            self.update_data()
             self.app.notice("[bold green]已刷新米游社账号列表[/]")
 
         elif event.button.id == "button-account-reset":
@@ -273,7 +284,7 @@ class GoodsContent(BaseExchangePlan):
         yield Horizontal(self.button_refresh, self.button_reset, self.loading)
         yield self.tabbed_content
 
-    async def update_goods(self):
+    async def update_data(self):
         """
         刷新商品信息
         """
@@ -323,7 +334,7 @@ class GoodsContent(BaseExchangePlan):
                     await self.tabbed_content.append(goods_data.tap_pane)
 
             # 更新每个频道的商品数据
-            await self.update_goods()
+            await self.update_data()
         else:
             self.text_view.update("[bold red]⚠ 获取商品频道列表失败，可尝试刷新[/]")
             self.app.notice("[bold red]获取商品频道列表失败！[/]")
@@ -402,7 +413,7 @@ class GoodsContent(BaseExchangePlan):
                                   f"\n[/list]")
 
             if good.is_visual and AccountContent._selected is not None:
-                await ExchangePlanView.game_record_content.update_game_record()
+                await ExchangePlanView.game_record_content.update_data()
 
         elif event.button.id == "button-goods-refresh":
             # 按下“刷新”按钮时触发的事件
@@ -410,7 +421,7 @@ class GoodsContent(BaseExchangePlan):
             # 在初次加载时，如果获取商品频道信息失败，则此时重新获取
             if not self.good_dict:
                 await self._on_mount(events.Mount())
-            await self.update_goods()
+            await self.update_data()
 
         elif event.button.id == "button-goods-reset":
             # 按下“重置”按钮时触发的事件
@@ -443,7 +454,7 @@ class GameRecordContent(BaseExchangePlan):
     record_list: List[GameRecord] = []
     """游戏账号列表"""
 
-    async def update_game_record(self):
+    async def update_data(self):
         """
         更新游戏账号列表
         """
@@ -572,7 +583,7 @@ class GameRecordContent(BaseExchangePlan):
         elif event.button.id == "button-game_uid-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            await self.update_game_record()
+            await self.update_data()
 
         elif event.button.id == "button-game_uid-reset":
             # 按下“重置”按钮时触发的事件
@@ -611,7 +622,7 @@ class AddressContent(BaseExchangePlan):
     address_list: List[Address] = []
     """收货地址列表"""
 
-    async def update_address(self):
+    async def update_data(self):
         """
         更新收货地址列表
         """
@@ -744,7 +755,7 @@ class AddressContent(BaseExchangePlan):
         elif event.button.id == "button-address-refresh":
             # 按下“刷新”按钮时触发的事件
 
-            await self.update_address()
+            await self.update_data()
 
         elif event.button.id == "button-address-reset":
             # 按下“重置”按钮时触发的事件
