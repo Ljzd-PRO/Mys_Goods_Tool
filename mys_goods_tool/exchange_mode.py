@@ -334,6 +334,8 @@ class ExchangeResultRow(UnClickableItem):
                         pass
                     else:
                         conf.save()
+
+                    # TODO: 疑似会产生重复的日志，待修复
                     if exchange_result.result:
                         ExchangeResultRow.finished_plans.add(self.plan)
                         logger.info(

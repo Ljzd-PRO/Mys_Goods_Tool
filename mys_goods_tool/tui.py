@@ -361,6 +361,7 @@ class TuiApp(App):
                 column.disabled = False
                 column.display = BLOCK
             self.app.query_one(".location-exchange_mode").scroll_visible(top=True, animate=False)
+
         await super().on_event(event)
 
     def action_open_link(self, link: str) -> None:
