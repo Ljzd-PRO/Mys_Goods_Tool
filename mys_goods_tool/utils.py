@@ -16,6 +16,7 @@ import ntplib
 import tenacity
 from loguru import logger
 from pydantic import ValidationError
+from textual.logging import TextualHandler
 
 from mys_goods_tool.user_data import config as conf
 
@@ -29,6 +30,7 @@ LOG_FORMAT: str = (
 
 logger.remove()
 if conf.preference.log_path:
+    logger.add(TextualHandler(), diagnose=True, format=LOG_FORMAT, level="INFO")
     logger.add(conf.preference.log_path, diagnose=True, format=LOG_FORMAT, level="DEBUG")
 
 

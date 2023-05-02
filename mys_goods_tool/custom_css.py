@@ -244,6 +244,13 @@ class ExchangePlanContent(Container):
         margin: 1;
     }
     
+    ExchangePlanContent ListView {
+        height: auto;
+        width: 1fr;
+        padding: 1;
+        border: round $primary;
+    }
+    
     ExchangePlanContent StaticStatus {
         margin: 0 0 1 0;
     }

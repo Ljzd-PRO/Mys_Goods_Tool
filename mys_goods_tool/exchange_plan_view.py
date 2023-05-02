@@ -841,8 +841,8 @@ class FinishContent(ExchangePlanContent):
     完成兑换计划添加的视图
     """
     check_out_text = CheckOutText()
-    button_submit = ControllableButton("保存兑换计划", variant="success", id="button-finish-submit", disabled=True)
-    button_test = ControllableButton("测试兑换", id="button-finish-test", disabled=True)
+    button_submit = ControllableButton("💾 保存兑换计划", variant="success", id="button-finish-submit", disabled=True)
+    button_test = ControllableButton("🔧 测试兑换", id="button-finish-test", disabled=True)
     loading = LoadingDisplay()
     loading.hide()
 
@@ -878,32 +878,33 @@ class ExchangePlanRow(Container):
 
     def __init__(self, plan: ExchangePlan):
         self.plan = plan
-        self.button_delete = PlanButton("删除计划",
+        self.button_delete = PlanButton("🧹 删除计划",
                                         variant="warning",
                                         id=f"button-plan_row-delete-{plan.__hash__()}",
                                         plan=plan)
-        self.button_confirm = PlanButton("确认删除",
+        self.button_confirm = PlanButton("⚠ 确认删除",
                                          variant="error",
                                          id=f"button-plan_row-confirm-{plan.__hash__()}",
-                                         plan=plan,
-                                         disabled=True)
-        self.button_test = PlanButton("测试兑换",
+                                         plan=plan)
+
+        self.button_test = PlanButton("🔧 测试兑换",
                                       id=f"button-plan_row-test-{plan.__hash__()}",
                                       plan=plan)
-        self.button_cancel = PlanButton("取消删除",
+        self.button_cancel = PlanButton("↩ 取消删除",
                                         variant="warning",
                                         id=f"button-plan_row-cancel-{plan.__hash__()}",
-                                        plan=plan,
-                                        disabled=True)
+                                        plan=plan)
+        self.button_confirm.hide()
+        self.button_cancel.hide()
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        yield StaticStatus(f"\n[list]"
+        yield StaticStatus(f"[list]"
                            f"\n👓 米游社账号 - {self.plan.account.bbs_uid}"
-                           f"\n📦 商品名称 - {self.plan.good.goods_id}"
+                           f"\n📦 商品名称 - {self.plan.good.goods_name}"
                            f"\n📅 兑换时间 - {self.plan.good.time_text}"
                            f"\n🎮 游戏UID - {self.plan.game_record.game_role_id}"
-                           f"\n📮 收货地址 - {self.plan.address.id}"
+                           f"\n📮 收货地址 - {self.plan.address.addr_ext if self.plan.address is not None else '无需设置'}"
                            f"\n[/list]")
         with Horizontal():
             yield self.button_delete
@@ -922,8 +923,9 @@ class ExchangePlanRow(Container):
             conf.exchange_plans.remove(event.button.plan)
             conf.save()
             self.app.notice(f"[bold red]已删除兑换计划[/]")
-            await ManagerContent.list_view.query(event.button.plan.__hash__()).remove()
+            await ManagerContent.list_view.query(ManagerContent.list_item_id(event.button.plan)).remove()
             ManagerContent.list_view.index = None
+            ManagerContent.list_view.refresh()
 
         elif event.button.id.startswith("button-plan_row-test"):
             # TODO: 测试兑换
@@ -940,24 +942,52 @@ class ManagerContent(ExchangePlanContent):
     """
     管理兑换计划的视图
     """
-    list_view = ListView(
-        *map(lambda x: ListItem(ExchangePlanRow(x), id=x.__hash__()), conf.exchange_plans),
-        initial_index=None
-    )
-    button_refresh = ControllableButton("刷新计划列表", id="button-manager-refresh")
+    button_refresh = ControllableButton("🔄 刷新计划列表", id="button-manager-refresh")
+    list_view = ListView(initial_index=None)
+
+    @classmethod
+    def list_item_id(cls, plan: ExchangePlan):
+        """
+        生成兑换计划列表项Widget的ID
+
+        :param plan: 兑换计划
+        """
+        return f"list_item-plan_row-{plan.__hash__()}"
+
+    @property
+    def empty_data_item(self):
+        """
+        :return: 没有数据时的列表项
+        """
+        return ListItem(Static("暂无兑换计划数据 请尝试刷新"), disabled=True)
 
     def compose(self) -> ComposeResult:
         yield self.button_refresh
         yield self.list_view
 
+    async def update_plans(self):
+        """
+        刷新兑换计划列表
+        """
+        await self.list_view.clear()
+        for plan in conf.exchange_plans:
+            self.list_view.disabled = False
+            await self.list_view.append(
+                ListItem(
+                    ExchangePlanRow(plan),
+                    id=self.list_item_id(plan)
+                )
+            )
+        if not conf.exchange_plans:
+            self.list_view.disabled = True
+            await self.list_view.append(self.empty_data_item)
+
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-manager-refresh":
-            await self.list_view.clear()
-            for plan in conf.exchange_plans:
-                await self.list_view.append(ListItem(
-                    ExchangePlanRow(plan),
-                    id=plan.__hash__())
-                )
+            await self.update_plans()
+
+    async def _on_mount(self, event: events.Mount) -> None:
+        await self.update_plans()
 
 
 class ExchangePlanView(Container):
@@ -972,18 +1002,18 @@ class ExchangePlanView(Container):
 
     def compose(self) -> ComposeResult:
         with TabbedContent():
-            with TabPane("➕添加计划", id="tab-adding"):
+            with TabPane("➕添加计划"):
                 with TabbedContent():
-                    with TabPane("1.选择米游社账号", id="tab-adding-account"):
+                    with TabPane("1.选择米游社账号"):
                         yield self.account_content
-                    with TabPane("2.选择目标商品", id="tab-adding-goods"):
+                    with TabPane("2.选择目标商品"):
                         yield self.goods_content
-                    with TabPane("3.选择游戏账号", id="tab-adding-game-record"):
+                    with TabPane("3.选择游戏账号"):
                         yield self.game_record_content
-                    with TabPane("4.选择收货地址", id="tab-adding-address"):
+                    with TabPane("4.选择收货地址"):
                         yield self.address_content
-                    with TabPane("5.完成添加", id="tab-adding-ending"):
+                    with TabPane("5.完成添加"):
                         yield self.finish_content
 
-            with TabPane("✏️管理计划", id="tab-managing"):
+            with TabPane("✏️管理计划"):
                 yield ManagerContent()
