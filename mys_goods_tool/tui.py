@@ -277,6 +277,7 @@ class TuiApp(App):
     )
     """快速访问菜单"""
     disable_required_column = (
+        AboveFold(Welcome(), classes="location-top"),
         Column(
             Section(
                 SectionTitle("米游社账号登录绑定"),
@@ -295,7 +296,6 @@ class TuiApp(App):
     """进入兑换模式后需要禁用的Column"""
     body = Body(
         quick_access,
-        AboveFold(Welcome(), classes="location-top"),
         *disable_required_column,
         Column(
             Section(
@@ -352,14 +352,15 @@ class TuiApp(App):
             self.quick_access.disabled = True
             for column in self.disable_required_column:
                 column.disabled = True
-            self.body.styles.overflow_y = "hidden"
+                column.display = NONE
             self.app.query_one(".location-exchange_mode").scroll_visible(top=True, duration=0.5, force=True)
 
         elif isinstance(event, ExitExchangeMode):
             self.quick_access.disabled = False
             for column in self.disable_required_column:
                 column.disabled = False
-            self.body.styles.overflow_y = "scroll"
+                column.display = BLOCK
+            self.app.query_one(".location-exchange_mode").scroll_visible(top=True, animate=False)
         await super().on_event(event)
 
     def action_open_link(self, link: str) -> None:

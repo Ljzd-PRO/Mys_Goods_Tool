@@ -191,6 +191,7 @@ class ExchangeModeView(Container):
     button_refresh = ControllableButton("刷新", id="button-exchange_mode-refresh")
     button_exit.hide()
     warning_text = ExchangeModeWarning()
+    """进入/退出 兑换模式的提示文本"""
     scheduler = get_scheduler()
     """兑换计划调度器"""
     empty_data_item = ListItem(Static("暂无兑换计划，你可以尝试刷新"))
@@ -219,6 +220,7 @@ class ExchangeModeView(Container):
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-exchange_mode-enter":
+            await self.update_data()
             self.button_refresh.disable()
             self.button_enter.hide()
             self.button_exit.show()
