@@ -466,7 +466,7 @@ class GameRecordContent(BaseExchangePlan):
         self.button_refresh.disable()
         self.option_list.disabled = False
 
-        record_status, self.record_list = await get_game_record(AccountContent._selected)
+        record_status, GameRecordContent.record_list = await get_game_record(AccountContent._selected)
         self.option_list.clear_options()
         if not record_status:
             self.app.notice(f"[bold red]获取游戏账号列表失败！[/]")
@@ -533,8 +533,7 @@ class GameRecordContent(BaseExchangePlan):
                 cls.button_refresh.disable()
             elif cls._selected is None:
                 cls.text_view.update(cls.DEFAULT_TEXT)
-                cls.option_list.disabled = False
-                cls.button_select.enable()
+                cls.check_empty()
                 cls.button_refresh.enable()
             else:
                 # 在已选游戏账号不为空的情况下，视图被虚拟商品改变后的情况
@@ -542,7 +541,6 @@ class GameRecordContent(BaseExchangePlan):
         else:
             # # 程序载入初次刷新商品列表时，重置已选商品并调用本类的reset_selected，由于没有选择商品，需要更新文本视图
             cls.text_view.update(cls.REQUIRE_OTHER_TEXT)
-        cls.check_empty()
 
     def reset_selected(self):
         self.selected = None
@@ -634,7 +632,7 @@ class AddressContent(BaseExchangePlan):
         self.button_refresh.disable()
         self.option_list.disabled = False
 
-        address_status, self.address_list = await get_address(AccountContent._selected)
+        address_status, AddressContent.address_list = await get_address(AccountContent._selected)
         self.option_list.clear_options()
         if not address_status:
             self.app.notice(f"[bold red]获取收货地址列表失败！[/]")
@@ -705,13 +703,11 @@ class AddressContent(BaseExchangePlan):
                 cls.button_refresh.disable()
             elif cls._selected is None:
                 cls.text_view.update(cls.DEFAULT_TEXT)
-                cls.option_list.disabled = False
-                cls.button_select.enable()
+                cls.check_empty()
                 cls.button_refresh.enable()
             else:
                 # 在已选地址不为空的情况下，视图被虚拟商品改变后的情况
                 ExchangePlanView.address_content._set_select_view(cls._selected)
-        cls.check_empty()
 
     def reset_selected(self):
         """
