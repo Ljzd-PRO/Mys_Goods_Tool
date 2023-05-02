@@ -12,6 +12,7 @@ httpx~=0.24.0
 rich~=13.3.5
 textual~=0.22.3
 socksio~=1.0.0
+apscheduler~=3.10.1
 
 ## pyinstaller.dependencies
 pyinstaller==5.10.1
