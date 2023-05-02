@@ -341,14 +341,14 @@ class ExchangeResultRow(UnClickableItem):
                             f" - {exchange_result.plan.good.general_name}"
                             f" - 线程 {event.job_id.split('-')[-1]}"
                             f" - 兑换成功")
-                        static = self.get_result_static(f"[bold green]🎉 兑换成功[/]")
+                        static = self.get_result_static(f"[bold green]🎉 线程 {event.job_id.split('-')[-1]} - 兑换成功[/]")
                     else:
                         logger.error(
                             f"用户 {exchange_result.plan.account.bbs_uid}"
                             f" - {exchange_result.plan.good.general_name}"
                             f" - 线程 {event.job_id.split('-')[-1]}"
                             f" - 兑换失败")
-                        static = self.get_result_static(f"[bold red]💦 兑换失败[/]")
+                        static = self.get_result_static(f"[bold red]💦 线程 {event.job_id.split('-')[-1]} - 兑换失败[/]")
                     self.result_preview.display = NONE
                     self.mount(static)
 
