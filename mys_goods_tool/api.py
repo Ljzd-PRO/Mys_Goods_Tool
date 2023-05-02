@@ -1172,12 +1172,12 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
             logger.info(
                 f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认。")
             logger.debug(f"网络请求返回: {res.text}")
-            return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json())
+            return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json(), good=plan.good)
         else:
             logger.info(
                 f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认。")
             logger.debug(f"网络请求返回: {res.text}")
-            return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json())
+            return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json(), good=plan.good)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(

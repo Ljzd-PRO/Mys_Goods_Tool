@@ -333,5 +333,5 @@ class ExchangeStatus(BaseApiStatus):
 GeetestResult = NamedTuple("GeetestResult", validate=str, seccode=str)
 """人机验证结果数据"""
 
-ExchangeResult = NamedTuple("ExchangeResult", result=bool, return_data=dict)
+ExchangeResult = NamedTuple("ExchangeResult", result=bool, return_data=dict, good=Good)
 """兑换结果数据"""
