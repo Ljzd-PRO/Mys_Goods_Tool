@@ -1,4 +1,3 @@
-import traceback
 from typing import List, Optional, Tuple, Dict, Any
 from urllib.parse import urlencode
 
@@ -330,13 +329,11 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
                     map(GameRecord.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"获取用户游戏数据(GameRecord) - 服务器没有正确返回")
+            logger.exception(f"获取用户游戏数据(GameRecord) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"获取用户游戏数据(GameRecord) - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"获取用户游戏数据(GameRecord) - 请求失败")
             return BaseApiStatus(network_error=True), None
 
 
@@ -366,13 +363,11 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
                     map(GameInfo.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"获取游戏信息(GameInfo) - 服务器没有正确返回")
+            logger.exception(f"获取游戏信息(GameInfo) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"获取游戏信息(GameInfo) - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"获取游戏信息(GameInfo) - 请求失败")
             return BaseApiStatus(network_error=True), None
 
 
@@ -399,13 +394,11 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
                 return BaseApiStatus(success=True), int(api_result.data["points"])
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"获取用户米游币 - 服务器没有正确返回")
+            logger.exception(f"获取用户米游币 - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"获取用户米游币 - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"获取用户米游币 - 请求失败")
             return BaseApiStatus(network_error=True), None
 
 
@@ -453,13 +446,11 @@ async def device_login(account: UserAccount, retry: bool = True):
                     return BaseApiStatus(success=True)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"设备登录(device_login) - 服务器没有正确返回")
+            logger.exception(f"设备登录(device_login) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True)
         else:
-            logger.error(f"设备登录(device_login) - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"设备登录(device_login) - 请求失败")
             return BaseApiStatus(network_error=True)
 
 
@@ -505,13 +496,11 @@ async def device_save(account: UserAccount, retry: bool = True):
                     return BaseApiStatus(success=True)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"设备保存(device_save) - 服务器没有正确返回")
+            logger.exception(f"设备保存(device_save) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True)
         else:
-            logger.error(f"设备保存(device_save) - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"设备保存(device_save) - 请求失败")
             return BaseApiStatus(network_error=True)
 
 
@@ -536,13 +525,11 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
                 return GetGoodDetailStatus(success=True), Good.parse_obj(api_result.data)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
+            logger.exception(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             GetGoodDetailStatus(incorrect_return=True), None
         else:
-            logger.error(f"米游币商品兑换 - 获取商品详细信息: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"米游币商品兑换 - 获取商品详细信息: 网络请求失败")
             GetGoodDetailStatus(network_error=True), None
 
 
@@ -576,13 +563,11 @@ async def get_good_list(game: str, retry: bool = True) -> Tuple[
                 page += 1
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"米游币商品兑换 - 获取商品列表: 服务器没有正确返回")
+            logger.exception(f"米游币商品兑换 - 获取商品列表: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"米游币商品兑换 - 获取商品列表: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"米游币商品兑换 - 获取商品列表: 网络请求失败")
             return BaseApiStatus(network_error=True), None
 
     return BaseApiStatus(success=True), good_list
@@ -614,13 +599,11 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
                 address_list = list(map(Address.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"获取地址数据 - 服务器没有正确返回")
+            logger.exception(f"获取地址数据 - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"获取地址数据 - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"获取地址数据 - 请求失败")
             return BaseApiStatus(network_error=True), None
     return BaseApiStatus(success=True), address_list
 
@@ -645,13 +628,11 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
                 return BaseApiStatus(success=True), bool(api_result.data["is_registable"])
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"检查用户 {phone_number} 是否可以注册 - 服务器没有正确返回")
+            logger.exception(f"检查用户 {phone_number} 是否可以注册 - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None
         else:
-            logger.error(f"检查用户 {phone_number} 是否可以注册 - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"检查用户 {phone_number} 是否可以注册 - 请求失败")
             return BaseApiStatus(network_error=True), None
 
 
@@ -692,19 +673,16 @@ async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[
         if keep_client:
             await client.aclose()
         if is_incorrect_return(e):
-            logger.error(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
+            logger.exception(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return BaseApiStatus(incorrect_return=True), None, client
         else:
-            logger.error(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"获取短信验证-人机验证任务(create_mmt) - 请求失败")
             return BaseApiStatus(network_error=True), None, None
     except ConnectError:
         if keep_client:
             await client.aclose()
-        logger.error(f"获取短信验证-人机验证任务(create_mmt) - 网络连接失败")
-        logger.debug(f"{traceback.format_exc()}")
+        logger.exception(f"获取短信验证-人机验证任务(create_mmt) - 网络连接失败")
         return BaseApiStatus(network_error=True), None, None
 
 
@@ -768,13 +746,11 @@ async def create_mobile_captcha(phone_number: int,
         if client:
             await client.aclose()
         if is_incorrect_return(e):
-            logger.error(f"发送短信验证码 - 服务器没有正确返回")
+            logger.exception(f"发送短信验证码 - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return CreateMobileCaptchaStatus(incorrect_return=True), client
         else:
-            logger.error(f"发送短信验证码 - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"发送短信验证码 - 请求失败")
             return CreateMobileCaptchaStatus(network_error=True), None
 
 
@@ -851,13 +827,11 @@ async def get_login_ticket_by_captcha(phone_number: str,
                     raise IncorrectReturn
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过短信验证码获取 login_ticket: 服务器没有正确返回")
+            logger.exception(f"通过短信验证码获取 login_ticket: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过短信验证码获取 login_ticket: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过短信验证码获取 login_ticket: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -894,13 +868,11 @@ async def get_multi_token_by_login_ticket(cookies: BBSCookies, retry: bool = Tru
                     return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过 login_ticket 获取 stoken: 服务器没有正确返回")
+            logger.exception(f"通过 login_ticket 获取 stoken: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过 login_ticket 获取 stoken: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过 login_ticket 获取 stoken: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -947,13 +919,11 @@ async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bo
                         return GetCookieStatus(success=True), cookies
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过短信验证码获取 cookie_token: 服务器没有正确返回")
+            logger.exception(f"通过短信验证码获取 cookie_token: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过短信验证码获取 cookie_token: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过短信验证码获取 cookie_token: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -1002,13 +972,11 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
                     return GetCookieStatus(incorrect_captcha=True), None
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"使用密码登录获取login_ticket - 服务器没有正确返回")
+            logger.exception(f"使用密码登录获取login_ticket - 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"使用密码登录获取login_ticket - 请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"使用密码登录获取login_ticket - 请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -1054,13 +1022,11 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
 
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过 stoken 获取 cookie_token: 服务器没有正确返回")
+            logger.exception(f"通过 stoken 获取 cookie_token: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过 stoken 获取 cookie_token: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过 stoken 获取 cookie_token: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -1111,13 +1077,11 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
 
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过 stoken_v1 获取 stoken_v2: 服务器没有正确返回")
+            logger.exception(f"通过 stoken_v1 获取 stoken_v2: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过 stoken_v1 获取 stoken_v2: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过 stoken_v1 获取 stoken_v2: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
@@ -1163,13 +1127,11 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
 
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
-            logger.error(f"通过 stoken 获取 ltoken: 服务器没有正确返回")
+            logger.exception(f"通过 stoken 获取 ltoken: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            logger.debug(f"{traceback.format_exc()}")
             return GetCookieStatus(incorrect_return=True), None
         else:
-            logger.error(f"通过 stoken 获取 ltoken: 网络请求失败")
-            logger.debug(f"{traceback.format_exc()}")
+            logger.exception(f"通过 stoken 获取 ltoken: 网络请求失败")
             return GetCookieStatus(network_error=True), None
 
 
