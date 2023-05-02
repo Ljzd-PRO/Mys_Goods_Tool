@@ -1042,7 +1042,6 @@ class ExchangePlanView(Container):
     """
     DEFAULT_CSS = """
     ExchangePlanView {
-        overflow: auto;
         height: auto;
         width: 1fr;
         border: round #666;
