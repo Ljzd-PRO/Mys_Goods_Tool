@@ -15,7 +15,6 @@ from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
 from textual.events import Event
 from textual.reactive import reactive
-from textual.widget import Widget
 from textual.widgets import Static, ListView, ListItem
 
 from mys_goods_tool.api import good_exchange, URL_EXCHANGE
@@ -25,7 +24,7 @@ from mys_goods_tool.data_model import ExchangeStatus
 from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
 from mys_goods_tool.utils import logger, LOG_FORMAT
 
-# NtpTime.sync()
+# TODO: ntp 时间同步
 
 _T = TypeVar("_T")
 
@@ -93,13 +92,14 @@ def get_scheduler():
 
     if conf.preference.enable_connection_test:
         interval = conf.preference.connection_test_interval or Preference.connection_test_interval
-        scheduler.add_job(_connection_test, "interval", seconds=interval)
+        scheduler.add_job(_connection_test, "interval", seconds=interval, id=f"exchange-connection_test")
 
     for plan in conf.exchange_plans:
         scheduler.add_job(exchange_begin,
                           "date",
                           args=[plan],
-                          run_date=datetime.fromtimestamp(plan.good.time)
+                          run_date=datetime.fromtimestamp(plan.good.time),
+                          id=f"exchange-plan-{plan.__hash__()}"
                           )
 
     return scheduler
@@ -136,14 +136,15 @@ def exchange_mode_simple():
         """
         接收兑换结果
         """
-        result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
-        exchange_status, exchange_result = result
-        if exchange_result:
-            logger.info(
-                f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换成功")
-        else:
-            logger.error(
-                f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换失败")
+        if event.job_id.startswith("exchange-plan"):
+            result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
+            exchange_status, exchange_result = result
+            if exchange_result:
+                logger.info(
+                    f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换成功")
+            else:
+                logger.error(
+                    f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换失败")
 
     try:
         scheduler.start()
@@ -183,8 +184,6 @@ class ExchangeModeWarning(Static):
 
     def render(self) -> RenderableType:
         return self.display_text
-
-
 
 
 class ExchangeModeView(Container):
@@ -324,24 +323,28 @@ class ExchangeResultRow(UnClickableItem):
         yield static
         yield self.result_preview
 
-    @lambda func: ExchangeModeView.scheduler.add_listener(func, EVENT_JOB_EXECUTED)
     def on_executed(self, event: JobExecutionEvent):
         """
         接收兑换结果
         """
-        result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
-        exchange_status, exchange_result = result
-        if exchange_result:
-            logger.info(
-                f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换成功")
-            static = self.get_result_static(f"[bold green]🎉 兑换成功[/]")
-        else:
-            logger.error(
-                f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换失败")
-            static = self.get_result_static(f"[bold red]💦 兑换失败[/]")
-        self.result_preview.display = NONE
-        self.mount(static)
+        if event.job_id.startswith("exchange-plan"):
+            result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
+            exchange_status, exchange_result = result
+            if exchange_result.plan == self.plan:
+                if exchange_result.result:
+                    logger.info(
+                        f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换成功")
+                    static = self.get_result_static(f"[bold green]🎉 兑换成功[/]")
+                else:
+                    logger.error(
+                        f"用户 {exchange_result.plan.account.bbs_uid} - {exchange_result.plan.good.general_name} 兑换失败")
+                    static = self.get_result_static(f"[bold red]💦 兑换失败[/]")
+                self.result_preview.display = NONE
+                self.mount(static)
+                conf.exchange_plans.remove(self.plan)
 
+    def _on_mount(self, event: events.Mount) -> None:
+        ExchangeModeView.scheduler.add_listener(self.on_executed, EVENT_JOB_EXECUTED)
 
 class ExchangeModePing(Static):
     """
@@ -357,15 +360,15 @@ class ExchangeModePing(Static):
     scheduler = get_scheduler()
 
     def render(self) -> RenderableType:
-        return f"⚡ Ping | 商品兑换API服务器 [yellow]{_get_api_host() or 'N/A'}[/] - 延迟 [bold green]{self.ping_value or 'N/A'}[/] ms"
+        return f"⚡ Ping | 商品兑换API服务器 [yellow]{_get_api_host() or 'N/A'}[/]" \
+               f" - 延迟 [bold green]{round(self.ping_value, 2) or 'N/A'}[/] ms"
 
-    @lambda func: ExchangeModeView.scheduler.add_listener(func, EVENT_JOB_EXECUTED)
     def update_ping(self, event: JobExecutionEvent):
         """
         更新 Ping 值
         """
-        self.ping_value = event.retval
-        logger.debug(f"更新 Ping 值为 {self.ping_value}")
+        if event.job_id == "exchange-connection_test":
+            self.ping_value = event.retval
 
     def _on_mount(self, event: events.Mount) -> None:
         ExchangeModeView.scheduler.add_listener(self.update_ping, EVENT_JOB_EXECUTED)
