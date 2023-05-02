@@ -9,8 +9,8 @@ from requests.utils import dict_from_cookiejar
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
-    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, ExchangeResult
-from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan
+    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus
+from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan, ExchangeResult
 from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, Subscribe, \
     NtpTime
 
@@ -1172,12 +1172,12 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
             logger.info(
                 f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认。")
             logger.debug(f"网络请求返回: {res.text}")
-            return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json(), good=plan.good, account=plan.account)
+            return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json(), plan=plan)
         else:
             logger.info(
                 f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认。")
             logger.debug(f"网络请求返回: {res.text}")
-            return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json(), good=plan.good, account=plan.account)
+            return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json(), plan=plan)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.error(
