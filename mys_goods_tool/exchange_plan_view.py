@@ -944,7 +944,7 @@ class ExchangePlanRow(Container):
                            f"\n👓 米游社账号 - {self.plan.account.bbs_uid}"
                            f"\n📦 商品名称 - {self.plan.good.goods_name}"
                            f"\n📅 兑换时间 - {self.plan.good.time_text}"
-                           f"\n🎮 游戏UID - {self.plan.game_record.game_role_id}"
+                           f"\n🎮 游戏UID - {self.plan.game_record.game_role_id if self.plan.game_record is not None else '无需设置'}"
                            f"\n📮 收货地址 - {self.plan.address.addr_ext if self.plan.address is not None else '无需设置'}"
                            f"\n[/list]")
         with Horizontal():
