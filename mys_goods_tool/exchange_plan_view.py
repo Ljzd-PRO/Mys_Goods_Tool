@@ -1021,11 +1021,16 @@ class ManagerContent(ExchangePlanContent):
 
 class ExchangePlanView(Container):
     """
-    添加兑换计划 - 界面
+    添加兑换计划 - 视图
     """
     DEFAULT_CSS = """
     ExchangePlanView {
         overflow: auto;
+        height: auto;
+        width: 1fr;
+        border: round #666;
+        padding: 2;
+        margin: 1 0;
     }
     """
 
