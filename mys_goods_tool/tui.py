@@ -132,7 +132,11 @@ class Sidebar(Container):
         with Container():
             yield Message("米游社商品兑换工具")
             yield Message()
-            yield Message("[link=https://github.com/Ljzd-PRO/Mys_Goods_Tool]🔗 GitHub 项目链接[/link]")
+            yield Message(
+                "[bold italic black][link=https://github.com/Ljzd-PRO/Mys_Goods_Tool]🔗 GitHub 项目链接[/link][/]")
+            yield Message()
+            yield Message(
+                "[bold italic black][link=https://github.com/Ljzd-PRO/nonebot-plugin-mystool]🔗 mysTool - 米游社辅助工具 NoneBot机器人插件[/link][/]")
             yield Version()
         yield DarkSwitch()
 
@@ -237,9 +241,9 @@ class Notification(Static):
 DEFAULT_COLORS["dark"].primary = Color.parse("#569DAA")
 DEFAULT_COLORS["dark"].secondary = Color.parse("#577D86")
 DEFAULT_COLORS["dark"].accent = DEFAULT_COLORS["dark"].primary
-DEFAULT_COLORS["light"].primary = Color.parse("#B9EDDD")
-DEFAULT_COLORS["light"].secondary = Color.parse("#87CBB9")
-DEFAULT_COLORS["light"].accent = DEFAULT_COLORS["dark"].primary
+# DEFAULT_COLORS["light"].primary = Color.parse("#B9EDDD")
+# DEFAULT_COLORS["light"].secondary = Color.parse("#87CBB9")
+# DEFAULT_COLORS["light"].accent = DEFAULT_COLORS["dark"].primary
 
 
 class TuiApp(App):
