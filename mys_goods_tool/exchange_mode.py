@@ -2,7 +2,7 @@ import asyncio
 import random
 import sys
 from datetime import datetime
-from typing import Callable, Optional, TypeVar, Union, Tuple, Set
+from typing import Optional, Union, Tuple, Set
 from urllib.parse import urlparse
 
 import ping3
@@ -23,6 +23,7 @@ from mys_goods_tool.custom_widget import ControllableButton, UnClickableItem
 from mys_goods_tool.data_model import ExchangeStatus
 from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
 from mys_goods_tool.utils import logger, LOG_FORMAT
+
 
 # TODO: ntp 时间同步
 
@@ -133,7 +134,8 @@ def exchange_mode_simple():
         elif event.job_id == "exchange-connection_test":
             result: Union[float, bool, None] = event.retval
             if result:
-                print(f"Ping 商品兑换API服务器 {_get_api_host() or 'N/A'} - 延迟 {round(result, 2) if result else 'N/A'} ms")
+                print(
+                    f"Ping 商品兑换API服务器 {_get_api_host() or 'N/A'} - 延迟 {round(result, 2) if result else 'N/A'} ms")
 
     try:
         scheduler.start()
@@ -343,7 +345,8 @@ class ExchangeResultRow(UnClickableItem):
                             f" - {exchange_result.plan.good.general_name}"
                             f" - 线程 {event.job_id.split('-')[-1]}"
                             f" - 兑换成功")
-                        static = self.get_result_static(f"[bold green]🎉 线程 {event.job_id.split('-')[-1]} - 兑换成功[/]")
+                        static = self.get_result_static(
+                            f"[bold green]🎉 线程 {event.job_id.split('-')[-1]} - 兑换成功[/]")
                     else:
                         logger.error(
                             f"用户 {exchange_result.plan.account.bbs_uid}"
@@ -353,7 +356,6 @@ class ExchangeResultRow(UnClickableItem):
                         static = self.get_result_static(f"[bold red]💦 线程 {event.job_id.split('-')[-1]} - 兑换失败[/]")
                     self.result_preview.display = NONE
                     self.mount(static)
-
 
     def _on_mount(self, event: events.Mount) -> None:
         ExchangeModeView.scheduler.add_listener(self.on_executed, EVENT_JOB_EXECUTED)
