@@ -21,9 +21,10 @@ from textual.widgets import (
 
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus
+from mys_goods_tool.exchange_mode import ExchangeModeView, EnterExchangeMode
 from mys_goods_tool.exchange_plan_view import ExchangePlanView
 from mys_goods_tool.login_view import LoginView
-from mys_goods_tool.user_data import ROOT_PATH
+from mys_goods_tool.user_data import ROOT_PATH, VERSION
 from mys_goods_tool.utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -95,7 +96,7 @@ class Version(Static):
     """
 
     def render(self) -> RenderableType:
-        return f"[b]v{version('textual')}"
+        return f"[b]v{VERSION}"
 
 
 class Sidebar(Container):
@@ -128,7 +129,11 @@ class Sidebar(Container):
 
     def compose(self) -> ComposeResult:
         yield Title("Mys_Goods_Tool")
-        yield Container(Message("MESSAGE"), Version())
+        with Container():
+            yield Message("米游社商品兑换工具")
+            yield Message()
+            yield Message("[link=https://github.com/Ljzd-PRO/Mys_Goods_Tool]🔗 GitHub 项目链接[/link]")
+            yield Version()
         yield DarkSwitch()
 
 
@@ -160,7 +165,6 @@ class LocationLink(Static):
         self.reveal = reveal
 
     def _on_click(self, _: events.Click) -> None:
-        # 跳转到指定位置
         self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
 
 
@@ -254,11 +258,19 @@ class TuiApp(App):
 
     app: TuiApp
     """当前App实例"""
+
     text_log_writer: TextLogWriter
     """textual日志输出流"""
-
     text_log = TextLog(classes="-hidden", wrap=False, highlight=True, markup=True)
     """textual日志输出界面"""
+
+    quick_access = QuickAccess(
+                    LocationLink("🏠 主页", ".location-top"),
+                    LocationLink("🔑 登录绑定", ".location-login"),
+                    LocationLink("📅 管理兑换计划", ".location-add_plan"),
+                    LocationLink("⏰ 进入兑换模式", ".location-exchange_mode"),
+                )
+    """快速访问菜单"""
 
     def notice(self, renderable: RenderableType) -> None:
         """
@@ -282,12 +294,7 @@ class TuiApp(App):
             Header(show_clock=False),
             self.text_log,
             Body(
-                QuickAccess(
-                    LocationLink("🏠 主页", ".location-top"),
-                    LocationLink("🔑 登录绑定", ".location-login"),
-                    LocationLink("📅 管理兑换计划", ".location-add_plan"),
-                    LocationLink("⏰ 进入兑换模式", ".location-css"),
-                ),
+                self.quick_access,
                 AboveFold(Welcome(), classes="location-top"),
                 Column(
                     Section(
@@ -303,6 +310,13 @@ class TuiApp(App):
                     ),
                     classes="location-add_plan",
                 ),
+                Column(
+                    Section(
+                        SectionTitle("定时兑换模式"),
+                        ExchangeModeView(),
+                    ),
+                    classes="location-exchange_mode",
+                )
             ),
         )
         yield Footer()
@@ -322,6 +336,8 @@ class TuiApp(App):
             event.static_status.update(event.renderable)
             if event.text_align:
                 event.static_status.styles.text_align = event.text_align
+        elif isinstance(event, EnterExchangeMode):
+            self.quick_access.disabled = True
         await super().on_event(event)
 
     def action_open_link(self, link: str) -> None:

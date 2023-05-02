@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 import ping3
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from textual.containers import Container
+from textual.events import Event
 
 from mys_goods_tool.api import good_exchange, URL_EXCHANGE
 from mys_goods_tool.data_model import ExchangeStatus
@@ -132,3 +134,22 @@ def exchange_mode_simple():
     except KeyboardInterrupt:
         scheduler.shutdown()
         logger.info("兑换计划定时器已停止")
+
+
+class EnterExchangeMode(Event):
+    """
+    进入兑换模式的事件
+    """
+    pass
+
+
+class ExchangeModeView(Container):
+    """
+    兑换模式视图
+    """
+    DEFAULT_CSS = """
+    ExchangeModeView {
+        overflow: auto;
+    }
+    """
+    # TODO 兑换模式视图
