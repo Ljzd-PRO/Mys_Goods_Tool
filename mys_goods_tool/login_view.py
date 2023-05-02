@@ -28,7 +28,7 @@ class LoginView(Container):
     """
     DEFAULT_CSS = """
     LoginView {
-        overflow: auto;
+        height: auto;
     }
     """
 
@@ -61,9 +61,8 @@ class CaptchaLoginInformation(Container):
         DEFAULT_CSS = """
         Tips {
             height: 100%;
-            width: 45%;
+            width: 1fr;
             align: right middle;
-            margin: 0 2 0 0;
             padding: 1;
             overflow: auto;
             border: round #666;
@@ -87,7 +86,7 @@ class CaptchaLoginInformation(Container):
         DEFAULT_CSS = """
         StepSet {
             height: auto;
-            width: 45%;
+            width: 1fr;
             align: left middle;
             overflow: auto;
             border: round #666;
