@@ -1137,7 +1137,7 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
 
 async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:
     """
-    米游币商品兑换
+    执行米游币商品兑换
 
     :param plan: 兑换计划
     """
