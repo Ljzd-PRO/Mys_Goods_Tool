@@ -1,4 +1,4 @@
-# 米游社商品兑换工具
+# Mys_Goods_Tool 米游社商品兑换工具
 <div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
     <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
@@ -11,24 +11,73 @@
   </a>
 </div>
 
-**🎉 iOS
-iSH ([🔗AppStore](https://apps.apple.com/us/app/ish-shell/id1436902243)｜[🔗GitHub](https://github.com/ish-app/ish))
-可运行，[🔗release](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 有已经打包好的**
-*（附：[🔗iOS iSH 运行本程序的方法](./Docs/iSH.md)）*
+### 更新说明
+v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚发布这段时间测试可能不太够，可能不太稳定。
 
-米游社米游币可兑换的商品通常份数很少，担心抢不到的话可以使用这个脚本，可设置多个商品。
+## 功能和特性
+- [x] 使用 Textual 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
+- [x] 短信验证码登录（只需接收一次验证码）
+- [x] 内置人机验证页面，无需前往官网验证
+- [x] 多账号支持
+- [x] 支持米游社所有分区的商品兑换
 
-建议同时自己也用手机操作去抢，以免脚本出问题。
+### TODO
+- [ ] 支持在图形界面中编辑偏好设置
+- [ ] 密码登录
+
 
 ## 使用说明
 
-### 第2⃣️步 运行`main.py`或运行[🔗已经编译好的程序](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases)
+### 1. 下载安装
+有两种方案，配置 Python 环境并从 PyPI 安装包 或者 直接下载可执行文件。
 
-- 在兑换开始之前运行主程序。
+#### 配置 Python 环境并从 PyPI 安装包
+1. 配置 Python 环境
+2. 进行安装
+    ```shell
+    pip install mys-goods-tool
+    ```
+3. 运行
+    ```shell
+    python -m mys_goods_tool
+    ```
 
-- 建议先把兑换时间设定为当前时间往后的一两分钟，测试一下是否能正常兑换，如果返回未到时间或者库存不足就基本没有问题。
+#### 直接下载可执行文件
+- 前往 [🔗 Releases](https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases) 下载最新版本可执行文件
+- 双击打开或在可执行文件目录下运行
+    - Windows
+        ```shell
+        .\Mys_Goods_Tool.exe
+        ```
+    - Linux / macOS
+        ```shell
+        chmod +x ./Mys_Goods_Tool
+        ./Mys_Goods_Tool
+        ```
 
-- **可前往`./logs/mys_goods_tool.log`查看日志**
+### 2. 自定义启动参数（可选）
+- `%(prog)s` 即为程序路径
+    ```shell
+    Mys_Goods_Tool
+    使用说明:
+    %(prog)s [-m <运行模式>] [-c <用户数据文件路径>]
+    选项:
+        -h, --help 显示此帮助信息
+        -m, --mode <参数> 指定运行模式
+            guide TUI指引模式 包含登陆绑定 管理兑换计划和开始兑换等功能 默认
+            exchange-simple 兑换模式 无TUI界面 仅输出日志文本
+        -c, --conf <参数> 指定用户数据文件路径
+    例如:
+        ./Mys_Goods_Tool -m exchange-simple -c ./workplace/user_data.json
+            通过该命令运行本程序 将读取 ./workplace/user_data.json 用户数据文件 并直接进入无TUI界面的兑换模式 等待到达兑换时间并执行兑换
+        ./Mys_Goods_Tool
+            通过该命令运行本程序或直接双击打开程序 将读取程序目录下的用户数据文件user_data.json 并提供登录绑定 管理兑换计划等功能
+    ```
+
+### 3. 偏好设置（可选）
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`]() 进行配置。
+
+默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
 
 ## 其他
 - 仅供学习时参考
