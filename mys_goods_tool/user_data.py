@@ -412,8 +412,9 @@ class Config(BaseModel):
         """
         重写 BaseModel.json() 方法，使其支持对 Set 类型的数据进行序列化
         """
-        self.exchange_plans = list(self.exchange_plans)
-        return super().json(
+        set_plans = self.exchange_plans
+        self.exchange_plans = list(set_plans)
+        json_data =  super().json(
             include=include,
             exclude=exclude,
             by_alias=by_alias,
@@ -425,6 +426,8 @@ class Config(BaseModel):
             models_as_dict=models_as_dict,
             **dumps_kwargs,
         )
+        self.exchange_plans = set_plans
+        return json_data
 
 def write_config_file(conf: Config = Config()):
     """
