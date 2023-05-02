@@ -248,6 +248,7 @@ class ExchangePlan(BaseModel):
         return hash(
             (
                 self.good.goods_id,
+                self.good.time,
                 self.address.id if self.address else None,
                 self.account.bbs_uid,
                 self.game_record.game_role_id if self.game_record else None
