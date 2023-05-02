@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     AbstractSetIntStr = AbstractSet[IntStr]
     MappingIntStrAny = Mapping[IntStr, Any]
 
+
 class BBSCookies(BaseModelWithSetter):
     """
     米游社Cookies数据
@@ -400,25 +401,25 @@ class UserData(BaseModel):
         return write_config_file(self)
 
     def json(
-        self,
-        *,
-        include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
-        exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
-        by_alias: bool = False,
-        skip_defaults: Optional[bool] = None,
-        exclude_unset: bool = False,
-        exclude_defaults: bool = False,
-        exclude_none: bool = False,
-        encoder: Optional[Callable[[Any], Any]] = None,
-        models_as_dict: bool = True,
-        **dumps_kwargs: Any,
+            self,
+            *,
+            include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+            exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
+            by_alias: bool = False,
+            skip_defaults: Optional[bool] = None,
+            exclude_unset: bool = False,
+            exclude_defaults: bool = False,
+            exclude_none: bool = False,
+            encoder: Optional[Callable[[Any], Any]] = None,
+            models_as_dict: bool = True,
+            **dumps_kwargs: Any,
     ) -> str:
         """
         重写 BaseModel.json() 方法，使其支持对 Set 类型的数据进行序列化
         """
         set_plans = self.exchange_plans
         self.exchange_plans = list(set_plans)
-        json_data =  super().json(
+        json_data = super().json(
             include=include,
             exclude=exclude,
             by_alias=by_alias,
@@ -432,6 +433,7 @@ class UserData(BaseModel):
         )
         self.exchange_plans = set_plans
         return json_data
+
 
 def write_config_file(conf: UserData = UserData()):
     """

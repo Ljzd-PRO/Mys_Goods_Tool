@@ -11,7 +11,6 @@ from textual.app import App, ComposeResult, DEFAULT_COLORS
 from textual.binding import Binding
 from textual.color import Color
 from textual.events import Event
-from textual.logging import TextualHandler
 from textual.reactive import reactive
 from textual.widgets import (
     Button,
