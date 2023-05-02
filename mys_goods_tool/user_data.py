@@ -3,7 +3,7 @@ import traceback
 from json import JSONDecodeError
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
-    Mapping, NamedTuple
+    Mapping
 
 from httpx import Cookies
 from loguru import logger
@@ -254,6 +254,7 @@ class ExchangePlan(BaseModel):
             )
         )
 
+
 class ExchangeResult(BaseModel):
     """
     兑换结果数据类
@@ -264,6 +265,7 @@ class ExchangeResult(BaseModel):
     """返回数据"""
     plan: ExchangePlan
     """兑换计划"""
+
 
 class Preference(BaseSettings):
     """
@@ -474,11 +476,11 @@ def load_config():
         try:
             return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
-            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确。")
+            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确")
             logger.debug(traceback.format_exc())
             exit(1)
         except:
-            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入。")
+            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入")
             logger.debug(traceback.format_exc())
             exit(1)
     else:
@@ -486,7 +488,7 @@ def load_config():
         try:
             write_config_file(user_data)
         except PermissionError:
-            logger.error(f"创建用户数据文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH} 。")
+            logger.error(f"创建用户数据文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH}")
             logger.debug(traceback.format_exc())
             exit(1)
         # logger.info(f"用户数据文件 {CONFIG_PATH} 不存在，已创建默认用户数据文件。")

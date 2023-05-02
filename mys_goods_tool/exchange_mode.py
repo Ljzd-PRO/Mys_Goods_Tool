@@ -11,7 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from mys_goods_tool.api import good_exchange, URL_EXCHANGE
 from mys_goods_tool.data_model import ExchangeStatus
 from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
-from mys_goods_tool.utils import logger, NtpTime, LOG_FORMAT
+from mys_goods_tool.utils import logger, LOG_FORMAT
 
 # NtpTime.sync()
 
@@ -47,6 +47,7 @@ def _on_fail(status: ExchangeStatus, result: Optional[ExchangeResult]):
 
     logger.error(f"用户 {result.plan.account.bbs_uid} - {result.plan.good.general_name} 兑换失败，原因：{error}")
 
+
 def _connection_test():
     """
     连接测试
@@ -59,6 +60,7 @@ def _connection_test():
         logger.info(f"Ping 商品兑换API服务器 {hostname} 失败")
     else:
         logger.info(f"Ping 商品兑换API服务器 {hostname} 延迟 {round(result, 2)} ms")
+
 
 def get_scheduler(on_success: ExchangeCallback,
                   on_fail: ExchangeCallback):
