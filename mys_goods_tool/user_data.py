@@ -3,7 +3,7 @@ import traceback
 from json import JSONDecodeError
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
-    Mapping
+    Mapping, NamedTuple
 
 from httpx import Cookies
 from loguru import logger
@@ -254,6 +254,16 @@ class ExchangePlan(BaseModel):
             )
         )
 
+class ExchangeResult(BaseModel):
+    """
+    兑换结果数据类
+    """
+    result: bool
+    """兑换结果"""
+    return_data: dict
+    """返回数据"""
+    plan: ExchangePlan
+    """兑换计划"""
 
 class Preference(BaseSettings):
     """
