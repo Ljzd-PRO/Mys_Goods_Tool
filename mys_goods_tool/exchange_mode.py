@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import ping3
 from apscheduler.events import JobExecutionEvent, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.base import STATE_STOPPED
 from rich.console import RenderableType
 from textual import events
 from textual.app import ComposeResult
@@ -29,8 +30,6 @@ from mys_goods_tool.utils import logger, LOG_FORMAT
 _T = TypeVar("_T")
 
 ExchangeCallback = Callable[[ExchangeStatus, Optional[ExchangeResult]], None]
-# AsyncExchangeCallback = Callable[[ExchangeStatus, Optional[ExchangeResult]], Coroutine[ExchangeStatus, Optional[
-#     ExchangeResult], None]]
 """兑换回调函数类型"""
 
 
@@ -178,8 +177,8 @@ class ExchangeModeWarning(Static):
         width: 3fr;
     }
     """
-    ENTER_TEXT = "确定要[bold]进入[/]兑换模式？进入兑换模式后[bold]无法使用其他功能[/]，定时兑换任务将会启动。你随时都可以退出，但定时任务将会停止。"
-    EXIT_TEXT = "已进入兑换模式，你可以随时[bold]退出[/]。退出后[bold]定时兑换任务将会停止[/]。"
+    ENTER_TEXT = "确定要[bold]进入[/]兑换模式？进入兑换模式后[bold]无法使用其他功能[/]，定时兑换任务将会启动。你随时都可以退出，但定时任务将会暂停。"
+    EXIT_TEXT = "已进入兑换模式，你可以随时[bold]退出[/]。退出后[bold]定时兑换任务将会暂停[/]。"
     display_text = reactive(ENTER_TEXT)
 
     def render(self) -> RenderableType:
@@ -255,6 +254,10 @@ class ExchangeModeView(Container):
             self.button_exit.show()
             self.warning_text.display_text = self.warning_text.EXIT_TEXT
             self.post_message(EnterExchangeMode())
+            if self.scheduler.state == STATE_STOPPED:
+                self.scheduler.start()
+            else:
+                self.scheduler.resume()
 
         elif event.button.id == "button-exchange_mode-exit":
             self.button_refresh.enable()
@@ -262,6 +265,7 @@ class ExchangeModeView(Container):
             self.button_enter.show()
             self.warning_text.display_text = self.warning_text.ENTER_TEXT
             self.post_message(ExitExchangeMode())
+            self.scheduler.pause()
 
         elif event.button.id == "button-exchange_mode-refresh":
             await self.update_data()
@@ -361,3 +365,7 @@ class ExchangeModePing(Static):
         更新 Ping 值
         """
         self.ping_value = event.retval
+        logger.debug(f"更新 Ping 值为 {self.ping_value}")
+
+    def _on_mount(self, event: events.Mount) -> None:
+        ExchangeModeView.scheduler.add_listener(self.update_ping, EVENT_JOB_EXECUTED)
