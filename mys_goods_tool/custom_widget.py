@@ -10,7 +10,7 @@ from textual.app import ComposeResult
 from textual.events import Event
 from textual.widgets import (
     Button,
-    LoadingIndicator, RadioButton, TabbedContent, TabPane, ContentSwitcher, Tabs, ListView, ListItem
+    LoadingIndicator, RadioButton, TabbedContent, TabPane, ContentSwitcher, Tabs, ListItem
 )
 from textual.widgets._button import ButtonVariant
 from textual.widgets._tabbed_content import ContentTab
@@ -257,6 +257,7 @@ class UnClickableItem(ListItem):
     """
     无法点击、不会高亮的列表项
     """
+
     async def _on_click(self, _: events.Click) -> None:
         pass
 

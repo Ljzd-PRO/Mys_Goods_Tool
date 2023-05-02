@@ -291,6 +291,7 @@ class ExchangeResultRow(UnClickableItem):
         height: auto;
     }
     """
+
     def __init__(self, plan: ExchangePlan):
         """
         :param plan: 兑换计划
@@ -313,12 +314,12 @@ class ExchangeResultRow(UnClickableItem):
 
     def compose(self) -> ComposeResult:
         static = Static(f"[list]"
-                   f"\n👓 米游社账号 - [bold green]{self.plan.account.bbs_uid}[/]"
-                   f"\n📦 商品名称 - [bold green]{self.plan.good.goods_name}[/]"
-                   f"\n📅 兑换时间 - [bold green]{self.plan.good.time_text}[/]"
-                   f"\n🎮 游戏UID - [bold green]{self.plan.game_record.game_role_id if self.plan.game_record is not None else '[yellow]无需设置[/]'}[/]"
-                   f"\n📮 收货地址 - [bold green]{self.plan.address.addr_ext if self.plan.address is not None else '[yellow]无需设置[/]'}[/]"
-                   f"\n[/list]")
+                        f"\n👓 米游社账号 - [bold green]{self.plan.account.bbs_uid}[/]"
+                        f"\n📦 商品名称 - [bold green]{self.plan.good.goods_name}[/]"
+                        f"\n📅 兑换时间 - [bold green]{self.plan.good.time_text}[/]"
+                        f"\n🎮 游戏UID - [bold green]{self.plan.game_record.game_role_id if self.plan.game_record is not None else '[yellow]无需设置[/]'}[/]"
+                        f"\n📮 收货地址 - [bold green]{self.plan.address.addr_ext if self.plan.address is not None else '[yellow]无需设置[/]'}[/]"
+                        f"\n[/list]")
         static.styles.width = "2fr"
         yield static
         yield self.result_preview
@@ -345,6 +346,7 @@ class ExchangeResultRow(UnClickableItem):
 
     def _on_mount(self, event: events.Mount) -> None:
         ExchangeModeView.scheduler.add_listener(self.on_executed, EVENT_JOB_EXECUTED)
+
 
 class ExchangeModePing(Static):
     """

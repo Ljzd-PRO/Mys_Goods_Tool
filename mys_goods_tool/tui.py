@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-from importlib.metadata import version
 from io import StringIO
 
 from rich.console import RenderableType
@@ -242,6 +240,8 @@ class Notification(Static):
 DEFAULT_COLORS["dark"].primary = Color.parse("#569DAA")
 DEFAULT_COLORS["dark"].secondary = Color.parse("#577D86")
 DEFAULT_COLORS["dark"].accent = DEFAULT_COLORS["dark"].primary
+
+
 # DEFAULT_COLORS["light"].primary = Color.parse("#B9EDDD")
 # DEFAULT_COLORS["light"].secondary = Color.parse("#87CBB9")
 # DEFAULT_COLORS["light"].accent = DEFAULT_COLORS["dark"].primary
@@ -270,11 +270,11 @@ class TuiApp(App):
     """textual日志输出界面"""
 
     quick_access = QuickAccess(
-                    LocationLink("🏠 主页", ".location-top"),
-                    LocationLink("🔑 登录绑定", ".location-login"),
-                    LocationLink("📅 管理兑换计划", ".location-add_plan"),
-                    LocationLink("⏰ 进入兑换模式", ".location-exchange_mode"),
-                )
+        LocationLink("🏠 主页", ".location-top"),
+        LocationLink("🔑 登录绑定", ".location-login"),
+        LocationLink("📅 管理兑换计划", ".location-add_plan"),
+        LocationLink("⏰ 进入兑换模式", ".location-exchange_mode"),
+    )
     """快速访问菜单"""
     disable_required_column = (
         Column(
@@ -294,17 +294,17 @@ class TuiApp(App):
     )
     """进入兑换模式后需要禁用的Column"""
     body = Body(
-                quick_access,
-                AboveFold(Welcome(), classes="location-top"),
-                *disable_required_column,
-                Column(
-                    Section(
-                        SectionTitle("定时兑换模式"),
-                        ExchangeModeView(),
-                    ),
-                    classes="location-exchange_mode",
-                )
-            )
+        quick_access,
+        AboveFold(Welcome(), classes="location-top"),
+        *disable_required_column,
+        Column(
+            Section(
+                SectionTitle("定时兑换模式"),
+                ExchangeModeView(),
+            ),
+            classes="location-exchange_mode",
+        )
+    )
     """主体内容"""
 
     def notice(self, renderable: RenderableType) -> None:
