@@ -280,18 +280,19 @@ class GoodsContent(BaseExchangePlan):
             good_list = list(filter(lambda x: x.is_time_limited() and not x.is_time_end(), good_list))
 
             # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
-            if good_list_status:
-                goods_data.option_list.clear_options()
-                if good_list:
-                    goods_data.good_list = good_list
-                    good_names = map(lambda x: x.general_name, good_list)
-                    for name in good_names:
-                        goods_data.option_list.add_option(name)
-                else:
-                    goods_data.option_list.add_option(self.empty_data_option)
-            else:
+            goods_data.option_list.clear_options()
+            if not good_list_status:
                 self.app.notice(f"[bold red]获取频道 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
                 # TODO 待补充各种错误情况
+            if good_list:
+                goods_data.good_list = good_list
+                good_names = map(lambda x: x.general_name, good_list)
+                for name in good_names:
+                    goods_data.option_list.add_option(name)
+                goods_data.button_select.enable()
+                goods_data.option_list.disabled = False
+            else:
+                goods_data.option_list.add_option(self.empty_data_option)
 
         # 进度条、刷新按钮
         self.loading.hide()
@@ -449,8 +450,10 @@ class GameRecordContent(BaseExchangePlan):
         self.option_list.disabled = False
 
         record_status, self.record_list = await get_game_record(AccountContent._selected)
-        if record_status:
-            self.option_list.clear_options()
+        self.option_list.clear_options()
+        if not record_status:
+            self.app.notice(f"[bold red]获取游戏账号列表失败！[/]")
+        if self.record_list:
             self.option_list.add_option(Separator())
             for record in self.record_list:
                 preview_text = f"[list]" \
@@ -461,10 +464,10 @@ class GameRecordContent(BaseExchangePlan):
                                f"\n[/list]"
                 self.option_list.add_option(Option(preview_text))
                 self.option_list.add_option(Separator())
-            if not self.record_list:
-                self.option_list.add_option(self.empty_data_option)
+                self.option_list.disabled = False
+                self.button_select.enable()
         else:
-            self.app.notice(f"[bold red]获取游戏账号列表失败！[/]")
+            self.option_list.add_option(self.empty_data_option)
 
         # 进度条、刷新按钮
         self.loading.hide()
@@ -503,7 +506,6 @@ class GameRecordContent(BaseExchangePlan):
         """
         检查商品类型是否是虚拟商品，并改变视图
         """
-        cls.check_empty()
         # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
         if GoodsContent._selected is not None:
             good: Optional[Good] = GoodsContent._selected
@@ -523,9 +525,9 @@ class GameRecordContent(BaseExchangePlan):
         else:
             # # 程序载入初次刷新商品列表时，重置已选商品并调用本类的reset_selected，由于没有选择商品，需要更新文本视图
             cls.text_view.update(cls.REQUIRE_OTHER_TEXT)
+        cls.check_empty()
 
     def reset_selected(self):
-        self.check_empty()
         self.selected = None
         self.button_reset.disable()
         self.text_view.update(self.DEFAULT_TEXT)
@@ -616,8 +618,10 @@ class AddressContent(BaseExchangePlan):
         self.option_list.disabled = False
 
         address_status, self.address_list = await get_address(AccountContent._selected)
-        if address_status:
-            self.option_list.clear_options()
+        self.option_list.clear_options()
+        if not address_status:
+            self.app.notice(f"[bold red]获取收货地址列表失败！[/]")
+        if self.address_list:
             self.option_list.add_option(Separator())
             for address_data in self.address_list:
                 preview_text = f"[list]" \
@@ -632,10 +636,10 @@ class AddressContent(BaseExchangePlan):
                                f"\n[/list]"
                 self.option_list.add_option(Option(preview_text))
                 self.option_list.add_option(Separator())
-            if not self.address_list:
-                self.option_list.add_option(self.empty_data_option)
+                self.option_list.disabled = False
+                self.button_select.enable()
         else:
-            self.app.notice(f"[bold red]获取收货地址列表失败！[/]")
+            self.option_list.add_option(self.empty_data_option)
 
         # 进度条、刷新按钮
         self.loading.hide()
@@ -674,7 +678,6 @@ class AddressContent(BaseExchangePlan):
         """
         检查商品类型是否是虚拟商品，并改变视图
         """
-        cls.check_empty()
         # 程序载入初次刷新商品列表时，重置已选商品并调用check_good_type，由于没有选择商品，不需要检查商品类型
         if AccountContent._selected is not None:
             good: Optional[Good] = GoodsContent._selected
@@ -691,12 +694,12 @@ class AddressContent(BaseExchangePlan):
             else:
                 # 在已选地址不为空的情况下，视图被虚拟商品改变后的情况
                 ExchangePlanView.address_content._set_select_view(cls._selected)
+        cls.check_empty()
 
     def reset_selected(self):
         """
         重置已选地址
         """
-        self.check_empty()
         self.selected = None
         self.button_reset.disable()
         self.text_view.update(self.DEFAULT_TEXT)
