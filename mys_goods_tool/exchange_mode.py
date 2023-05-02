@@ -2,15 +2,21 @@ import asyncio
 import random
 import sys
 from datetime import datetime
+from tkinter import Button
 from typing import Callable, Optional, TypeVar
 from urllib.parse import urlparse
 
 import ping3
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from textual.containers import Container
+from rich.console import RenderableType
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal
 from textual.events import Event
+from textual.reactive import reactive
+from textual.widgets import Static
 
 from mys_goods_tool.api import good_exchange, URL_EXCHANGE
+from mys_goods_tool.custom_widget import ControllableButton
 from mys_goods_tool.data_model import ExchangeStatus
 from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
 from mys_goods_tool.utils import logger, LOG_FORMAT
@@ -142,6 +148,24 @@ class EnterExchangeMode(Event):
     """
     pass
 
+class ExitExchangeMode(Event):
+    """
+    退出兑换模式的事件
+    """
+    pass
+
+
+class ExchangeModeWarning(Static):
+    """
+    进入/退出 兑换模式的提示文本
+    """
+    ENTER_TEXT = "确定要[bold]进入[/]兑换模式？进入兑换模式后[bold]无法使用其他功能[/]，定时兑换任务将会启动。你随时都可以退出，但定时任务将会停止。"
+    EXIT_TEXT = "已进入兑换模式，你可以随时[bold]退出[/]。退出后[bold]定时兑换任务将会停止[/]。"
+    display_text = reactive(ENTER_TEXT)
+
+    def render(self) -> RenderableType:
+        return self.display_text
+
 
 class ExchangeModeView(Container):
     """
@@ -150,6 +174,45 @@ class ExchangeModeView(Container):
     DEFAULT_CSS = """
     ExchangeModeView {
         overflow: auto;
+        height: auto;
+        width: 1fr;
+        border: round #666;
+        padding: 1;
+        margin: 1 0;
+    }
+    
+    ExchangeModeView Static {
+        margin: 0 1;
+        width: 3fr;
+    }
+    
+    ExchangeModeView ControllableButton {
+        margin: 0 1;
+        width: 1fr;
     }
     """
     # TODO 兑换模式视图
+
+    button_enter = ControllableButton("确定", variant="warning", id="button-exchange_mode-enter")
+    button_exit = ControllableButton("退出", variant="error", id="button-exchange_mode-exit")
+    button_exit.hide()
+    warning_text = ExchangeModeWarning()
+
+    def compose(self) -> ComposeResult:
+        with Horizontal():
+            yield self.warning_text
+            yield self.button_enter
+            yield self.button_exit
+
+    def _on_button_pressed(self, event: ControllableButton.Pressed):
+        if event.button.id == "button-exchange_mode-enter":
+            self.button_enter.hide()
+            self.button_exit.show()
+            self.warning_text.display_text = self.warning_text.EXIT_TEXT
+            self.post_message(EnterExchangeMode())
+
+        elif event.button.id == "button-exchange_mode-exit":
+            self.button_exit.hide()
+            self.button_enter.show()
+            self.warning_text.display_text = self.warning_text.ENTER_TEXT
+            self.post_message(ExitExchangeMode())

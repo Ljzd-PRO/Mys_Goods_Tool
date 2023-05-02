@@ -21,7 +21,7 @@ from textual.widgets import (
 
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus
-from mys_goods_tool.exchange_mode import ExchangeModeView, EnterExchangeMode
+from mys_goods_tool.exchange_mode import ExchangeModeView, EnterExchangeMode, ExitExchangeMode
 from mys_goods_tool.exchange_plan_view import ExchangePlanView
 from mys_goods_tool.login_view import LoginView
 from mys_goods_tool.user_data import ROOT_PATH, VERSION
@@ -342,6 +342,8 @@ class TuiApp(App):
                 event.static_status.styles.text_align = event.text_align
         elif isinstance(event, EnterExchangeMode):
             self.quick_access.disabled = True
+        elif isinstance(event, ExitExchangeMode):
+            self.quick_access.disabled = False
         await super().on_event(event)
 
     def action_open_link(self, link: str) -> None:
