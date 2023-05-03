@@ -7,7 +7,7 @@
   <a>
 </div>
 
-# Mys_Goods_Tool 米游社商品兑换工具
+# 米游社商品兑换工具
 
 <div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
@@ -18,6 +18,15 @@
   </a>
   <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
     <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool" target="_blank">
+    <img alt="代码行数" src="https://img.shields.io/tokei/lines/github/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/build-v2.yml" target="_blank">
+    <img alt="构建结果" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/build-v2.yml?event=pull_request&style=for-the-badge">
+  </a>
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/python-package.yml" target="_blank">
+    <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?label=version%20test&style=for-the-badge">
   </a>
 </div>
 
@@ -104,11 +113,14 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
     ```
 
 ### 3. 偏好设置（可选）
-默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/dev/mys_goods_tool/user_data.py) 进行配置。
+默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`](https://github.com/Ljzd-PRO/Mys_Goods_Tool/blob/stable/mys_goods_tool/user_data.py) 进行配置。
 
 默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
 
 默认日志文件路径为 `./logs/mys_goods_tool.log`，可以通过修改配置文件中的偏好设置来指定日志输出路径。
+
+## 兼容性
+支持 Python **`3.9`** - **`3.11`**
 
 ## 其他
 - 仅供学习时参考
