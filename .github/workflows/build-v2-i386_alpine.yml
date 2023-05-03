@@ -39,7 +39,7 @@ jobs:
 
       - name: Install i386 Alpine
         run: |
-          docker run --rm --privileged i386/alpine uname -a
+          docker run --name=alpine --rm --privileged i386/alpine uname -a
 
       - name: Install Anaconda Distribution
         run: |
