@@ -307,12 +307,12 @@ class Preference(BaseSettings):
     def _(cls, v: Optional[Path]):
         absolute_path = v.absolute()
         if not os.path.exists(absolute_path) or not os.path.isfile(absolute_path):
+            absolute_parent = absolute_path.parent
             try:
-                with open(absolute_path, "w"):
-                    pass
-            except OSError:
-                pass
-        if not os.access(absolute_path, os.W_OK):
+                os.makedirs(absolute_parent, exist_ok=True)
+            except PermissionError:
+                logger.warning(f"程序没有创建日志目录 {absolute_parent} 的权限")
+        elif not os.access(absolute_path, os.W_OK):
             logger.warning(f"程序没有写入日志文件 {absolute_path} 的权限")
         return v
 
