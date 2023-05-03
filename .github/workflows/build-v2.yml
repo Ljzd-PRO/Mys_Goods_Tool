@@ -3,7 +3,7 @@ name: Build (v2)
 on:
   workflow_dispatch:
   push:
-    path:
+    paths:
       - 'mys_goods_tool/**'
       - '.github/workflows/build-v2.yml'
       - '__init__.py'
@@ -11,7 +11,7 @@ on:
       - 'pyproject.toml'
 
   pull_request:
-    path:
+    paths:
       - 'mys_goods_tool/**'
       - '.github/workflows/build-v2.yml'
       - '__init__.py'
