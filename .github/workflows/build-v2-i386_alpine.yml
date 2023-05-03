@@ -1,0 +1,66 @@
+name: Build (i386 Alpine, v2)
+
+on:
+  workflow_dispatch:
+  push:
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/build-v2.yml'
+      - '__init__.py'
+      - 'Mys_Goods_Tool.spec'
+      - 'pyproject.toml'
+
+  pull_request:
+    path:
+      - 'mys_goods_tool/**'
+      - '.github/workflows/build-v2.yml'
+      - '__init__.py'
+      - 'Mys_Goods_Tool.spec'
+      - 'pyproject.toml'
+
+permissions:
+  contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+  windows-poetry-path: C:\Users\runneradmin\AppData\Roaming\Python\Scripts\poetry
+  spec-file-path: Mys_Goods_Tool.spec
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          image: 'i386/alpine:latest'
+          platforms: 'i386'
+
+      - name: Install Anaconda Distribution
+        run: |
+          curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
+          bash ./miniconda.sh -b -p $HOME/miniconda
+          eval "$($HOME/bin/conda shell.bash hook)"
+          conda init
+          
+      - name: Install dependencies
+        run : |
+          conda create -n build python=3.11
+          conda activate build
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry install --with pyinstaller
+
+      - name: Build
+        run: |
+          poetry run pyinstaller ${{ env.spec-file-path }}
+
+      - name: Upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: Mys_Goods_Tool_v2-Alpine-i386
+          path: |
+            dist/${{ env.executable-file-name }}*
+            README.md
