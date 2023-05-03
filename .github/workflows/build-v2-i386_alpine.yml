@@ -41,13 +41,13 @@ jobs:
       - name: Install i386 Alpine
         run: |
           docker run --name alpine --rm --privileged i386/alpine
-          container_id=`docker ps -aqf "name=alpine"`
-          echo "container-id=$container_id" >> "$GITHUB_ENV"
+          uname -a
+          
 
       - name: Install Anaconda Distribution
         run: |
           docker ps -a
-          docker start -i alpine /bin/bash
+          uname -a
           curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
           bash ./miniconda.sh -b -p $HOME/miniconda
           eval "$(conda shell.bash hook)"
