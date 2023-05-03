@@ -25,7 +25,7 @@ env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
   spec-file-path: Mys_Goods_Tool.spec
-  container-id:
+  DOCKER_COMMAND: docker run --name alpine --rm --privileged i386/alpine
 
 jobs:
   build:
@@ -38,19 +38,11 @@ jobs:
         with:
           platforms: 'i386'
 
-      - name: Install i386 Alpine
+      - name: Install i386 Alpine and Anaconda
         run: |
-          docker run -t --name alpine --rm --privileged i386/alpine
-          uname -a
-          
-
-      - name: Install Anaconda Distribution
-        run: |
-          docker ps -a
-          uname -a
-          curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
-          bash ./miniconda.sh -b -p $HOME/miniconda
-          eval "$(conda shell.bash hook)"
+          echo `$DOCKER_COMMAND curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh`
+          echo `$DOCKER_COMMAND bash ./miniconda.sh -b -p $HOME/miniconda`
+          echo `$DOCKER_COMMAND eval "$(conda shell.bash hook)"`
           
       - name: Install dependencies
         run : |
