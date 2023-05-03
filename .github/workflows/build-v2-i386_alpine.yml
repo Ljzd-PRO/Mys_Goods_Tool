@@ -40,8 +40,8 @@ jobs:
 
       - name: Install i386 Alpine
         run: |
-          container-id=`docker run -d --rm --privileged i386/alpine`
-          echo "container-id=$container-id" >> "$GITHUB_ENV"
+          container_id=`docker run -d --rm --privileged i386/alpine`
+          echo "container-id=$container_id" >> "$GITHUB_ENV"
 
       - name: Install Anaconda Distribution
         run: |
