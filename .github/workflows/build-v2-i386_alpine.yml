@@ -35,10 +35,8 @@ jobs:
     steps:
       - name: Install dependencies
         run : |
-          cross-build-start
-          pip install --upgrade pip
-          pip install poetry
-          poetry install --with pyinstaller
+          qemu-i386 curl -sSL https://install.python-poetry.org | python3 -
+          qemu-i386 poetry install --with pyinstaller
 
       - name: Build
         run: |
