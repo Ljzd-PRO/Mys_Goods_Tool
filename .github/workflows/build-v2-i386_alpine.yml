@@ -40,7 +40,7 @@ jobs:
 
       - name: Install i386 Alpine
         run: |
-          docker run -d --name alpine --rm --privileged i386/alpine
+          docker run -d --name alpine --rm --privileged i386/alpine /bin/bash
           container_id=`docker ps -aqf "name=alpine"`
           echo "container-id=$container_id" >> "$GITHUB_ENV"
 
@@ -54,7 +54,7 @@ jobs:
           
       - name: Install dependencies
         run : |
-          docker exec -i ${{ env.container-id }} /bin/bash
+          docker exec -i alpine /bin/bash
           conda init bash
           conda create -n build python=3.11
           conda activate build
