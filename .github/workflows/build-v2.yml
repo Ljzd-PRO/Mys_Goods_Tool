@@ -3,20 +3,20 @@ name: Build and pack (v2)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - stable
-      - dev
     path:
       - 'mys_goods_tool/**'
       - '.github/workflows/build-v2.yml'
+      - '__init__.py'
+      - 'Mys_Goods_Tool.spec'
+      - 'pyproject.toml'
 
   pull_request:
-    branches:
-      - stable
-      - dev
     path:
       - 'mys_goods_tool/**'
       - '.github/workflows/build-v2.yml'
+      - '__init__.py'
+      - 'Mys_Goods_Tool.spec'
+      - 'pyproject.toml'
 
 permissions:
   contents: read
