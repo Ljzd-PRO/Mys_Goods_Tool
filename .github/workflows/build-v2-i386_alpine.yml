@@ -36,8 +36,10 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: 'i386'
+
+      - name: Install i386 Alpine
         run: |
-          docker run --rm --privileged i386/alpine
+          docker run --rm --privileged i386/alpine uname -a
 
       - name: Install Anaconda Distribution
         run: |
