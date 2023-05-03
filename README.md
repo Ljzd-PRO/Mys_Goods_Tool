@@ -4,7 +4,7 @@
   </a>
   <a>
     <img alt="Mys_Goods_Tool 预览2" src="https://user-images.githubusercontent.com/63289359/235799237-3039c3e0-8fdb-4c12-957b-afb50f34625c.png" width="45%" />
-  <a>
+  </a>
 </div>
 
 # 米游社商品兑换工具
