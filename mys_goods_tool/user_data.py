@@ -473,7 +473,7 @@ def load_config():
     """
     加载用户数据文件
     """
-    if os.path.isfile(CONFIG_PATH):
+    if os.path.exists(CONFIG_PATH) and os.path.isfile(CONFIG_PATH):
         try:
             return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
