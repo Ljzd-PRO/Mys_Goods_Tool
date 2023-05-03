@@ -1,4 +1,4 @@
-name: Build and pack (v2)
+name: Build (v2)
 
 on:
   workflow_dispatch:
