@@ -40,7 +40,7 @@ jobs:
 
       - name: Install i386 Alpine
         run: |
-          docker run --name alpine --rm --privileged i386/alpine
+          docker run -dt --name alpine --rm --privileged i386/alpine
           uname -a
           
 
