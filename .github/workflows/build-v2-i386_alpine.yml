@@ -35,6 +35,7 @@ jobs:
     steps:
       - name: Install dependencies
         run : |
+          uname -a
           curl -sSL https://install.python-poetry.org | python3 -
           poetry install --with pyinstaller
 
