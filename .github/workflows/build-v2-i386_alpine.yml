@@ -36,7 +36,6 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          image: 'i386/alpine:latest'
           platforms: 'i386'
 
       - name: Install Anaconda Distribution
