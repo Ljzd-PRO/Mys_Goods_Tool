@@ -25,28 +25,22 @@ env:
   # Initialize vars context by reading it from env context
   _: ${{ vars._ }}
   spec-file-path: Mys_Goods_Tool.spec
-  DOCKER_COMMAND: docker run --name alpine --rm --privileged i386/alpine
+  container-id:
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    container: balenalib/qemux86-alpine-python
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: 'i386'
-
-      - name: Install i386 Alpine and Anaconda
+      - name: Install Anaconda Distribution
         run: |
-          echo `$DOCKER_COMMAND curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh`
-          echo `$DOCKER_COMMAND bash ./miniconda.sh -b -p $HOME/miniconda`
-          echo `$DOCKER_COMMAND eval "$(conda shell.bash hook)"`
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -O ./miniconda.sh
+          bash ./miniconda.sh -b -p $HOME/miniconda
+          eval "$(conda shell.bash hook)"
           
       - name: Install dependencies
         run : |
-          docker exec -i alpine /bin/bash
           conda init bash
           conda create -n build python=3.11
           conda activate build
