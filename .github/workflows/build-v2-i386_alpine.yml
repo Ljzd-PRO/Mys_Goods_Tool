@@ -39,17 +39,18 @@ jobs:
 
       - name: Install i386 Alpine
         run: |
-          docker run --rm --privileged i386/alpine uname -a
+          docker run -d --name alpine --rm --privileged i386/alpine uname -a
 
       - name: Install Anaconda Distribution
         run: |
-          uname -a
+          docker exec -it alpine /bin/bash
           curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
           bash ./miniconda.sh -b -p $HOME/miniconda
           eval "$(conda shell.bash hook)"
           
       - name: Install dependencies
         run : |
+          docker exec -it alpine /bin/bash
           conda init bash
           conda create -n build python=3.11
           conda activate build
