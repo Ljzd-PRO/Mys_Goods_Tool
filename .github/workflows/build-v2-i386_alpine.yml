@@ -46,7 +46,7 @@ jobs:
           uname -a
           curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
           bash ./miniconda.sh -b -p $HOME/miniconda
-          eval "$($HOME/bin/conda shell.bash hook)"
+          eval "$(conda shell.bash hook)"
           
       - name: Install dependencies
         run : |
