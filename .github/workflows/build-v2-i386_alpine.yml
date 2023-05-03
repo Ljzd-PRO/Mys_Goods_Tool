@@ -43,7 +43,7 @@ jobs:
 
       - name: Install Anaconda Distribution
         run: |
-          docker exec -i -t i386/alpine /bin/bash
+          docker exec -it alpine /bin/bash
           curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
           bash ./miniconda.sh -b -p $HOME/miniconda
           eval "$($HOME/bin/conda shell.bash hook)"
