@@ -1,33 +1,17 @@
 <div>
-  <a>
-    <img alt="Mys_Goods_Tool 预览" src="https://user-images.githubusercontent.com/63289359/235797444-21a86294-609e-4c7a-9d7d-5d3683fe6ab2.png" width="45%" />
-  </a>
-  <a>
-    <img alt="Mys_Goods_Tool 预览2" src="https://user-images.githubusercontent.com/63289359/235799237-3039c3e0-8fdb-4c12-957b-afb50f34625c.png" width="45%" />
-  </a>
+  <img alt="Mys_Goods_Tool 预览" src="https://user-images.githubusercontent.com/63289359/235797444-21a86294-609e-4c7a-9d7d-5d3683fe6ab2.png" width="45%" />
+  <img alt="Mys_Goods_Tool 预览2" src="https://user-images.githubusercontent.com/63289359/235799237-3039c3e0-8fdb-4c12-957b-afb50f34625c.png" width="45%" />
 </div>
 
 # 米游社商品兑换工具
 
 <div>
-  <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
-    <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/releases/latest" target="_blank">
-    <img alt="最新发行版" src="https://img.shields.io/github/v/release/Ljzd-PRO/Mys_Goods_Tool?logo=python&style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
-    <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool" target="_blank">
-    <img alt="代码行数" src="https://img.shields.io/tokei/lines/github/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/build-v2.yml" target="_blank">
-    <img alt="构建结果" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/build-v2.yml?event=pull_request&style=for-the-badge">
-  </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/python-package.yml" target="_blank">
-    <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?label=version%20test&style=for-the-badge">
-  </a>
+  <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool/badge?style=for-the-badge">
+  <img alt="最新发行版" src="https://img.shields.io/github/v/release/Ljzd-PRO/Mys_Goods_Tool?logo=python&style=for-the-badge">
+  <img alt="最后提交" src="https://img.shields.io/github/last-commit/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
+  <img alt="代码行数" src="https://img.shields.io/tokei/lines/github/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
+  <img alt="构建结果" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/build-v2.yml?event=pull_request&style=for-the-badge">
+  <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?event=pull_request&label=Versions%20Test&style=for-the-badge">
 </div>
 
 
