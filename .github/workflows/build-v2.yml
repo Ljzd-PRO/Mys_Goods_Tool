@@ -2,21 +2,12 @@ name: Build (v2)
 
 on:
   workflow_dispatch:
-  push:
-    path:
-      - 'mys_goods_tool/**'
-      - '.github/workflows/build-v2.yml'
-      - '__init__.py'
-      - 'Mys_Goods_Tool.spec'
-      - 'pyproject.toml'
-
-  pull_request:
-    path:
-      - 'mys_goods_tool/**'
-      - '.github/workflows/build-v2.yml'
-      - '__init__.py'
-      - 'Mys_Goods_Tool.spec'
-      - 'pyproject.toml'
+  path:
+    - 'mys_goods_tool/**'
+    - '.github/workflows/build-v2.yml'
+    - '__init__.py'
+    - 'Mys_Goods_Tool.spec'
+    - 'pyproject.toml'
 
 permissions:
   contents: read

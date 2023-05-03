@@ -2,20 +2,11 @@ name: Multiple Python Versions Test
 
 on:
   workflow_dispatch:
-  push:
-    path:
-      path:
-        - 'mys_goods_tool/**'
-        - '.github/workflows/python-package.yml'
-        - '__init__.py'
-        - 'pyproject.toml'
-
-  pull_request:
-    path:
-      - 'mys_goods_tool/**'
-      - '.github/workflows/python-package.yml'
-      - '__init__.py'
-      - 'pyproject.toml'
+  path:
+    - 'mys_goods_tool/**'
+    - '.github/workflows/python-package.yml'
+    - '__init__.py'
+    - 'pyproject.toml'
 
 permissions:
   contents: read
