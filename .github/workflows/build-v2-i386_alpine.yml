@@ -5,7 +5,7 @@ on:
   push:
     path:
       - 'mys_goods_tool/**'
-      - '.github/workflows/build-v2.yml'
+      - '.github/workflows/build-v2-i386_alpine.yml'
       - '__init__.py'
       - 'Mys_Goods_Tool.spec'
       - 'pyproject.toml'
@@ -13,7 +13,7 @@ on:
   pull_request:
     path:
       - 'mys_goods_tool/**'
-      - '.github/workflows/build-v2.yml'
+      - '.github/workflows/build-v2-i386_alpine.yml'
       - '__init__.py'
       - 'Mys_Goods_Tool.spec'
       - 'pyproject.toml'
@@ -43,7 +43,7 @@ jobs:
           curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh -o ./miniconda.sh
           bash ./miniconda.sh -b -p $HOME/miniconda
           eval "$($HOME/bin/conda shell.bash hook)"
-          conda init
+          conda init bash
           
       - name: Install dependencies
         run : |
