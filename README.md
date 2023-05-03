@@ -7,7 +7,7 @@
   <a>
 </div>
 
-# Mys_Goods_Tool 米游社商品兑换工具
+# 米游社商品兑换工具
 
 <div>
   <a href="https://www.codefactor.io/repository/github/ljzd-pro/mys_goods_tool" target="_blank">
