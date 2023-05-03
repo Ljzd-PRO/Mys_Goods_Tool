@@ -306,8 +306,11 @@ class Preference(BaseSettings):
     @validator("log_path")
     def _(cls, v: Optional[Path]):
         absolute_path = v.absolute()
-        if not os.access(absolute_path, os.W_OK):
-            logger.warning(f"程序没有写入日志文件 {absolute_path} 的权限")
+        if os.path.exists(absolute_path) and os.path.isfile(absolute_path):
+            if not os.access(absolute_path, os.W_OK):
+                logger.warning(f"程序没有写入日志文件 {absolute_path} 的权限")
+        elif not os.access(absolute_path.parent, os.W_OK):
+            logger.warning(f"程序没有写入日志目录 {absolute_path.parent} 的权限")
         return v
 
     class Config:
