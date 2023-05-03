@@ -13,13 +13,11 @@ name: "CodeQL"
 
 on:
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches:
-      - stable
-      - dev
     paths:
       - 'mys_goods_tool/**'
       - 'mys_goods_tool_v1/**'
+      - '.github/workflows/codeql-analysis.yml'
+      - '__init__.py'
 
 permissions:
   contents: read

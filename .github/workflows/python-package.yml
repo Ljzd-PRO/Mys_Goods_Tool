@@ -3,16 +3,19 @@ name: Multiple Python Versions Test
 on:
   workflow_dispatch:
   push:
-    branches: [ "stable", "dev" ]
     path:
-      - 'mys_goods_tool/**'
-      - '.github/workflows/python-package.yml'
+      path:
+        - 'mys_goods_tool/**'
+        - '.github/workflows/python-package.yml'
+        - '__init__.py'
+        - 'pyproject.toml'
 
   pull_request:
-    branches: [ "stable", "dev" ]
     path:
       - 'mys_goods_tool/**'
       - '.github/workflows/python-package.yml'
+      - '__init__.py'
+      - 'pyproject.toml'
 
 permissions:
   contents: read
