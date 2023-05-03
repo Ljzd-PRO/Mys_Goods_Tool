@@ -22,10 +22,10 @@
   <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool" target="_blank">
     <img alt="代码行数" src="https://img.shields.io/tokei/lines/github/Ljzd-PRO/Mys_Goods_Tool?style=for-the-badge">
   </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/build-v2.yml" target="_blank">
     <img alt="构建结果" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/build-v2.yml?event=pull_request&style=for-the-badge">
   </a>
-  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/commits/" target="_blank">
+  <a href="https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions/workflows/python-package.yml" target="_blank">
     <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?label=version%20test&style=for-the-badge">
   </a>
 </div>
