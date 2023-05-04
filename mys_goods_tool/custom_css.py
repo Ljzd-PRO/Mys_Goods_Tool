@@ -265,3 +265,52 @@ class ExchangePlanContent(Container):
         height: 3;
     }
     """
+
+
+class CaptchaTips(Container):
+    """
+    登陆信息面板文本视图
+    """
+    DEFAULT_CSS = """
+    CaptchaTips {
+        height: 100%;
+        width: 1fr;
+        align: right middle;
+        padding: 1;
+        overflow: auto;
+        border: round #666;
+    }
+
+    App.-light-mode Tips {
+        border: round #CCC;
+    }
+
+    CaptchaTips StaticStatus {
+        width: 100%;
+        align: center top;
+        text-align: center;
+    }
+    """
+
+
+class CaptchaStepSet(Container):
+    """
+    登陆进度节点集合视图
+    """
+    DEFAULT_CSS = """
+    CaptchaStepSet {
+        height: auto;
+        width: 1fr;
+        align: left middle;
+        overflow: auto;
+        border: round #666;
+    }
+
+    App.-light-mode StepSet {
+        border: round #CCC;
+    }
+
+    CaptchaStepSet RadioStatus {
+        margin: 1 1;
+    }
+    """
