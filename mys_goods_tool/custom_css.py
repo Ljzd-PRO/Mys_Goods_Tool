@@ -284,11 +284,20 @@ class CaptchaTips(Container):
     App.-light-mode Tips {
         border: round #CCC;
     }
+    
+    CaptchaTips Container {
+        align: center middle;
+    }
 
     CaptchaTips StaticStatus {
         width: 100%;
         align: center top;
         text-align: center;
+    }
+    
+    CaptchaTips ControllableButton {
+        align: center middle;
+        margin: 1;
     }
     """
 

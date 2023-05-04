@@ -92,12 +92,30 @@ class CaptchaLoginInformation(Container):
         geetest_title=Static(Markdown("## GEETEST人机验证链接")),
         geetest_text=StaticStatus(GEETEST_TEXT)
     )
+    url_text = Container(*static_tuple)
+
+    captcha_button = ControllableButton("显示二维码", id="captcha_login_info-captcha_button")
+    url_button = ControllableButton("显示链接文本", id="captcha_login_info-url_button")
+    url_button.hide()
 
     radio_set = CaptchaStepSet(*radio_tuple)
-    static_set = CaptchaTips(*static_tuple)
+    static_set = CaptchaTips(url_text, captcha_button, url_button)
 
     def compose(self) -> ComposeResult:
         yield Horizontal(self.radio_set, self.static_set)
+
+    def _on_button_pressed(self, event: ControllableButton.Pressed):
+        if event.button.id == "captcha_login_info-captcha_button":
+            self.captcha_button.hide()
+            self.url_button.show()
+            self.url_text.display = False
+            # TODO: 显示二维码
+
+        elif event.button.id == "captcha_login_info-url_button":
+            self.url_button.hide()
+            self.captcha_button.show()
+            # TODO: 隐藏二维码
+            self.url_text.display = True
 
 
 class PhoneForm(LoginForm):
