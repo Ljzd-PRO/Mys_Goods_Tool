@@ -17,7 +17,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.0-beta.1"
+VERSION = "2.0.0"
 """程序当前版本"""
 
 if TYPE_CHECKING:
@@ -306,7 +306,13 @@ class Preference(BaseSettings):
     @validator("log_path")
     def _(cls, v: Optional[Path]):
         absolute_path = v.absolute()
-        if not os.access(absolute_path, os.W_OK):
+        if not os.path.exists(absolute_path) or not os.path.isfile(absolute_path):
+            absolute_parent = absolute_path.parent
+            try:
+                os.makedirs(absolute_parent, exist_ok=True)
+            except PermissionError:
+                logger.warning(f"程序没有创建日志目录 {absolute_parent} 的权限")
+        elif not os.access(absolute_path, os.W_OK):
             logger.warning(f"程序没有写入日志文件 {absolute_path} 的权限")
         return v
 
@@ -473,7 +479,7 @@ def load_config():
     """
     加载用户数据文件
     """
-    if os.path.isfile(CONFIG_PATH):
+    if os.path.exists(CONFIG_PATH) and os.path.isfile(CONFIG_PATH):
         try:
             return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):

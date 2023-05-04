@@ -1,0 +1,36 @@
+name: Build (i386 Alpine, v2)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Initialize vars context by reading it from env context
+  _: ${{ vars._ }}
+  spec-file-path: Mys_Goods_Tool.spec
+  container-id:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container: balenalib/qemux86-alpine-python
+    steps:
+      - name: Install dependencies
+        run : |
+          qemu-i386 curl -sSL https://install.python-poetry.org | python3 -
+          qemu-i386 poetry install --with pyinstaller
+
+      - name: Build
+        run: |
+          poetry run pyinstaller ${{ env.spec-file-path }}
+
+      - name: Upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: Mys_Goods_Tool_v2-Alpine-i386
+          path: |
+            dist/${{ env.executable-file-name }}*
+            README.md
