@@ -54,53 +54,6 @@ class CaptchaLoginInformation(Container):
     }
     """
 
-    class Tips(Container):
-        """
-        登陆信息面板文本视图
-        """
-        DEFAULT_CSS = """
-        Tips {
-            height: 100%;
-            width: 1fr;
-            align: right middle;
-            padding: 1;
-            overflow: auto;
-            border: round #666;
-        }
-
-        App.-light-mode Tips {
-            border: round #CCC;
-        }
-
-        Tips StaticStatus {
-            width: 100%;
-            align: center top;
-            text-align: center;
-        }
-        """
-
-    class StepSet(Container):
-        """
-        登陆进度节点集合视图
-        """
-        DEFAULT_CSS = """
-        StepSet {
-            height: auto;
-            width: 1fr;
-            align: left middle;
-            overflow: auto;
-            border: round #666;
-        }
-
-        App.-light-mode StepSet {
-            border: round #CCC;
-        }
-
-        StepSet RadioStatus {
-            margin: 1 1;
-        }
-        """
-
     RadioTuple = NamedTuple("RadioTuple",
                             create_geetest=RadioStatus,
                             http_server=RadioStatus,
@@ -140,8 +93,8 @@ class CaptchaLoginInformation(Container):
         geetest_text=StaticStatus(GEETEST_TEXT)
     )
 
-    radio_set = StepSet(*radio_tuple)
-    static_set = Tips(*static_tuple)
+    radio_set = CaptchaStepSet(*radio_tuple)
+    static_set = CaptchaTips(*static_tuple)
 
     def compose(self) -> ComposeResult:
         yield Horizontal(self.radio_set, self.static_set)
