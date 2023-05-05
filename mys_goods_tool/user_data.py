@@ -296,7 +296,7 @@ class Preference(BaseSettings):
     """登录时使用的 GEETEST行为验证 WEB服务 本地监听地址"""
     exchange_thread_count: int = 2
     """兑换线程数"""
-    exchange_latency: Tuple[float, float] = (0, 0.35)
+    exchange_latency: Tuple[float, float] = (0, 0.2)
     """兑换时间延迟随机范围（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
     enable_log_output: bool = True
     """是否保存日志"""
