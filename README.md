@@ -31,25 +31,26 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
 - [ ] 支持在图形界面中编辑偏好设置
 - [ ] 密码登录
 - [ ] 解决SSH客户端无法跳转人机验证链接的问题
+- [ ] 更新至极验第四代行为验证
 
 ### 预览图
 
 <details>
-<summary>短信验证登录</summary>
-<img src="https://user-images.githubusercontent.com/63289359/235790425-7c502a69-baac-4ced-ba07-d068a88a7ae9.png" alt="短信验证登录页面" />
-<img src="https://user-images.githubusercontent.com/63289359/235790979-85954be8-023f-47e0-bb69-bb16385905d4.png" alt="人机验证页面" />
+  <summary>短信验证登录</summary>
+  <img src="https://user-images.githubusercontent.com/63289359/235790425-7c502a69-baac-4ced-ba07-d068a88a7ae9.png" alt="短信验证登录页面" />
+  <img src="https://user-images.githubusercontent.com/63289359/235790979-85954be8-023f-47e0-bb69-bb16385905d4.png" alt="人机验证页面" />
 </details>
 
 <details>
-<summary>管理兑换计划</summary>
-<img src="https://user-images.githubusercontent.com/63289359/235791200-d1a7c8f0-9a9a-4fcc-91bf-69fe397e6420.png" alt="选择目标商品页面" />
-<img src="https://user-images.githubusercontent.com/63289359/235791332-3d8ea836-7d0b-4dbf-b643-81c65eaa5082.png" alt="确认添加计划页面" />
-<img src="https://user-images.githubusercontent.com/63289359/235791435-69edf6f7-9abf-4c81-8da4-44a486c6d362.png" alt="管理计划页面" />
+  <summary>管理兑换计划</summary>
+  <img src="https://user-images.githubusercontent.com/63289359/235791200-d1a7c8f0-9a9a-4fcc-91bf-69fe397e6420.png" alt="选择目标商品页面" />
+  <img src="https://user-images.githubusercontent.com/63289359/235791332-3d8ea836-7d0b-4dbf-b643-81c65eaa5082.png" alt="确认添加计划页面" />
+  <img src="https://user-images.githubusercontent.com/63289359/235791435-69edf6f7-9abf-4c81-8da4-44a486c6d362.png" alt="管理计划页面" />
 </details>
 
 <details>
-<summary>进入兑换模式</summary>
-<img src="https://user-images.githubusercontent.com/63289359/235791620-bf32692d-a521-49b3-bf2a-23d7012b6fff.png" alt="兑换模式页面" />
+  <summary>进入兑换模式</summary>
+  <img src="https://user-images.githubusercontent.com/63289359/235791620-bf32692d-a521-49b3-bf2a-23d7012b6fff.png" alt="兑换模式页面" />
 </details>
 
 ## 使用说明
@@ -83,6 +84,15 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
         chmod +x ./Mys_Goods_Tool
         ./Mys_Goods_Tool
         ```
+
+#### 通过SSH在远程服务器上运行的情况
+
+- 部分SSH客户端可能无法很好地显示Textual TUI界面（如Xshell）
+- 人机验证时将无法自动打开浏览器跳转链接，有如下几种解决方案
+    - 在本地运行本程序，配置好兑换计划后将用户数据文件（默认 `user_data.json`）拷贝至远程服务器，  
+      远程服务器使用 `-m exchange-simple` 启动参数直接进入兑换模式
+    - 人机验证链接会输出至日志文件（默认 `logs/mys_goods_tool.log`），  
+      因此可通过日志文件复制链接，然后在本地访问（可能需要更改链接中的主机名 `localhost`）
 
 ### 2. 自定义启动参数（可选）
 
