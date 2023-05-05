@@ -249,6 +249,8 @@ class MmtData(BaseModel):
     gt: str
     mmt_key: str
     new_captcha: bool
+    use_v4: Optional[bool]
+    risk_type: Optional[str]
 
 
 class BaseApiStatus(BaseModel):
