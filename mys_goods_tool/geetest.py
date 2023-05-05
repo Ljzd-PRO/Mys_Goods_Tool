@@ -4,6 +4,7 @@ import os
 import threading
 import traceback
 from http.server import HTTPServer, ThreadingHTTPServer, CGIHTTPRequestHandler
+from json import JSONDecodeError
 from multiprocessing import Pipe, Manager, connection
 from pathlib import Path
 from queue import Queue
@@ -24,6 +25,7 @@ STATIC_DIRECTORY = Path(__file__).resolve().with_name(
 class GeetestHandler(CGIHTTPRequestHandler):
     result_callback: Callable[[Union[GeetestResult, GeetestResultV4]], Any]
     """接收验证结果数据的回调函数"""
+    error_content_type = "application/json"
 
     def log_message(self, format: str, *args: Any) -> None:
         """
@@ -52,6 +54,19 @@ class GeetestHandler(CGIHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(response).encode())
 
+    def send_error(self, code: int, message: str = None, explain: str = None, to_json: bool = False) -> None:
+        """
+        重写父类方法，返回json格式的错误信息
+        """
+        if to_json:
+            self.send_response(code, message)
+            self.send_header("Content-Type", self.error_content_type)
+            self.end_headers()
+            response = {"code": code, "msg": message, "desc": explain}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            super().send_error(code, message, explain)
+
     def do_GET(self):
         file_path = self.path
         try:
@@ -66,7 +81,7 @@ class GeetestHandler(CGIHTTPRequestHandler):
                 if not seccode or not validate:
                     logger.error(
                         f"HTTP服务器 - 收到 {self.address_string()} 的验证结果，但URL参数缺少 seccode 和 validate")
-                    self.send_error(400, "Bad request, missing URL params `seccode` and `validate`")
+                    self.send_error(400, "Bad request, missing URL params `seccode` and `validate`", to_json=True)
                 else:
                     geetest_result = GeetestResult(seccode=seccode[0], validate=validate[0])
                     logger.info(f"HTTP服务器 - 收到 {self.address_string()} 的验证结果 - {geetest_result}")
@@ -103,11 +118,12 @@ class GeetestHandler(CGIHTTPRequestHandler):
     def do_POST(self) -> None:
         if self.path.startswith("/result"):
             try:
-                geetest_result = GeetestResultV4.parse_raw(self.rfile.read())
-            except ValidationError:
-                logger.error(
+                content_length = int(self.headers["Content-Length"])
+                geetest_result = GeetestResultV4.parse_raw(self.rfile.read(content_length))
+            except (ValidationError, JSONDecodeError):
+                logger.exception(
                     f"HTTP服务器 - 收到 {self.address_string()} 的 gt4 验证结果，但传入数据不符合 GeetestResultV4 模型")
-                self.send_error(400, "Bad request, data not match GeetestResultV4 model")
+                self.send_error(400, "Bad request, data not match GeetestResultV4 model", to_json=True)
             else:
                 logger.info(f"HTTP服务器 - 收到 {self.address_string()} 的 gt4 验证结果")
                 self.result_callback(geetest_result)
