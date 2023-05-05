@@ -179,7 +179,12 @@
                 if (result && !success) {
                     success = true;
                     displayGeetestResult("已成功获取验证结果", result);
-                    $.post("/result", result)
+                    $.ajax({
+                        url: "/result",
+                        data: JSON.stringify(result),
+                        method: "POST",
+                        contentType: "application/json"
+                    })
                         .done(function (_) {
                             displaySuccess("已成功将验证结果发送至服务器");
                         })
