@@ -59,7 +59,11 @@ v2.0.0 开始的包含了图形化的小工具是基本上重做了，所以刚�
 
 ## 常见问题
 
-参考 [🛠️ 常见问题](https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki/Troubleshooting)
+参考 [❓ 常见问题](https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki/Troubleshooting)
+
+## 代码结构
+
+参考 [📃 代码结构](https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki/Source-Structure)
 
 ## 其他
 
