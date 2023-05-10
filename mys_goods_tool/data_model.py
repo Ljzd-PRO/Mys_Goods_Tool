@@ -1,8 +1,9 @@
 import inspect
 import time
-from typing import Optional, Literal, NamedTuple, no_type_check, Union, Dict, Any
+from abc import abstractmethod
+from typing import Optional, Literal, NamedTuple, no_type_check, Union, Dict, Any, TypeVar
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 
 class BaseModelWithSetter(BaseModel):
@@ -30,7 +31,29 @@ class BaseModelWithSetter(BaseModel):
                 raise e
 
 
-class Good(BaseModel, extra=Extra.ignore):
+class BaseModelWithUpdate(BaseModel):
+    """
+    可以使用update方法的BaseModel
+    """
+    _T = TypeVar("_T", bound=BaseModel)
+
+    @abstractmethod
+    def update(self, obj: Union[_T, Dict[str, Any]]) -> _T:
+        """
+        更新数据对象
+
+        :param obj: 新的数据对象或属性字典
+        :raise TypeError
+        """
+        if isinstance(obj, type(self)):
+            obj = obj.dict()
+        items = filter(lambda x: x[0] in self.__fields__, obj.items())
+        for k, v in items:
+            setattr(self, k, v)
+        return self
+
+
+class Good(BaseModelWithUpdate):
     """
     商品数据
     """
@@ -71,22 +94,14 @@ class Good(BaseModel, extra=Extra.ignore):
     icon: str
     """商品图片链接"""
 
-    def update(self, obj: Union["Good", Dict[str, Any]]):
+    def update(self, obj: Union["Good", Dict[str, Any]]) -> "Good":
         """
         更新商品信息
 
         :param obj: 新的商品数据
         :raise TypeError
         """
-        if isinstance(obj, Good):
-            items = obj.dict().items()
-        elif isinstance(obj, dict):
-            items = filter(lambda x: x[0] in self.__fields__, obj.items())
-        else:
-            raise TypeError
-        for k, v in items:
-            setattr(self, k, v)
-        return self
+        return super().update(obj)
 
     @property
     def time(self):

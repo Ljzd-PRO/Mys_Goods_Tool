@@ -8,7 +8,7 @@ from httpx import Cookies
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 
-from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord
+from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord, BaseModelWithUpdate
 
 ROOT_PATH = Path("./")
 """程序所在目录"""
@@ -26,14 +26,9 @@ if TYPE_CHECKING:
     MappingIntStrAny = Mapping[IntStr, Any]
 
 
-class BBSCookies(BaseModelWithSetter):
+class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
     """
     米游社Cookies数据
-
-    # 测试 is_correct() 方法
-
-    >>> assert BBSCookies().is_correct() is False
-    >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct() is True
 
     # 测试 bbs_uid getter
 
@@ -98,13 +93,6 @@ class BBSCookies(BaseModelWithSetter):
         if stoken:
             self.stoken = stoken
 
-    def is_correct(self) -> bool:
-        """判断是否为正确的Cookies"""
-        if self.bbs_uid and self.stoken and self.cookie_token:
-            return True
-        else:
-            return False
-
     @property
     def bbs_uid(self):
         """
@@ -147,12 +135,7 @@ class BBSCookies(BaseModelWithSetter):
         """
         更新Cookies
         """
-        if isinstance(cookies, BBSCookies):
-            [setattr(self, key, value) for key, value in cookies.dict().items() if value]
-        else:
-            self_dict: Dict[str, str] = self.dict()
-            self_dict.update(cookies)
-            self.parse_obj(self_dict)
+        return super().update(cookies)
 
     def dict(self, *,
              include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']] = None,
