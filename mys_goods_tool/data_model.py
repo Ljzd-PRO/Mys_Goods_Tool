@@ -1,8 +1,8 @@
 import inspect
 import time
-from typing import Optional, Literal, NamedTuple, no_type_check
+from typing import Optional, Literal, NamedTuple, no_type_check, Union, Dict, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 
 class BaseModelWithSetter(BaseModel):
@@ -30,7 +30,7 @@ class BaseModelWithSetter(BaseModel):
                 raise e
 
 
-class Good(BaseModel):
+class Good(BaseModel, extra=Extra.ignore):
     """
     商品数据
     """
@@ -38,7 +38,7 @@ class Good(BaseModel):
     """为 1 时商品只有在指定时间开放兑换；为 0 时商品任何时间均可兑换"""
     next_time: Optional[int]
     """为 0 表示任何时间均可兑换或兑换已结束"""
-    status: Optional[str]
+    status: Optional[Literal["online", "not_in_sell"]]
     sale_start_time: Optional[str]
     time_by_detail: Optional[int]
     next_num: Optional[int]
@@ -71,27 +71,54 @@ class Good(BaseModel):
     icon: str
     """商品图片链接"""
 
+    def update(self, obj: Union["Good", Dict[str, Any]]):
+        """
+        更新商品信息
+
+        :param obj: 新的商品数据
+        :raise TypeError
+        """
+        if isinstance(obj, Good):
+            items = obj.dict().items()
+        elif isinstance(obj, dict):
+            items = filter(lambda x: x[0] in self.__fields__, obj.items())
+        else:
+            raise TypeError
+        for k, v in items:
+            setattr(self, k, v)
+        return self
+
     @property
     def time(self):
         """
         兑换时间
-        如果返回`None`，说明任何时间均可兑换或兑换已结束
+
+        :return:
+        如果返回`None`，说明任何时间均可兑换或兑换已结束。
+        如果返回`0`，说明该商品需要调用获取详细信息的API才能获取兑换时间
         """
         # "next_time" 为 0 表示任何时间均可兑换或兑换已结束
         if self.next_time == 0:
             return None
-        # elif self.sale_start_time is not None:
-        #     return int(self.sale_start_time)
-        else:
+        elif self.status == "not_in_sell" and self.sale_start_time is not None:
+            return int(self.sale_start_time)
+        elif self.status == "online":
             return self.next_time
+        else:
+            return 0
 
     @property
     def time_text(self):
         """
         商品的兑换时间文本
+
+        :return:
+        如果返回`None`，说明需要进一步查询商品详细信息才能获取兑换时间
         """
         if self.is_time_end():
             return "已结束"
+        elif self.time == 0:
+            return None
         elif self.is_time_limited():
             return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.time))
         else:

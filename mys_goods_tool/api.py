@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple, Dict, Any, Union
 from urllib.parse import urlencode
 
 import httpx
@@ -504,14 +504,15 @@ async def device_save(account: UserAccount, retry: bool = True):
             return BaseApiStatus(network_error=True)
 
 
-async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDetailStatus, Optional[Good]]:
+async def get_good_detail(good: Union[Good, str], retry: bool = True) -> Tuple[GetGoodDetailStatus, Optional[Good]]:
     """
     获取某商品的详细信息
 
-    :param good_id: 商品ID
+    :param good: 商品对象 / 商品ID，如果指定为商品对象，则会更新商品对象的数据并返回其引用
     :param retry: 是否允许重试
     :return: 商品数据
     """
+    good_id = good.goods_id if isinstance(good, Good) else good
     try:
         async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
                                                     wait=tenacity.wait_fixed(conf.preference.retry_interval)):
@@ -522,7 +523,10 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
                 # TODO 2023/4/13: 待改成对象方法判断
                 if api_result.message == '商品不存在' or api_result.message == '商品已下架':
                     return GetGoodDetailStatus(good_not_existed=True), None
-                return GetGoodDetailStatus(success=True), Good.parse_obj(api_result.data)
+                if isinstance(good, Good):
+                    return GetGoodDetailStatus(success=True), good.update(api_result.data)
+                else:
+                    return GetGoodDetailStatus(success=True), Good.parse_obj(api_result.data)
     except tenacity.RetryError as e:
         if is_incorrect_return(e):
             logger.exception(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")

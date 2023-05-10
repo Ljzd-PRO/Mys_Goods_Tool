@@ -397,13 +397,11 @@ class GoodsContent(BaseExchangePlan):
 
             # 获取商品详情
             self.loading.show()
-            good_detail_status, good_detail = await get_good_detail(good.goods_id)
+            good_detail_status, good_detail = await get_good_detail(good)
             self.loading.hide()
             if not good_detail_status:
                 # TODO 待补充各种错误情况
                 self.app.notice("[bold red]获取商品详情(game_biz)失败，但你仍然可以尝试进行兑换[/]")
-            else:
-                good.game_biz = good_detail.game_biz
             self.selected = good
 
             # 启用重置按钮
