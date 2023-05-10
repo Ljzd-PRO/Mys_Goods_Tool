@@ -57,6 +57,7 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
     >>> assert bbs_cookies.stoken_v1 == "abcd1234"
 
     # 检查 .dict 方法能否生成包含 stoken_2 类型的 stoken 的字典
+
     >>> bbs_cookies = BBSCookies()
     >>> bbs_cookies.stoken_v1 = "abcd1234"
     >>> bbs_cookies.stoken_v2 = "v2_abcd1234=="
@@ -67,6 +68,19 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
     >>> bbs_cookies = BBSCookies(stuid="123")
     >>> assert all(bbs_cookies.dict())
     >>> assert all(map(lambda x: x not in bbs_cookies, ["stoken_v1", "stoken_v2"]))
+
+    # 测试 update 方法
+
+    >>> bbs_cookies = BBSCookies(stuid="123")
+    >>> assert bbs_cookies.update({"stuid": "456", "stoken": "abc"}) is bbs_cookies
+    >>> assert bbs_cookies.stuid == "456"
+    >>> assert bbs_cookies.stoken == "abc"
+
+    >>> bbs_cookies = BBSCookies(stuid="123")
+    >>> new_cookies = BBSCookies(stuid="456", stoken="abc")
+    >>> assert bbs_cookies.update(new_cookies) is bbs_cookies
+    >>> assert bbs_cookies.stuid == "456"
+    >>> assert bbs_cookies.stoken == "abc"
     """
     stuid: Optional[str]
     """米游社UID"""
@@ -116,6 +130,7 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
     def stoken(self):
         """
         获取stoken
+        :return: 优先返回 self.stoken_v1
         """
         if self.stoken_v1:
             return self.stoken_v1
@@ -135,6 +150,11 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
         """
         更新Cookies
         """
+        if not isinstance(cookies, BBSCookies):
+            self.stoken = cookies.get("stoken") or self.stoken
+            self.bbs_uid = cookies.get("bbs_uid") or self.bbs_uid
+            cookies.pop("stoken", None)
+            cookies.pop("bbs_uid", None)
         return super().update(cookies)
 
     def dict(self, *,
