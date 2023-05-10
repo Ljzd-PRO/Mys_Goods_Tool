@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from itertools import zip_longest
-from typing import Optional
+from typing import Optional, Tuple
 
 from rich.console import RenderableType
 from rich.text import TextType
@@ -16,7 +16,6 @@ from textual.widgets._button import ButtonVariant
 from textual.widgets._tabbed_content import ContentTab
 
 from mys_goods_tool.custom_css import *
-from mys_goods_tool.data_model import GameInfo
 from mys_goods_tool.user_data import ExchangePlan
 
 
@@ -217,10 +216,10 @@ class GameButton(ControllableButton):
             id: str | None = None,
             classes: str | None = None,
             disabled: bool = False,
-            game: GameInfo
+            partition: Tuple[str, str]
     ):
         super().__init__(label, variant, name=name, id=id, classes=classes, disabled=disabled)
-        self.game = game
+        self.partition = partition
 
     class Pressed(Button.Pressed):
         def __init__(self, button: GameButton):

@@ -92,16 +92,21 @@
     /**
      * 显示错误信息
      * @param {string} text 提示文本
-     * @param {Error} error GeetestError 错误对象
+     * @param {Error} error 错误对象
+     * @param isGeetestError 是否为 GeetestError
      */
-    function displayError(text, error = null) {
+    function displayError(text, error = null, isGeetestError = true) {
         $("#wait").hide();
         const errorText = $("#errorText");
         errorText.text(text);
-        if (error) {
+        if (error && isGeetestError) {
             $("#errorCode").text(error.code);
             $("#errorMessage").text(error.msg);
-            $("#errorDescription").text(error.user_error);
+            $("#errorDescription").text(error.desc);
+            $("#errorDiv").show();
+        } else if (error) {
+            $("#errorCode").text(error.status);
+            $("#errorMessage").text(error.statusText);
             $("#errorDiv").show();
         }
         errorText.show();
@@ -158,7 +163,7 @@
                         displaySuccess("已成功将验证结果发送至服务器");
                     })
                     .fail(function (error) {
-                        displayError("发送验证结果至服务器失败", error);
+                        displayError("发送验证结果至服务器失败", error, false);
                     });
             }
         }, 1000);

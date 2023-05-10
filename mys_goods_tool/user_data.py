@@ -1,5 +1,4 @@
 import os
-import traceback
 from json import JSONDecodeError
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
@@ -17,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 """程序当前版本"""
 
 if TYPE_CHECKING:
@@ -296,7 +295,7 @@ class Preference(BaseSettings):
     """登录时使用的 GEETEST行为验证 WEB服务 本地监听地址"""
     exchange_thread_count: int = 2
     """兑换线程数"""
-    exchange_latency: Tuple[float, float] = (0, 0.35)
+    exchange_latency: Tuple[float, float] = (0, 0.2)
     """兑换时间延迟随机范围（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
     enable_log_output: bool = True
     """是否保存日志"""
@@ -483,20 +482,17 @@ def load_config():
         try:
             return UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
-            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确")
-            logger.debug(traceback.format_exc())
+            logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确")
             exit(1)
         except:
-            logger.error(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入")
-            logger.debug(traceback.format_exc())
+            logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入")
             exit(1)
     else:
         user_data = UserData()
         try:
             write_config_file(user_data)
         except PermissionError:
-            logger.error(f"创建用户数据文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH}")
-            logger.debug(traceback.format_exc())
+            logger.exception(f"创建用户数据文件失败，请检查程序是否有权限读取和写入 {CONFIG_PATH}")
             exit(1)
         # logger.info(f"用户数据文件 {CONFIG_PATH} 不存在，已创建默认用户数据文件。")
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消

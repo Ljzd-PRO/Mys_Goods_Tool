@@ -14,12 +14,12 @@ from textual.widgets import (
 )
 from textual.widgets._option_list import Option, Separator
 
-from mys_goods_tool.api import get_good_list, get_game_list, get_address, get_game_record, good_exchange, \
-    get_good_detail
+from mys_goods_tool.api import get_good_list, get_address, get_game_record, good_exchange, \
+    get_good_detail, get_good_games
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton, PlanButton, UnClickableItem
-from mys_goods_tool.data_model import Good, GameInfo, Address, GameRecord
+from mys_goods_tool.data_model import Good, Address, GameRecord
 from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
 
 _T = TypeVar("_T")
@@ -242,10 +242,10 @@ class GoodsContent(BaseExchangePlan):
     loading = LoadingDisplay()
     loading.hide()
 
-    good_dict: Dict[int, GoodsDictValue] = {}
-    """获取到的商品数据以及相关的控件"""
-    selected_tuple: Optional[Tuple[GameInfo, int]] = None
-    """已选择的商品位置"""
+    good_dict: Dict[str, GoodsDictValue] = {}
+    """获取到的商品数据以及相关的控件 商品分区简称 -> 商品数据"""
+    selected_tuple: Optional[Tuple[Tuple[str, str], int]] = None
+    """已选择的商品位置 ((商品分区, 分区简称), 商品在OptionList中的位置)"""
 
     empty_data_option = Option("暂无商品数据，可能是目前没有限时兑换的商品，可尝试刷新", disabled=True)
     """空的商品选项列表"""
@@ -257,28 +257,29 @@ class GoodsContent(BaseExchangePlan):
         """
 
         def __init__(self,
-                     game_info: GameInfo,
+                     partition: Tuple[str, str],
                      button_select: Optional[GameButton] = None,
                      tap_pane: Optional[TabPane] = None,
                      good_list: List[Good] = None,
                      ):
             """
-            :param game_info: 商品频道数据
+            :param partition: (商品分区, 字母简称) 数据
             :param tap_pane: 频道对应的 `TabPane` 标签页
             :param good_list: 商品数据
             :param button_select: 选择商品的按钮
             """
-            self.game_info = game_info
+            name, abbr = partition
+            self.partition = partition
             """商品频道数据"""
             self.button_select = button_select or GameButton(
                 "💾 确定",
-                id=f"button-goods-select-{game_info.id}",
+                id=f"button-goods-select-{abbr}",
                 disabled=True,
-                game=game_info)
+                partition=partition)
             """选择商品的按钮"""
             self.option_list = OptionList(GoodsContent.empty_data_option, disabled=True)
             """商品的选项列表"""
-            self.tap_pane = tap_pane or TabPane(game_info.name, Horizontal(self.button_select, self.option_list))
+            self.tap_pane = tap_pane or TabPane(name, Horizontal(self.button_select, self.option_list))
             """频道对应的 `TabPane` 标签页"""
             self.good_list = good_list
             """商品数据"""
@@ -300,13 +301,14 @@ class GoodsContent(BaseExchangePlan):
         self.button_refresh.disable()
 
         for goods_data in self.good_dict.values():
-            good_list_status, good_list = await get_good_list(goods_data.game_info.op_name)
+            name, abbr = goods_data.partition
+            good_list_status, good_list = await get_good_list(abbr)
             good_list = list(filter(lambda x: x.is_time_limited() and not x.is_time_end(), good_list))
 
             # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
             goods_data.option_list.clear_options()
             if not good_list_status:
-                self.app.notice(f"[bold red]获取频道 [bold red]{goods_data.game_info.name}[/] 的商品数据失败！[/]")
+                self.app.notice(f"[bold red]获取频道 [bold red]{name}[/] 的商品数据失败！[/]")
                 # TODO 待补充各种错误情况
             if good_list:
                 goods_data.good_list = good_list
@@ -331,13 +333,15 @@ class GoodsContent(BaseExchangePlan):
         self.loading.show()
 
         # 更新商品频道列表
-        game_list_status, game_list = await get_game_list()
-        if game_list_status:
-            for game in game_list:
-                if game.id not in self.good_dict:
+        partition_status, partition_all = await get_good_games()
+        # 过滤掉 "全部" 分区
+        partitions = filter(lambda x: x[1] != "all", partition_all)
+        if partition_status:
+            for name, abbr in partitions:
+                if abbr not in self.good_dict:
                     # 如果没有商品频道对应值，则进行创建
-                    goods_data = self.GoodsDictValue(game)
-                    self.good_dict.setdefault(game.id, goods_data)
+                    goods_data = self.GoodsDictValue((name, abbr))
+                    self.good_dict.setdefault(abbr, goods_data)
                     await self.tabbed_content.append(goods_data.tap_pane)
 
             # 更新每个频道的商品数据
@@ -377,22 +381,19 @@ class GoodsContent(BaseExchangePlan):
         if event.button.id.startswith("button-goods-select"):
             # 按下“保存”按钮时触发的事件
 
-            game = event.button.game
-            if not game:
-                self.app.notice("[bold red]未找到对应的频道数据或频道不可用[/]")
-                return
-            option_list = self.good_dict[game.id].option_list
+            name, abbr = event.button.partition
+            option_list = self.good_dict[abbr].option_list
             selected_index = option_list.highlighted
             if selected_index is None:
                 self.app.notice("[bold red]请先从列表中选择商品！[/]")
                 return
-            good_dict_value = self.good_dict.get(game.id)
+            good_dict_value = self.good_dict.get(abbr)
             if not good_dict_value:
                 self.app.notice("[bold red]未找到对应的频道[/]")
                 return
 
             good = good_dict_value.good_list[selected_index]
-            GoodsContent.selected_tuple = game, selected_index
+            GoodsContent.selected_tuple = name, abbr, selected_index
 
             # 获取商品详情
             self.loading.show()
@@ -421,7 +422,7 @@ class GoodsContent(BaseExchangePlan):
 
             self.text_view.update(f"已选择商品："
                                   f"\n[list]"
-                                  f"\n🗂️ 商品频道：[bold green]{game.name}[/]"
+                                  f"\n🗂️ 商品频道：[bold green]{name}[/]"
                                   f"\n📌 名称：[bold green]{good.general_name}[/]"
                                   f"\n💰 价格：[bold green]{good.price}[/] 米游币"
                                   f"\n📦 库存：[bold green]{good.stoke_text}[/] 件"

@@ -533,12 +533,40 @@ async def get_good_detail(good_id: str, retry: bool = True) -> Tuple[GetGoodDeta
             GetGoodDetailStatus(network_error=True), None
 
 
-async def get_good_list(game: str, retry: bool = True) -> Tuple[
+async def get_good_games(retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[Tuple[str, str]]]]:
+    """
+    获取商品分区列表
+
+    :param retry: 是否允许重试
+    :return: (商品分区全名, 字母简称) 的列表
+    """
+    try:
+        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
+                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.get(URL_GOOD_LIST.format(page=1,
+                                                                game=""),
+                                           headers=HEADERS_GOOD_LIST,
+                                           timeout=conf.preference.timeout)
+                api_result = ApiResultHandler(res.json())
+                return BaseApiStatus(success=True), list(map(lambda x: (x["name"], x["key"]), api_result.data["games"]))
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.exception(f"米游币商品兑换 - 获取商品列表: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            return BaseApiStatus(incorrect_return=True), None
+        else:
+            logger.exception(f"米游币商品兑换 - 获取商品列表: 网络请求失败")
+            return BaseApiStatus(network_error=True), None
+
+
+async def get_good_list(game: str = "", retry: bool = True) -> Tuple[
     BaseApiStatus, Optional[List[Good]]]:
     """
     获取商品信息列表
 
-    :param game: 游戏简称
+    :param game: 游戏简称（默认为空，即获取所有游戏的商品）
     :param retry: 是否允许重试
     :return: 商品信息列表
     """

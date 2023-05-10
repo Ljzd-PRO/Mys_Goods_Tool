@@ -7,8 +7,9 @@ from urllib.parse import urlparse
 
 import ping3
 from apscheduler.events import JobExecutionEvent, EVENT_JOB_EXECUTED
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.schedulers.base import STATE_STOPPED
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_STOPPED, BaseScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from rich.console import RenderableType
 from textual import events
 from textual.app import ComposeResult
@@ -51,11 +52,10 @@ def _connection_test():
     return result
 
 
-def get_scheduler():
+def set_scheduler(scheduler: BaseScheduler):
     """
-    获取兑换计划调度器
+    向兑换计划调度器添加兑换任务以及ping循环
     """
-    scheduler = AsyncIOScheduler()
     scheduler.configure(timezone=conf.preference.timezone or Preference.timezone)
 
     if conf.preference.enable_connection_test:
@@ -99,7 +99,7 @@ def exchange_mode_simple():
         logger.info("无兑换计划需要执行")
         return
 
-    scheduler = get_scheduler()
+    scheduler = set_scheduler(BlockingScheduler())
     finished_plans = set()
 
     @lambda func: scheduler.add_listener(func, EVENT_JOB_EXECUTED)
@@ -138,12 +138,12 @@ def exchange_mode_simple():
                     f"Ping 商品兑换API服务器 {_get_api_host() or 'N/A'} - 延迟 {round(result, 2) if result else 'N/A'} ms")
 
     try:
+        logger.info("启动兑换计划定时器")
         scheduler.start()
-        logger.info("兑换计划定时器已启动")
-        asyncio.get_event_loop().run_forever()
+
     except KeyboardInterrupt:
+        logger.info("停止兑换计划定时器")
         scheduler.shutdown()
-        logger.info("兑换计划定时器已停止")
 
 
 class EnterExchangeMode(Event):
@@ -212,7 +212,7 @@ class ExchangeModeView(Container):
     button_exit.hide()
     warning_text = ExchangeModeWarning()
     """进入/退出 兑换模式的提示文本"""
-    scheduler = get_scheduler()
+    scheduler = set_scheduler(BackgroundScheduler())
     """兑换计划调度器"""
     empty_data_item = ListItem(Static("暂无兑换计划，你可以尝试刷新"))
     list_view = ListView(empty_data_item)
@@ -372,7 +372,6 @@ class ExchangeModePing(Static):
     """
     DEFAULT_VALUE = False
     ping_value: reactive[Union[float, bool, None]] = reactive(DEFAULT_VALUE)
-    scheduler = get_scheduler()
 
     def render(self) -> RenderableType:
         return f"⚡ Ping | 商品兑换API服务器 [yellow]{_get_api_host() or 'N/A'}[/]" \
