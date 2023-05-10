@@ -1,5 +1,4 @@
 import os
-import traceback
 from json import JSONDecodeError
 from pathlib import Path
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
