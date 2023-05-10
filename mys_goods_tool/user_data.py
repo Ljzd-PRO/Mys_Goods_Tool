@@ -30,6 +30,11 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
     """
     米游社Cookies数据
 
+    # 测试 is_correct() 方法
+
+    >>> assert BBSCookies().is_correct() is False
+    >>> assert BBSCookies(stuid="123", stoken="123", cookie_token="123").is_correct() is True
+
     # 测试 bbs_uid getter
 
     >>> bbs_cookies = BBSCookies()
@@ -106,6 +111,13 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
         stoken = data.get("stoken")
         if stoken:
             self.stoken = stoken
+
+    def is_correct(self) -> bool:
+        """判断是否为正确的Cookies"""
+        if self.bbs_uid and self.stoken and self.cookie_token:
+            return True
+        else:
+            return False
 
     @property
     def bbs_uid(self):
