@@ -23,14 +23,14 @@ packages = [{ include = "mys_goods_tool" }]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 tenacity = "^8.2.2"
-requests = "^2.29.0"
+requests = "^2.30.0"
 ping3 = "^4.0.4"
 ntplib = "^0.4.0"
 pydantic = "^1.10.6"
 loguru = "^0.7.0"
 httpx = "^0.24.0"
 rich = "^13.3.5"
-textual = "^0.23.0"
+textual = "^0.24.1"
 socksio = "^1.0.0"
 apscheduler = "^3.10.1"
 
