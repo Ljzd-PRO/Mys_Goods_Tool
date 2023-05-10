@@ -123,7 +123,7 @@ class AboveFold(Container):
     DEFAULT_CSS = """
     AboveFold {
         width: 100%;
-        height: 100%;
+        height: auto;
         align: center middle;
     }
     """

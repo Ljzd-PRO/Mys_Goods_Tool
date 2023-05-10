@@ -27,8 +27,15 @@ from mys_goods_tool.user_data import ROOT_PATH, VERSION
 from mys_goods_tool.utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
+# Mys_Goods_Tool - 米游社商品兑换工具
+
+## 更新说明
+- 修复米游社（大别野）等商品分区无商品的问题
+- 修复图形界面兑换模式下不会执行兑换的问题
+
 ## 功能和特性
-- 使用 Textual 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
+
+- 使用 [Textual](https://github.com/Textualize/textual) 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
 - 短信验证码登录（只需接收一次验证码）
 - 内置人机验证页面，无需前往官网验证
 - 多账号支持
@@ -37,22 +44,21 @@ WELCOME_MD = """
 ### TODO
 - 支持在图形界面中编辑偏好设置
 - 密码登录
-
-## 偏好设置
-默认配置下基本上可以正常使用，如果需要修改配置，可以参考 [`mys_goods_tool/user_data.py`]() 进行配置。
-
-默认配置文件路径为 `./user_data.json`，可以通过 `-c` 或 `--conf` 参数指定配置文件路径。
+- 解决SSH客户端无法跳转人机验证链接的问题
+- 更新至极验第四代适应性验证
 
 ## 其他
+- [**🔗完整说明文档**](https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki)
 - 仅供学习时参考
 
 - 相似项目推荐:  \
-**mysTool - 米游社辅助工具插件**  \
-简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录、原神树脂提醒  \
-🔗 https://github.com/Ljzd-PRO/nonebot-plugin-mystool
-
+  **mysTool - 米游社辅助工具插件**  \
+  简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录、原神树脂提醒  \
+  🔗 https://github.com/Ljzd-PRO/nonebot-plugin-mystool
+  
 - 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。
-欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
+  欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)
+  和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
 
 - 开发版分支：[🔗dev](https://github.com/Ljzd-PRO/Mys_Goods_Tool/tree/dev/)
 """
