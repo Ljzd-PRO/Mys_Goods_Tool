@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from io import StringIO
 import sys
+from io import StringIO
 
 from rich.console import RenderableType
 from rich.markdown import Markdown
