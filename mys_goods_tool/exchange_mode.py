@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 import ping3
 from apscheduler.events import JobExecutionEvent, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.base import STATE_STOPPED, BaseScheduler
+from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from rich.console import RenderableType
 from textual import events
@@ -62,21 +62,25 @@ def set_scheduler(scheduler: BaseScheduler):
     """
     scheduler.configure(timezone=conf.preference.timezone or Preference.timezone)
 
-    if conf.preference.enable_connection_test:
+    if conf.preference.enable_connection_test and scheduler.get_job("exchange-connection_test") is None:
         interval = conf.preference.connection_test_interval or Preference.connection_test_interval
         scheduler.add_job(_connection_test, "interval", seconds=interval, id=f"exchange-connection_test")
 
+    existed_job = scheduler.get_jobs()
     for plan in conf.exchange_plans:
-        for i in range(conf.preference.exchange_thread_count):
-            scheduler.add_job(exchange_begin,
-                              "date",
-                              args=[plan],
-                              run_date=datetime.fromtimestamp(plan.good.time),
-                              id=f"exchange-plan-{plan.__hash__()}-{i}"
-                              )
-        logger.info(f"已添加定时兑换任务 {plan.account.bbs_uid}"
-                    f" - {plan.good.general_name}"
-                    f" - {plan.good.time_text}")
+        job_id_start = f"exchange-plan-{plan.__hash__()}"
+        # 如果已经存在相同兑换计划，就不再添加
+        if not any(job.id.startswith(job_id_start) for job in existed_job):
+            for i in range(conf.preference.exchange_thread_count):
+                scheduler.add_job(exchange_begin,
+                                  "date",
+                                  args=[plan],
+                                  run_date=datetime.fromtimestamp(plan.good.time),
+                                  id=f"{job_id_start}-{i}"
+                                  )
+            logger.info(f"已添加定时兑换任务 {plan.account.bbs_uid}"
+                        f" - {plan.good.general_name}"
+                        f" - {plan.good.time_text}")
 
     return scheduler
 
@@ -254,10 +258,7 @@ class ExchangeModeView(Container):
             self.post_message(EnterExchangeMode())
 
             ExchangeResultRow.finished_plans.clear()
-            if self.scheduler.state == STATE_STOPPED:
-                self.scheduler.start()
-            else:
-                self.scheduler.resume()
+            self.scheduler.start()
 
         elif event.button.id == "button-exchange_mode-exit":
             self.button_refresh.enable()
@@ -265,7 +266,7 @@ class ExchangeModeView(Container):
             self.button_enter.show()
             self.warning_text.display_text = self.warning_text.ENTER_TEXT
             self.post_message(ExitExchangeMode())
-            self.scheduler.pause()
+            self.scheduler.shutdown()
 
         elif event.button.id == "button-exchange_mode-refresh":
             await self.update_data()
