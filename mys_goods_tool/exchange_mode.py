@@ -1,4 +1,3 @@
-import asyncio
 import random
 import sys
 import threading
@@ -20,7 +19,7 @@ from textual.events import Event
 from textual.reactive import reactive
 from textual.widgets import Static, ListView, ListItem
 
-from mys_goods_tool.api import good_exchange, URL_EXCHANGE
+from mys_goods_tool.api import URL_EXCHANGE, good_exchange_sync
 from mys_goods_tool.custom_widget import ControllableButton, UnClickableItem
 from mys_goods_tool.data_model import ExchangeStatus
 from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
@@ -90,17 +89,16 @@ def set_scheduler(scheduler: BaseScheduler):
     return scheduler
 
 
-def exchange_begin(plan: ExchangePlan, loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()):
+def exchange_begin(plan: ExchangePlan):
     """
     到点后执行兑换
 
     :param plan: 兑换计划
-    :param loop: 事件循环
     """
     random_x, random_y = conf.preference.exchange_latency
     latency = random.uniform(random_x, random_y)
     time.sleep(latency)
-    result = loop.run_until_complete(good_exchange(plan))
+    result = good_exchange_sync(plan)
     return result
 
 
