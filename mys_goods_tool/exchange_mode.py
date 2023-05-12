@@ -1,6 +1,7 @@
 import asyncio
 import random
 import sys
+import time
 from datetime import datetime
 from typing import Optional, Union, Tuple, Set
 from urllib.parse import urlparse
@@ -77,16 +78,17 @@ def set_scheduler(scheduler: BaseScheduler):
     return scheduler
 
 
-async def exchange_begin(plan: ExchangePlan):
+def exchange_begin(plan: ExchangePlan, loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()):
     """
     到点后执行兑换
 
     :param plan: 兑换计划
+    :param loop: 事件循环
     """
     random_x, random_y = conf.preference.exchange_latency
     latency = random.uniform(random_x, random_y)
-    await asyncio.sleep(latency)
-    result = await good_exchange(plan)
+    time.sleep(latency)
+    result = loop.run_until_complete(good_exchange(plan))
     return result
 
 
