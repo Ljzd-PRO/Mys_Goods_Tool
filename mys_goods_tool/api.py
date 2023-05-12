@@ -293,7 +293,7 @@ class ApiResultHandler(BaseModel):
         """
         是否返回登录失效
         """
-        return self.retcode == -100 or self.message in ["登录失效，请重新登录"]
+        return self.retcode in [-100, 10001] or self.message in ["登录失效，请重新登录"]
 
     @property
     def invalid_ds(self):
