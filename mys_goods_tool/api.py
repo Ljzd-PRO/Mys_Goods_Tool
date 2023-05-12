@@ -11,8 +11,8 @@ from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseA
     GetCookieStatus, \
     CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan, ExchangeResult
-from mys_goods_tool.utils import generate_device_id, logger, custom_attempt_times, generate_ds, Subscribe, \
-    NtpTime
+from mys_goods_tool.utils import generate_device_id, logger, generate_ds, Subscribe, \
+    NtpTime, get_async_retry
 
 URL_LOGIN_TICKET_BY_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
 URL_LOGIN_TICKET_BY_PASSWORD = "https://webapi.account.mihoyo.com/Api/login_by_password"
@@ -313,8 +313,7 @@ async def get_game_record(account: UserAccount, retry: bool = True) -> Tuple[Bas
     :param retry: 是否允许重试
     """
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_RECORD.format(account.bbs_uid), headers=HEADERS_GAME_RECORD,
@@ -346,8 +345,7 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
     headers = HEADERS_GAME_LIST.copy()
     try:
         subscribe = Subscribe()
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds()
                 async with httpx.AsyncClient() as client:
@@ -379,8 +377,7 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
     :param retry: 是否允许重试
     """
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
@@ -421,8 +418,7 @@ async def device_login(account: UserAccount, retry: bool = True):
     headers["x-rpc-device_id"] = account.device_id_android
     try:
         subscribe = Subscribe()
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
@@ -473,8 +469,7 @@ async def device_save(account: UserAccount, retry: bool = True):
     headers["x-rpc-device_id"] = account.device_id_android
     try:
         subscribe = Subscribe()
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
@@ -514,8 +509,7 @@ async def get_good_detail(good: Union[Good, str], retry: bool = True) -> Tuple[G
     """
     good_id = good.goods_id if isinstance(good, Good) else good
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_CHECK_GOOD.format(good_id), timeout=conf.preference.timeout)
@@ -545,8 +539,7 @@ async def get_good_games(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Li
     :return: (商品分区全名, 字母简称) 的列表
     """
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GOOD_LIST.format(page=1,
@@ -578,8 +571,7 @@ async def get_good_list(game: str = "", retry: bool = True) -> Tuple[
     page = 1
 
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GOOD_LIST.format(page=page,
@@ -615,8 +607,7 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
     headers = HEADERS_ADDRESS.copy()
     headers["x-rpc-device_id"] = account.device_id_ios
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_ADDRESS.format(
@@ -650,8 +641,7 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_REGISTRABLE.format(mobile=phone_number, t=round(NtpTime.time() * 1000)),
@@ -690,8 +680,7 @@ async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[
                                 headers=headers, timeout=conf.preference.timeout)
 
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 if keep_client:
                     client = httpx.AsyncClient()
@@ -756,8 +745,7 @@ async def create_mobile_captcha(phone_number: int,
                                  timeout=conf.preference.timeout)
 
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 # FIXME 2023/4/13: 似乎会导致卡在连接状态，暂时弃用
                 #   res = await client.options(URL_CREATE_MOBILE_CAPTCHA,
@@ -833,8 +821,7 @@ async def get_login_ticket_by_captcha(phone_number: str,
                                  )
 
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 if client is not None:
                     res = await request()
@@ -880,8 +867,7 @@ async def get_multi_token_by_login_ticket(cookies: BBSCookies, retry: bool = Tru
     elif not cookies.bbs_uid:
         return GetCookieStatus(missing_bbs_uid=True), None
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
@@ -922,8 +908,7 @@ async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bo
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].incorrect_captcha is True
     """
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_COOKIE_TOKEN_BY_CAPTCHA,
@@ -985,8 +970,7 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
     }
     encoded_params = urlencode(params)
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.post(
@@ -1030,8 +1014,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
     if not cookies.stoken_v2:
         return GetCookieStatus(missing_stoken_v2=True), None
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(
@@ -1083,8 +1066,7 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
     if not cookies.stoken_v1:
         return GetCookieStatus(missing_stoken_v1=True), None
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     headers.setdefault("DS", generate_ds(salt=conf.salt_config.SALT_PROD))
@@ -1137,8 +1119,7 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
     if not cookies.mid:
         return GetCookieStatus(missing_mid=True), None
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry), reraise=True,
-                                                    wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(

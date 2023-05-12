@@ -334,9 +334,14 @@ class GoodsContent(BaseExchangePlan):
 
         # 更新商品频道列表
         partition_status, partition_all = await get_good_games()
-        # 过滤掉 "全部" 分区
-        partitions = filter(lambda x: x[1] != "all", partition_all)
+
+        # 刷新按钮、进度条
+        self.button_refresh.enable()
+        self.loading.hide()
+
         if partition_status:
+            # 过滤掉 "全部" 分区
+            partitions = filter(lambda x: x[1] != "all", partition_all)
             for name, abbr in partitions:
                 if abbr not in self.good_dict:
                     # 如果没有商品频道对应值，则进行创建
@@ -346,14 +351,12 @@ class GoodsContent(BaseExchangePlan):
 
             # 更新每个频道的商品数据
             await self.update_data()
+            return True
         else:
             self.text_view.update("[bold red]⚠ 获取商品频道列表失败，可尝试刷新[/]")
             self.app.notice("[bold red]获取商品频道列表失败！[/]")
             # TODO 待补充各种错误情况
-
-        # 进度条、刷新按钮
-        self.button_refresh.enable()
-        self.loading.hide()
+            return False
 
     def reset_selected(self):
         """
@@ -436,8 +439,11 @@ class GoodsContent(BaseExchangePlan):
 
             # 在初次加载时，如果获取商品频道信息失败，则此时重新获取
             if not self.good_dict:
-                await self._on_mount(events.Mount())
-            await self.update_data()
+                good_games_result = await self._on_mount(events.Mount())
+            else:
+                good_games_result = True
+            if good_games_result:
+                await self.update_data()
 
         elif event.button.id == "button-goods-reset":
             # 按下“重置”按钮时触发的事件
