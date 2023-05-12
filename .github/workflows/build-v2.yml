@@ -46,14 +46,14 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          poetry install --with pyinstaller
+          poetry install --with pyinstaller,uvloop
 
       - name: Install dependencies (macOS)
         if: ${{ runner.os == 'macOS' }}
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           export PATH="/Users/runner/.local/bin:$PATH"
-          poetry install --with pyinstaller
+          poetry install --with pyinstaller,uvloop
 
       - name: Install dependencies (Windows)
         if: ${{ runner.os == 'Windows' }}
