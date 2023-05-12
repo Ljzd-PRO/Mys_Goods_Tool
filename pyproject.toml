@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mys-goods-tool"
-version = "2.0.2"
+version = "2.0.3-dev"
 description = "米游社商品兑换工具|短信验证登录|终端TUI界面"
 authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
 readme = "README.md"
@@ -34,6 +34,9 @@ textual = "^0.24.1"
 socksio = "^1.0.0"
 apscheduler = "^3.10.1"
 
+[tool.poetry.group.uvloop.dependencies]
+uvloop = "^0.17.0"
+
 [tool.poetry.group.pyinstaller.dependencies]
 pyinstaller = "==5.10.1"
 
@@ -45,6 +48,9 @@ flake8 = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pydevd-pycharm = "231.8109.197"
+
+[tool.poetry.group.uvloop]
+optional = true
 
 [tool.poetry.group.pyinstaller]
 optional = true

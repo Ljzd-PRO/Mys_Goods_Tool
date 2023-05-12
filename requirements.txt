@@ -12,6 +12,7 @@ rich~=13.3.5
 textual~=0.24.1
 socksio~=1.0.0
 apscheduler~=3.10.1
+uvloop~=0.17.0
 
 ## pyinstaller.dependencies
 pyinstaller==5.10.1
