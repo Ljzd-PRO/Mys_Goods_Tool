@@ -56,6 +56,9 @@ def _connection_test():
 def set_scheduler(scheduler: BaseScheduler):
     """
     向兑换计划调度器添加兑换任务以及ping循环
+
+    :param scheduler 要修改的调度器，调度器对象自身将被修改
+    :return 传入的scheduler的引用
     """
     scheduler.configure(timezone=conf.preference.timezone or Preference.timezone)
 
@@ -214,7 +217,7 @@ class ExchangeModeView(Container):
     button_exit.hide()
     warning_text = ExchangeModeWarning()
     """进入/退出 兑换模式的提示文本"""
-    scheduler = set_scheduler(BackgroundScheduler())
+    scheduler = BackgroundScheduler()
     """兑换计划调度器"""
     empty_data_item = ListItem(Static("暂无兑换计划，你可以尝试刷新"))
     list_view = ListView(empty_data_item)
@@ -239,6 +242,7 @@ class ExchangeModeView(Container):
             await self.list_view.append(ExchangeResultRow(plan))
         if not conf.exchange_plans:
             await self.list_view.append(self.empty_data_item)
+        set_scheduler(self.scheduler)
 
     async def _on_button_pressed(self, event: ControllableButton.Pressed):
         if event.button.id == "button-exchange_mode-enter":
