@@ -400,7 +400,7 @@ class GoodsContent(BaseExchangePlan):
 
             # 获取商品详情
             self.loading.show()
-            good_detail_status, good_detail = await get_good_detail(good)
+            good_detail_status, _ = await get_good_detail(good)
             self.loading.hide()
             if not good_detail_status:
                 # TODO 待补充各种错误情况

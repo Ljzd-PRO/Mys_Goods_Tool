@@ -525,10 +525,10 @@ async def get_good_detail(good: Union[Good, str], retry: bool = True) -> Tuple[G
         if is_incorrect_return(e):
             logger.exception(f"米游币商品兑换 - 获取商品详细信息: 服务器没有正确返回")
             logger.debug(f"网络请求返回: {res.text}")
-            GetGoodDetailStatus(incorrect_return=True), None
+            return GetGoodDetailStatus(incorrect_return=True), None
         else:
             logger.exception(f"米游币商品兑换 - 获取商品详细信息: 网络请求失败")
-            GetGoodDetailStatus(network_error=True), None
+            return GetGoodDetailStatus(network_error=True), None
 
 
 async def get_good_games(retry: bool = True) -> Tuple[BaseApiStatus, Optional[List[Tuple[str, str]]]]:
