@@ -72,16 +72,21 @@ def set_scheduler(scheduler: BaseScheduler):
         job_id_start = f"exchange-plan-{plan.__hash__()}"
         # 如果已经存在相同兑换计划，就不再添加
         if not any(job.id.startswith(job_id_start) for job in existed_job):
-            for i in range(conf.preference.exchange_thread_count):
+            for i in range(1, conf.preference.exchange_thread_count + 1):
                 scheduler.add_job(exchange_begin,
                                   "date",
                                   args=[plan],
                                   run_date=datetime.fromtimestamp(plan.good.time),
                                   id=f"{job_id_start}-{i}"
                                   )
-            logger.info(f"已添加定时兑换任务 {plan.account.bbs_uid}"
-                        f" - {plan.good.general_name}"
-                        f" - {plan.good.time_text}")
+            if any(job.id.startswith(job_id_start) for job in scheduler.get_jobs()):
+                logger.info(f"已添加定时兑换任务 {plan.account.bbs_uid}"
+                            f" - {plan.good.general_name}"
+                            f" - {plan.good.time_text}")
+            else:
+                logger.error(f"添加兑换任务失败 {plan.account.bbs_uid}"
+                             f" - {plan.good.general_name}"
+                             f" - {plan.good.time_text}")
 
     return scheduler
 
@@ -285,7 +290,7 @@ class ExchangeModeView(Container):
                         f" - 线程 {thread_id}"
                         f" - 兑换成功")
                     static = row.get_result_static(
-                        f"[bold green]🎉 线程 {event.job_id.split('-')[-1]} - 兑换成功[/]")
+                        f"[bold green]🎉 线程 {thread_id} - 兑换成功[/]")
                 else:
                     cls.finished[plan].put(False)
                     logger.error(
@@ -293,7 +298,7 @@ class ExchangeModeView(Container):
                         f" - {plan.good.general_name}"
                         f" - 线程 {thread_id}"
                         f" - 兑换失败")
-                    static = row.get_result_static(f"[bold red]💦 线程 {event.job_id.split('-')[-1]} - 兑换失败[/]")
+                    static = row.get_result_static(f"[bold red]💦 线程 {thread_id} - 兑换失败[/]")
 
                 row.result_preview.display = NONE
                 row.mount(static)
