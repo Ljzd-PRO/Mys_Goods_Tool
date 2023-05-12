@@ -412,7 +412,7 @@ class UserData(BaseModel):
     用户数据类
     """
     version: str = VERSION
-    """创建用户数据的程序版本号"""
+    """本次修改用户数据文件的程序版本号"""
     exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
     """兑换计划列表"""
     preference: Preference = Preference()
