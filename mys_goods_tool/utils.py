@@ -37,13 +37,26 @@ def custom_attempt_times(retry: bool):
     自定义的重试机制停止条件\n
     根据是否要重试的bool值，给出相应的`tenacity.stop_after_attempt`对象
 
-    :param retry: True - 重试次数达到配置中 MAX_RETRY_TIMES 时停止; False - 执行次数达到1时停止，即不进行重试
+    :param retry: True - 重试次数达到偏好设置中 max_retry_times 时停止; False - 执行次数达到1时停止，即不进行重试
     """
     if retry:
         return tenacity.stop_after_attempt(
             conf.preference.max_retry_times + 1) if conf.preference.max_retry_times else tenacity.stop_after_attempt(1)
     else:
         return tenacity.stop_after_attempt(1)
+
+
+def get_async_retry(retry: bool):
+    """
+    获取异步重试装饰器
+
+    :param retry: True - 重试次数达到偏好设置中 max_retry_times 时停止; False - 执行次数达到1时停止，即不进行重试
+    """
+    return tenacity.AsyncRetrying(
+        stop=custom_attempt_times(retry),
+        retry=tenacity.retry_if_exception_type(BaseException),
+        wait=tenacity.wait_fixed(conf.preference.retry_interval),
+    )
 
 
 class NtpTime:
@@ -63,8 +76,7 @@ class NtpTime:
                 logger.error("开启了互联网时间校对，但未配置NTP服务器 preference.ntp_server，放弃时间同步")
                 return False
             try:
-                for attempt in tenacity.Retrying(stop=custom_attempt_times(True), reraise=True,
-                                                 wait=tenacity.wait_fixed(conf.preference.retry_interval)):
+                for attempt in get_async_retry(True):
                     with attempt:
                         cls.time_offset = ntplib.NTPClient().request(
                             conf.preference.ntp_server).tx_time - time.time()
@@ -222,8 +234,7 @@ async def get_file(url: str, retry: bool = True):
     :return: 文件数据
     """
     try:
-        async for attempt in tenacity.AsyncRetrying(stop=custom_attempt_times(retry),
-                                                    wait=tenacity.wait_fixed(conf.SLEEP_TIME_RETRY)):
+        async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
                     res = await client.get(url, timeout=conf.preference.timeout, follow_redirects=True)
@@ -278,7 +289,7 @@ class Subscribe:
         :return: 是否成功
         """
         try:
-            for attempt in tenacity.Retrying(stop=custom_attempt_times(True)):
+            for attempt in get_async_retry(True):
                 with attempt:
                     file = await get_file(cls.CONFIG_URL)
                     file = json.loads(file.decode())
