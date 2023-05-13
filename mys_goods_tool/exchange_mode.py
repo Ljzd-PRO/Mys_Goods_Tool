@@ -122,36 +122,56 @@ def exchange_mode_simple():
         接收兑换结果
         """
         if event.job_id.startswith("exchange-plan"):
+            thread_id = int(event.job_id.split('-')[-1])
             result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
             exchange_status, exchange_result = result
-            plan = exchange_result.plan
 
-            with lock:
-                # 如果已经有一个线程兑换成功，就不再接收结果
-                if True not in finished[plan]:
-                    thread_id = int(event.job_id.split('-')[-1])
-                    if exchange_result.result:
-                        finished[plan].append(True)
-                        logger.info(
-                            f"用户 {plan.account.bbs_uid}"
-                            f" - {plan.good.general_name}"
-                            f" - 线程 {thread_id}"
-                            f" - 兑换成功")
-                    else:
-                        finished[plan].append(False)
-                        logger.error(
-                            f"用户 {plan.account.bbs_uid}"
-                            f" - {plan.good.general_name}"
-                            f" - 线程 {thread_id}"
-                            f" - 兑换失败")
+            if not exchange_status:
+                hash_value = int(event.job_id.split('-')[-2])
+                plan = filter(lambda x: x.__hash__() == hash_value, conf.exchange_plans)
+                plan = next(plan)
+                with lock:
+                    finished[plan].append(False)
+                    logger.error(
+                        f"用户 {plan.account.bbs_uid}"
+                        f" - {plan.good.general_name}"
+                        f" - 线程 {thread_id}"
+                        f" - 兑换请求发送失败")
+                    if len(finished[plan]) == conf.preference.exchange_thread_count:
+                        try:
+                            conf.exchange_plans.remove(plan)
+                        except KeyError:
+                            pass
+                        else:
+                            conf.save()
 
-                if len(finished[plan]) == conf.preference.exchange_thread_count:
-                    try:
-                        conf.exchange_plans.remove(plan)
-                    except KeyError:
-                        pass
-                    else:
-                        conf.save()
+            else:
+                plan = exchange_result.plan
+                with lock:
+                    # 如果已经有一个线程兑换成功，就不再接收结果
+                    if True not in finished[plan]:
+                        if exchange_result.result:
+                            finished[plan].append(True)
+                            logger.info(
+                                f"用户 {plan.account.bbs_uid}"
+                                f" - {plan.good.general_name}"
+                                f" - 线程 {thread_id}"
+                                f" - 兑换成功")
+                        else:
+                            finished[plan].append(False)
+                            logger.error(
+                                f"用户 {plan.account.bbs_uid}"
+                                f" - {plan.good.general_name}"
+                                f" - 线程 {thread_id}"
+                                f" - 兑换失败")
+
+                    if len(finished[plan]) == conf.preference.exchange_thread_count:
+                        try:
+                            conf.exchange_plans.remove(plan)
+                        except KeyError:
+                            pass
+                        else:
+                            conf.save()
 
         elif event.job_id == "exchange-connection_test":
             result: Union[float, bool, None] = event.retval
@@ -277,41 +297,62 @@ class ExchangeModeView(Container):
             if event.job_id.startswith("exchange-plan"):
                 result: Tuple[ExchangeStatus, Optional[ExchangeResult]] = event.retval
                 exchange_status, exchange_result = result
-                plan = exchange_result.plan
-
-                with cls.lock:
-                    # 如果已经有一个线程兑换成功，就不再接收结果
-                    if True not in cls.finished[plan]:
-                        row = ExchangeResultRow.rows[plan]
-                        thread_id = int(event.job_id.split('-')[-1])
-
-                        if exchange_result.result:
-                            cls.finished[plan].append(True)
-                            logger.info(
-                                f"用户 {plan.account.bbs_uid}"
-                                f" - {plan.good.general_name}"
-                                f" - 线程 {thread_id}"
-                                f" - 兑换成功")
-                            text = f"[bold green]🎉 线程 {thread_id} - 兑换成功[/] "
-                        else:
-                            cls.finished[plan].append(False)
-                            logger.error(
-                                f"用户 {plan.account.bbs_uid}"
-                                f" - {plan.good.general_name}"
-                                f" - 线程 {thread_id}"
-                                f" - 兑换失败")
-                            text = f"[bold red]💦 线程 {thread_id} - 兑换失败[/] "
-
+                thread_id = int(event.job_id.split('-')[-1])
+                if not exchange_status:
+                    hash_value = int(event.job_id.split('-')[-2])
+                    plan = filter(lambda x: x.__hash__() == hash_value, conf.exchange_plans)
+                    plan = next(plan)
+                    row = ExchangeResultRow.rows[plan]
+                    with cls.lock:
+                        cls.finished[plan].append(False)
+                        logger.error(
+                            f"用户 {plan.account.bbs_uid}"
+                            f" - {plan.good.general_name}"
+                            f" - 线程 {thread_id}"
+                            f" - 兑换失败")
+                        text = f"[bold red]💦 线程 {thread_id} - 兑换请求失败[/] "
                         row.result_preview._add_children(ExchangeResultRow.get_result_static(text))
                         row.result_preview.refresh()
+                        if len(cls.finished[plan]) == conf.preference.exchange_thread_count:
+                            try:
+                                conf.exchange_plans.remove(plan)
+                            except KeyError:
+                                pass
+                            else:
+                                conf.save()
+                else:
+                    plan = exchange_result.plan
+                    with cls.lock:
+                        # 如果已经有一个线程兑换成功，就不再接收结果
+                        if True not in cls.finished[plan]:
+                            row = ExchangeResultRow.rows[plan]
+                            if exchange_result.result:
+                                cls.finished[plan].append(True)
+                                logger.info(
+                                    f"用户 {plan.account.bbs_uid}"
+                                    f" - {plan.good.general_name}"
+                                    f" - 线程 {thread_id}"
+                                    f" - 兑换成功")
+                                text = f"[bold green]🎉 线程 {thread_id} - 兑换成功[/] "
+                            else:
+                                cls.finished[plan].append(False)
+                                logger.error(
+                                    f"用户 {plan.account.bbs_uid}"
+                                    f" - {plan.good.general_name}"
+                                    f" - 线程 {thread_id}"
+                                    f" - 兑换失败")
+                                text = f"[bold red]💦 线程 {thread_id} - 兑换失败[/] "
 
-                    if len(cls.finished[plan]) == conf.preference.exchange_thread_count:
-                        try:
-                            conf.exchange_plans.remove(plan)
-                        except KeyError:
-                            pass
-                        else:
-                            conf.save()
+                            row.result_preview._add_children(ExchangeResultRow.get_result_static(text))
+                            row.result_preview.refresh()
+
+                        if len(cls.finished[plan]) == conf.preference.exchange_thread_count:
+                            try:
+                                conf.exchange_plans.remove(plan)
+                            except KeyError:
+                                pass
+                            else:
+                                conf.save()
         except:
             logger.exception("接收兑换结果失败")
 
