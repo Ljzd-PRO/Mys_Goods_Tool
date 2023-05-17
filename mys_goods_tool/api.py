@@ -286,7 +286,7 @@ class ApiResultHandler(BaseModel):
         """
         是否返回验证码错误
         """
-        return self.retcode == -201 or self.message in ["验证码错误", "Captcha not match Err"]
+        return self.retcode in [-201, -302] or self.message in ["验证码错误", "Captcha not match Err"]
 
     @property
     def login_expired(self):
@@ -658,17 +658,19 @@ async def check_registrable(phone_number: int, retry: bool = True) -> Tuple[Base
             return BaseApiStatus(network_error=True), None
 
 
-async def create_mmt(keep_client: bool = False, retry: bool = True) -> Tuple[
+async def create_mmt(keep_client: bool = False, use_v4: bool = True, retry: bool = True) -> Tuple[
     BaseApiStatus, Optional[MmtData], Optional[httpx.AsyncClient]]:
     """
     发送短信验证前所需的人机验证任务申请
 
     :param keep_client: httpx.AsyncClient 连接是否需要关闭
+    :param use_v4: 是否使用极验第四代人机验证
     :param retry: 是否允许重试
     """
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
-
+    if use_v4:
+        headers.setdefault("x-rpc-source", "accountWebsite")
     async def request():
         """
         发送请求的闭包函数
