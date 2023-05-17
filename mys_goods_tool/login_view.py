@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import queue
 from typing import NamedTuple, Tuple, Optional, Set
+from urllib.parse import urlencode
 
 import httpx
 from rich.markdown import Markdown
@@ -232,8 +233,14 @@ class PhoneForm(LoginForm):
         self.loop_tasks.add(task)
         task.add_done_callback(self.loop_tasks.discard)
 
-        link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}"
-        link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}"
+        params = {
+            "gt": self.mmt_data.gt,
+            "mmtKey": self.mmt_data.mmt_key,
+            "riskType": self.mmt_data.risk_type
+        }
+        url_params = urlencode(params)
+        link = f"http://{address[0]}:{address[1]}/index.html?{url_params}"
+        link_localized = f"http://{address[0]}:{address[1]}/localized.html?{url_params}"
         CaptchaLoginInformation.static_tuple.geetest_text.change_text(
             renderable=f"\n- 请前往链接进行验证：\n"
                        f"[@click=app.open_link('{link}')]{link}[/]\n"
