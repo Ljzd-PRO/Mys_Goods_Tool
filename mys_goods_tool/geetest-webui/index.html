@@ -172,8 +172,6 @@
             captchaObj.onReady(function () {
                 $("#wait").hide();
             });
-            // 更多前端接口说明请参见：http://docs.geetest.com/install/client/web-front/
-
             setInterval(function () {
                 const result = captchaObj.getValidate();
                 if (result && !success) {
