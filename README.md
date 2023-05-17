@@ -79,8 +79,5 @@
   简介：NoneBot2 插件 | 米游社工具-每日米游币任务、游戏签到、商品兑换、免抓包登录、原神树脂提醒  \
   🔗 https://github.com/Ljzd-PRO/nonebot-plugin-mystool
 
-- 本项目已开启[🔗Github Actions](https://github.com/Ljzd-PRO/Mys_Goods_Tool/actions)。
-  欢迎[🔗指出Bug](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)
-  和[🔗贡献代码](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)👏
-
-- 开发版分支：[🔗dev](https://github.com/Ljzd-PRO/Mys_Goods_Tool/tree/dev/)
+- [🔗Bug 反馈](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues)  
+- 如果你知道如何修复一些Bug和新增功能，也欢迎提交你的修订代码 [🔗Pull requests](https://github.com/Ljzd-PRO/Mys_Goods_Tool/pulls)
