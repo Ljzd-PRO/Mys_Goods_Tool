@@ -291,6 +291,11 @@ class MmtData(BaseModel):
     gt: str
     mmt_key: str
     new_captcha: bool
+    risk_type: Optional[str]
+    """任务类型，如滑动拼图 slide"""
+    success: Optional[int]
+    use_v4: Optional[bool]
+    """是否使用极验第四代 GT4"""
 
 
 class BaseApiStatus(BaseModel):
