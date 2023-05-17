@@ -9,7 +9,7 @@ from requests.utils import dict_from_cookiejar
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
-    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus
+    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, GeetestResultV4
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan, ExchangeResult
 from mys_goods_tool.utils import generate_device_id, logger, generate_ds, Subscribe, \
     NtpTime, get_async_retry
@@ -711,8 +711,9 @@ async def create_mmt(keep_client: bool = False, use_v4: bool = True, retry: bool
 
 async def create_mobile_captcha(phone_number: int,
                                 mmt_data: MmtData,
-                                geetest_result: GeetestResult,
+                                geetest_result: Union[GeetestResult, GeetestResultV4],
                                 client: Optional[httpx.AsyncClient] = None,
+                                use_v4: bool = True,
                                 retry: bool = True
                                 ) -> Tuple[CreateMobileCaptchaStatus, Optional[httpx.AsyncClient]]:
     """
@@ -722,19 +723,29 @@ async def create_mobile_captcha(phone_number: int,
     :param mmt_data: 人机验证任务数据
     :param geetest_result: 人机验证结果数据
     :param client: httpx.AsyncClient 连接
+    :param use_v4: 是否使用极验第四代人机验证
     :param retry: 是否允许重试
     """
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = generate_device_id()
-    params = {
-        "action_type": "login",
-        "mmt_key": mmt_data.mmt_key,
-        "geetest_challenge": mmt_data.challenge,
-        "geetest_validate": geetest_result.validate,
-        "geetest_seccode": geetest_result.seccode,
-        "mobile": phone_number,
-        "t": round(NtpTime.time() * 1000)
-    }
+    if use_v4 and isinstance(geetest_result, GeetestResultV4):
+        params = {
+            "action_type": "login",
+            "mmt_key": mmt_data.mmt_key,
+            "geetest_v4_data": geetest_result.dict(),
+            "mobile": phone_number,
+            "t": round(NtpTime.time() * 1000)
+        }
+    else:
+        params = {
+            "action_type": "login",
+            "mmt_key": mmt_data.mmt_key,
+            "geetest_challenge": mmt_data.challenge,
+            "geetest_validate": geetest_result.validate,
+            "geetest_seccode": geetest_result.seccode,
+            "mobile": phone_number,
+            "t": round(NtpTime.time() * 1000)
+        }
     encoded_params = urlencode(params)
 
     async def request():
