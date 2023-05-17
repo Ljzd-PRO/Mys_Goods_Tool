@@ -287,7 +287,7 @@ class MmtData(BaseModel):
     """
     短信验证码-人机验证任务申请-返回数据
     """
-    challenge: str
+    challenge: Optional[str]
     gt: str
     mmt_key: str
     new_captcha: bool
