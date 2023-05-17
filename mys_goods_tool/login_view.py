@@ -181,7 +181,7 @@ class PhoneForm(LoginForm):
             except queue.Empty:
                 continue
             else:
-                logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
+                logger.info(f"已收到Geetest验证结果数据，将发送验证码至 {self.input.value}")
                 CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.show()
                 create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
@@ -232,8 +232,8 @@ class PhoneForm(LoginForm):
         self.loop_tasks.add(task)
         task.add_done_callback(self.loop_tasks.discard)
 
-        link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
-        link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
+        link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}"
+        link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}"
         CaptchaLoginInformation.static_tuple.geetest_text.change_text(
             renderable=f"\n- 请前往链接进行验证：\n"
                        f"[@click=app.open_link('{link}')]{link}[/]\n"
