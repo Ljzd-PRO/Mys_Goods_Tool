@@ -13,7 +13,8 @@ from textual.widgets import (
 )
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
+    check_registrable
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
@@ -278,6 +279,12 @@ class PhoneForm(LoginForm):
 
         if PhoneForm.client:
             await PhoneForm.client.aclose()
+        check_registrable_status, registrable, PhoneForm.client = await check_registrable(int(self.input.value))
+        if registrable:
+            self.close_create_captcha_send()
+            self.button.error.show()
+            self.app.notice("[red]该手机号尚未注册！[/]")
+            return
         create_mmt_status, self.mmt_data, PhoneForm.client = await create_mmt(keep_client=True)
         if not create_mmt_status:
             self.close_create_captcha_send()

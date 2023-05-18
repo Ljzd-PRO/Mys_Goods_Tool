@@ -675,12 +675,14 @@ async def check_registrable(phone_number: int, keep_client: bool = False, retry:
             return BaseApiStatus(network_error=True), None, None
 
 
-async def create_mmt(keep_client: bool = False, use_v4: bool = True, retry: bool = True) -> Tuple[
+async def create_mmt(client: Optional[httpx.AsyncClient] = None,
+                     use_v4: bool = True,
+                     retry: bool = True) -> Tuple[
     BaseApiStatus, Optional[MmtData], Optional[httpx.AsyncClient]]:
     """
     发送短信验证前所需的人机验证任务申请
 
-    :param keep_client: httpx.AsyncClient 连接是否需要关闭
+    :param client: httpx.AsyncClient 连接
     :param use_v4: 是否使用极验第四代人机验证
     :param retry: 是否允许重试
     """
@@ -701,8 +703,7 @@ async def create_mmt(keep_client: bool = False, use_v4: bool = True, retry: bool
     try:
         async for attempt in get_async_retry(retry):
             with attempt:
-                if keep_client:
-                    client = httpx.AsyncClient()
+                if client is not None:
                     res = await request()
                 else:
                     async with httpx.AsyncClient() as client:
@@ -710,7 +711,7 @@ async def create_mmt(keep_client: bool = False, use_v4: bool = True, retry: bool
                 api_result = ApiResultHandler(res.json())
                 return BaseApiStatus(success=True), MmtData.parse_obj(api_result.data["mmt_data"]), client
     except tenacity.RetryError as e:
-        if keep_client:
+        if client:
             await client.aclose()
         if is_incorrect_return(e):
             logger.exception(f"获取短信验证-人机验证任务(create_mmt) - 服务器没有正确返回")
