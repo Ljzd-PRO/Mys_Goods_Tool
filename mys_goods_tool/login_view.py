@@ -108,6 +108,8 @@ class PhoneForm(LoginForm):
     """
     input = Input(placeholder="手机号", id="login_phone")
     """手机号输入框"""
+    device_id: Optional[str] = None
+    """人机验证过程的设备ID"""
     client: Optional[httpx.AsyncClient] = None
     """人机验证过程的连接对象"""
 
@@ -189,7 +191,8 @@ class PhoneForm(LoginForm):
                 create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
                                                                                       self.mmt_data,
                                                                                       geetest_result,
-                                                                                      PhoneForm.client)
+                                                                                      PhoneForm.client,
+                                                                                      device_id=PhoneForm.device_id)
                 if create_captcha_status:
                     self.loading.hide()
                     logger.info(f"短信验证码已发送至 {self.input.value}")
@@ -279,13 +282,15 @@ class PhoneForm(LoginForm):
 
         if PhoneForm.client:
             await PhoneForm.client.aclose()
-        check_registrable_status, registrable, PhoneForm.client = await check_registrable(int(self.input.value))
+        check_registrable_status, registrable, PhoneForm.device_id, PhoneForm.client = await check_registrable(
+            int(self.input.value))
         if registrable:
             self.close_create_captcha_send()
             self.button.error.show()
             self.app.notice("[red]该手机号尚未注册！[/]")
             return
-        create_mmt_status, self.mmt_data, PhoneForm.client = await create_mmt(keep_client=True)
+        create_mmt_status, self.mmt_data, PhoneForm.device_id, PhoneForm.client = await create_mmt(PhoneForm.client,
+                                                                                                   device_id=PhoneForm.device_id)
         if not create_mmt_status:
             self.close_create_captcha_send()
             self.button.error.show()
