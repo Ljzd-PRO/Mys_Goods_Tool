@@ -69,8 +69,8 @@ class Good(BaseModelWithUpdate):
     """已经兑换次数"""
     account_cycle_limit: int
     """最多可兑换次数"""
-    account_cycle_type: Literal["forever", "month"]
-    """限购类型"""
+    account_cycle_type: str
+    """限购类型 Literal["forever", "month", "not_limit"]"""
     game_biz: Optional[str]
     """商品对应的游戏区服（如 hk4e_cn）（单独查询一个商品时）"""
     game: Optional[str]
