@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import queue
 from typing import NamedTuple, Tuple, Optional, Set
+from urllib.parse import urlencode
 
 import httpx
 from rich.markdown import Markdown
@@ -12,7 +13,8 @@ from textual.widgets import (
 )
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
+    check_registrable
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
@@ -106,6 +108,8 @@ class PhoneForm(LoginForm):
     """
     input = Input(placeholder="手机号", id="login_phone")
     """手机号输入框"""
+    device_id: Optional[str] = None
+    """人机验证过程的设备ID"""
     client: Optional[httpx.AsyncClient] = None
     """人机验证过程的连接对象"""
 
@@ -181,13 +185,14 @@ class PhoneForm(LoginForm):
             except queue.Empty:
                 continue
             else:
-                logger.info(f"已收到Geetest验证结果数据 {geetest_result}，将发送验证码至 {self.input.value}")
+                logger.info(f"已收到Geetest验证结果数据，将发送验证码至 {self.input.value}")
                 CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.show()
                 create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
                                                                                       self.mmt_data,
                                                                                       geetest_result,
-                                                                                      PhoneForm.client)
+                                                                                      PhoneForm.client,
+                                                                                      device_id=PhoneForm.device_id)
                 if create_captcha_status:
                     self.loading.hide()
                     logger.info(f"短信验证码已发送至 {self.input.value}")
@@ -232,8 +237,14 @@ class PhoneForm(LoginForm):
         self.loop_tasks.add(task)
         task.add_done_callback(self.loop_tasks.discard)
 
-        link = f"http://{address[0]}:{address[1]}/index.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
-        link_localized = f"http://{address[0]}:{address[1]}/localized.html?gt={self.mmt_data.gt}&challenge={self.mmt_data.challenge}"
+        params = {
+            "gt": self.mmt_data.gt,
+            "mmtKey": self.mmt_data.mmt_key,
+            "riskType": self.mmt_data.risk_type
+        }
+        url_params = urlencode(params)
+        link = f"http://{address[0]}:{address[1]}/index.html?{url_params}"
+        link_localized = f"http://{address[0]}:{address[1]}/localized.html?{url_params}"
         CaptchaLoginInformation.static_tuple.geetest_text.change_text(
             renderable=f"\n- 请前往链接进行验证：\n"
                        f"[@click=app.open_link('{link}')]{link}[/]\n"
@@ -271,7 +282,15 @@ class PhoneForm(LoginForm):
 
         if PhoneForm.client:
             await PhoneForm.client.aclose()
-        create_mmt_status, self.mmt_data, PhoneForm.client = await create_mmt(keep_client=True)
+        check_registrable_status, registrable, PhoneForm.device_id, PhoneForm.client = await check_registrable(
+            int(self.input.value))
+        if registrable:
+            self.close_create_captcha_send()
+            self.button.error.show()
+            self.app.notice("[red]该手机号尚未注册！[/]")
+            return
+        create_mmt_status, self.mmt_data, PhoneForm.device_id, PhoneForm.client = await create_mmt(PhoneForm.client,
+                                                                                                   device_id=PhoneForm.device_id)
         if not create_mmt_status:
             self.close_create_captcha_send()
             self.button.error.show()

@@ -406,7 +406,7 @@ class TuiApp(App):
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         if sys.platform not in ('win32', 'cygwin', 'cli'):
-            if "uvloop" not in sys.modules.copy():
+            if "uvloop" in sys.modules.copy():
                 import uvloop
                 import asyncio
                 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())

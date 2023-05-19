@@ -16,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.4"
+VERSION = "2.0.4-dev"
 """程序当前版本"""
 
 if TYPE_CHECKING:
@@ -412,7 +412,7 @@ class UserData(BaseModel):
     用户数据类
     """
     version: str = VERSION
-    """本次修改用户数据文件的程序版本号"""
+    """创建用户数据文件的程序版本号"""
     exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
     """兑换计划列表"""
     preference: Preference = Preference()

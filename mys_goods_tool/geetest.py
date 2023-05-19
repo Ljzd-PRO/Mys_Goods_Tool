@@ -3,15 +3,18 @@ import json
 import os
 import threading
 import traceback
-from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import HTTPServer, ThreadingHTTPServer, CGIHTTPRequestHandler
+from json import JSONDecodeError
 from multiprocessing import Pipe, Manager, connection
 from pathlib import Path
 from queue import Queue
 from threading import Thread
-from typing import Any, Optional, Callable, Tuple
+from typing import Any, Optional, Callable, Tuple, Union
 from urllib import parse
 
-from mys_goods_tool.data_model import GeetestResult
+from pydantic import ValidationError
+
+from mys_goods_tool.data_model import GeetestResult, GeetestResultV4
 from mys_goods_tool.user_data import config as conf
 from mys_goods_tool.utils import logger, get_free_port, ProcessManager
 
@@ -19,9 +22,10 @@ STATIC_DIRECTORY = Path(__file__).resolve().with_name(
     "geetest-webui") if not conf.preference.geetest_statics_path else conf.preference.geetest_statics_path
 
 
-class GeetestHandler(SimpleHTTPRequestHandler):
-    result_callback: Callable[[GeetestResult], Any]
+class GeetestHandler(CGIHTTPRequestHandler):
+    result_callback: Callable[[Union[GeetestResult, GeetestResultV4]], Any]
     """接收验证结果数据的回调函数"""
+    error_content_type = "application/json"
 
     def log_message(self, format: str, *args: Any) -> None:
         """
@@ -43,6 +47,26 @@ class GeetestHandler(SimpleHTTPRequestHandler):
         """
         logger.debug(f"HttpServer: {self.address_string()} - - {format % args}")
 
+    def response_ok(self):
+        response = {"code": 200, "message": "OK. Server received"}
+        self.send_response(200, response["message"])
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(response).encode())
+
+    def send_error(self, code: int, message: str = None, explain: str = None, to_json: bool = False) -> None:
+        """
+        重写父类方法，返回json格式的错误信息
+        """
+        if to_json:
+            self.send_response(code, message)
+            self.send_header("Content-Type", self.error_content_type)
+            self.end_headers()
+            response = {"code": code, "msg": message, "desc": explain}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            super().send_error(code, message, explain)
+
     def do_GET(self):
         file_path = self.path
         try:
@@ -57,16 +81,12 @@ class GeetestHandler(SimpleHTTPRequestHandler):
                 if not seccode or not validate:
                     logger.error(
                         f"HTTP服务器 - 收到 {self.address_string()} 的验证结果，但URL参数缺少 seccode 和 validate")
-                    self.send_error(400, "Bad request, missing URL params `seccode` and `validate`")
+                    self.send_error(400, "Bad request, missing URL params `seccode` and `validate`", to_json=True)
                 else:
                     geetest_result = GeetestResult(seccode=seccode[0], validate=validate[0])
                     logger.info(f"HTTP服务器 - 收到 {self.address_string()} 的验证结果 - {geetest_result}")
                     self.result_callback(geetest_result)
-                    response = {"code": 200, "message": "OK. Server received"}
-                    self.send_response(200, response["message"])
-                    self.send_header("Content-Type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps(response).encode())
+                    self.response_ok()
                 return
 
             # 构建文件路径
@@ -94,6 +114,20 @@ class GeetestHandler(SimpleHTTPRequestHandler):
             logger.error(f"HTTP服务器 - 收到 {self.address_string()} 的请求，但处理请求时发生错误")
             logger.debug(traceback.format_exc())
             self.send_error(500)
+
+    def do_POST(self) -> None:
+        if self.path.startswith("/result"):
+            try:
+                content_length = int(self.headers["Content-Length"])
+                geetest_result = GeetestResultV4.parse_raw(self.rfile.read(content_length))
+            except (ValidationError, JSONDecodeError):
+                logger.exception(
+                    f"HTTP服务器 - 收到 {self.address_string()} 的 gt4 验证结果，但传入数据不符合 GeetestResultV4 模型")
+                self.send_error(400, "Bad request, data not match GeetestResultV4 model", to_json=True)
+            else:
+                logger.info(f"HTTP服务器 - 收到 {self.address_string()} 的 gt4 验证结果")
+                self.result_callback(geetest_result)
+                self.response_ok()
 
 
 def set_listen_address():
@@ -131,7 +165,7 @@ class GeetestProcess:
     wait_thread: Thread
 
     @classmethod
-    def result_callback(cls, result: GeetestResult):
+    def result_callback(cls, result: Union[GeetestResult, GeetestResultV4]):
         """
         给主进程发送验证结果
         """
