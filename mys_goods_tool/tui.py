@@ -31,10 +31,9 @@ WELCOME_MD = """
 # Mys_Goods_Tool - 米游社商品兑换工具
 
 ## 更新说明
-- 修复米游社（大别野）等商品分区无商品的问题
-- 修复图形界面兑换模式下不会执行兑换的问题
-- 删除多余的 `pyperclip` 依赖
-- 解决部分商品兑换时间错误的问题
+- 修复启动后由于商品数据相关问题而导致的崩溃
+- 修复 Linux 实际不会应用 uvloop 的问题
+- 人机验证更新至 GT4（但实际上暂时不可用 [#105](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues/105#issuecomment-1552727784)）
 
 ## 功能和特性
 
@@ -45,9 +44,6 @@ WELCOME_MD = """
 - 支持米游社所有分区的商品兑换
 
 ### TODO
-- 支持在图形界面中编辑偏好设置
-- 密码登录
-- 解决SSH客户端无法跳转人机验证链接的问题
 - 更新至极验第四代适应性验证
 
 ## 其他
@@ -406,7 +402,7 @@ class TuiApp(App):
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         if sys.platform not in ('win32', 'cygwin', 'cli'):
-            if "uvloop" not in sys.modules.copy():
+            if "uvloop" in sys.modules.copy():
                 import uvloop
                 import asyncio
                 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())

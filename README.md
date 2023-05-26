@@ -16,10 +16,10 @@
 
 ### 更新说明
 
-- 修复定时兑换无效的问题
-- 修复失去网络连接的情况下会导致程序退出的Bug
-- 对于 Linux 使用 Ubuntu 20.04 进行构建，防止出现缺少 GNU libc 对应版本的问题
-- 非 Windows 系统增加 [uvloop](https://github.com/MagicStack/uvloop) 支持，提高性能
+- 修复启动后由于商品数据相关问题而导致的崩溃
+- 修复 Linux 实际不会应用 uvloop 的问题
+- 人机验证更新至
+  GT4（但实际上暂时不可用 [#105](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues/105#issuecomment-1552727784)）
 
 ## 功能和特性
 
