@@ -141,6 +141,8 @@
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         const gt = urlParams.get('gt');
+        const mmtKey = urlParams.get('mmtKey');
+        let riskType = urlParams.get('riskType');
 
         let wait = $("#wait");
 
@@ -148,6 +150,11 @@
             displayError("URL参数需要提供 gt");
             return alert("URL参数需要提供 gt");
         }
+        if (!mmtKey) {
+            displayError("URL参数需要提供 mmtKey");
+            return alert("URL参数需要提供 mmtKey");
+        }
+        riskType = riskType || "slide";
 
         wait.show();
 
@@ -156,7 +163,14 @@
         // 参数2：回调，回调的第一个参数验证码对象，之后可以使用它调用相应的接口
         initGeetest4({
             captchaId: gt,
-            product: "popup"
+            riskType: riskType,
+            timeout: 1e4,
+            language: "zho",
+            product: "popup",
+            hideSuccess: !0,
+            userInfo: JSON.stringify({
+                mmt_key: mmtKey
+            }),
             // 更多前端配置参数说明参见：https://docs.geetest.com/gt4/apirefer/api/web/#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0
         }, function (captchaObj) {
             captchaObj.appendTo('#captcha');
@@ -172,8 +186,6 @@
             captchaObj.onReady(function () {
                 $("#wait").hide();
             });
-            // 更多前端接口说明请参见：http://docs.geetest.com/install/client/web-front/
-
             setInterval(function () {
                 const result = captchaObj.getValidate();
                 if (result && !success) {
