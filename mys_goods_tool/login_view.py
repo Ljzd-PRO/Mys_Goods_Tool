@@ -349,7 +349,7 @@ class CaptchaForm(LoginForm):
         self.before_login: bool = True
         """当前状态是否在登录操作之前（不处于正在登录的状态）"""
 
-        self.input = Input(placeholder="为空时点击登录可进行Cookies刷新", id="login_captcha")
+        self.input = Input(placeholder="若发送验证码失败，也可前往米哈游通信证页面手动发送", id="login_captcha")
 
         self.loading = LoadingDisplay()
         self.loading.hide()
