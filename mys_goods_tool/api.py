@@ -840,16 +840,10 @@ async def get_login_ticket_by_captcha(phone_number: str,
         """
         发送请求的闭包函数
         """
-        _cookies = {}
-        _res = await client.options(URL_LOGIN_TICKET_BY_CAPTCHA,
-                                    headers=headers,
-                                    timeout=conf.preference.timeout
-                                    )
-        _cookies.update(_res.cookies)
+        # TODO 还需要进一步简化代码
         return await client.post(URL_LOGIN_TICKET_BY_CAPTCHA,
                                  headers=headers,
                                  content=encoded_params,
-                                 cookies=_cookies,
                                  timeout=conf.preference.timeout
                                  )
 
