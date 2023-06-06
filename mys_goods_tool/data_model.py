@@ -312,6 +312,8 @@ class BaseApiStatus(BaseModel):
     """登录失效"""
     need_verify = False
     """需要进行人机验证"""
+    invalid_ds = False
+    """Headers DS无效"""
 
     def __bool__(self):
         if self.success:
