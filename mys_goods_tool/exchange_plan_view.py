@@ -303,7 +303,7 @@ class GoodsContent(BaseExchangePlan):
         for goods_data in self.good_dict.values():
             name, abbr = goods_data.partition
             good_list_status, good_list = await get_good_list(abbr)
-            good_list = list(filter(lambda x: x.is_time_limited() and not x.is_time_end(), good_list))
+            good_list = list(filter(lambda x: x.time_limited and not x.time_end, good_list))
 
             # 一种情况是获取成功但返回的商品数据为空，一种是API请求失败
             goods_data.option_list.clear_options()
