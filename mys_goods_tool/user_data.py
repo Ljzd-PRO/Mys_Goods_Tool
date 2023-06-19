@@ -16,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.4"
+VERSION = "2.0.5-dev"
 """程序当前版本"""
 
 if TYPE_CHECKING:
@@ -352,6 +352,7 @@ class SaltConfig(BaseSettings):
         pass
 
 
+# TODO 与用户数据文件中的配置有差异时询问是否使用更新
 class DeviceConfig(BaseSettings):
     """
     设备信息
@@ -394,7 +395,7 @@ class DeviceConfig(BaseSettings):
     X_RPC_CHANNEL_ANDROID: str = "miyousheluodi"
     '''安卓端 x-rpc-channel'''
 
-    X_RPC_APP_VERSION: str = "2.28.1"
+    X_RPC_APP_VERSION: str = "2.52.1"
     '''Headers所用的 x-rpc-app_version'''
     X_RPC_PLATFORM: str = "ios"
     '''Headers所用的 x-rpc-platform'''
