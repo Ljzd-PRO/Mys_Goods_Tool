@@ -681,7 +681,7 @@ async def check_registrable(phone_number: int, keep_client: bool = False, retry:
 
 async def create_mmt(client: Optional[httpx.AsyncClient] = None,
                      use_v4: bool = True,
-                     device_id: str = generate_device_id(),
+                     device_id: str = None,
                      retry: bool = True) -> Tuple[
     BaseApiStatus, Optional[MmtData], str, Optional[httpx.AsyncClient]]:
     """
@@ -689,12 +689,12 @@ async def create_mmt(client: Optional[httpx.AsyncClient] = None,
 
     :param client: httpx.AsyncClient 连接
     :param use_v4: 是否使用极验第四代人机验证
-    :param device_id: 设备 ID
+    :param device_id: 设备ID
     :param retry: 是否允许重试
     :return: (API返回状态, 人机验证任务数据, 设备ID, httpx.AsyncClient连接对象)
     """
     headers = HEADERS_WEBAPI.copy()
-    headers["x-rpc-device_id"] = device_id
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4:
         headers.setdefault("x-rpc-source", "accountWebsite")
     async def request():
@@ -734,7 +734,7 @@ async def create_mobile_captcha(phone_number: int,
                                 geetest_result: Union[GeetestResult, GeetestResultV4],
                                 client: Optional[httpx.AsyncClient] = None,
                                 use_v4: bool = True,
-                                device_id: str = generate_device_id(),
+                                device_id: str = None,
                                 retry: bool = True
                                 ) -> Tuple[CreateMobileCaptchaStatus, Optional[httpx.AsyncClient]]:
     """
@@ -745,11 +745,11 @@ async def create_mobile_captcha(phone_number: int,
     :param geetest_result: 人机验证结果数据
     :param client: httpx.AsyncClient 连接
     :param use_v4: 是否使用极验第四代人机验证
-    :param device_id: 设备 ID
+    :param device_id: 设备ID
     :param retry: 是否允许重试
     """
     headers = HEADERS_WEBAPI.copy()
-    headers["x-rpc-device_id"] = device_id
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4 and isinstance(geetest_result, GeetestResultV4):
         params = {
             "action_type": "login",
@@ -812,6 +812,7 @@ async def create_mobile_captcha(phone_number: int,
 async def get_login_ticket_by_captcha(phone_number: str,
                                       captcha: int,
                                       client: Optional[httpx.AsyncClient] = None,
+                                      device_id: str = None,
                                       retry: bool = True) -> \
         Tuple[
             GetCookieStatus, Optional[BBSCookies]]:
@@ -821,6 +822,7 @@ async def get_login_ticket_by_captcha(phone_number: str,
     :param phone_number: 手机号
     :param captcha: 短信验证码
     :param client: httpx.AsyncClient 连接
+    :param device_id: 设备ID
     :param retry: 是否允许重试
 
     >>> import asyncio
@@ -829,7 +831,7 @@ async def get_login_ticket_by_captcha(phone_number: str,
     """
 
     headers = HEADERS_WEBAPI.copy()
-    headers["x-rpc-device_id"] = generate_device_id()
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     params = {
         "mobile": phone_number,
         "mobile_captcha": captcha,
@@ -973,7 +975,11 @@ async def get_cookie_token_by_captcha(phone_number: str, captcha: int, retry: bo
             return GetCookieStatus(network_error=True), None
 
 
-async def get_login_ticket_by_password(account: str, password: str, mmt_data: MmtData, geetest_result: GeetestResult,
+async def get_login_ticket_by_password(account: str,
+                                       password: str,
+                                       mmt_data: MmtData,
+                                       geetest_result: GeetestResult,
+                                       device_id: str = None,
                                        retry: bool = True) -> Tuple[GetCookieStatus, Optional[BBSCookies]]:
     """
     使用密码登录获取login_ticket
@@ -982,10 +988,11 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
     :param password: 密码
     :param mmt_data: GEETEST验证任务数据
     :param geetest_result: GEETEST验证结果数据
+    :param device_id: 设备ID
     :param retry: 是否允许重试
     """
     headers = HEADERS_WEBAPI.copy()
-    headers["x-rpc-device_id"] = generate_device_id()
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     params = {
         "account": account,
         "password": password,
@@ -1025,7 +1032,7 @@ async def get_login_ticket_by_password(account: str, password: str, mmt_data: Mm
             return GetCookieStatus(network_error=True), None
 
 
-async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
+async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: str = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过 stoken_v2 获取 cookie_token
@@ -1039,7 +1046,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is False
     """
     headers = HEADERS_PASSPORT_API.copy()
-    headers["x-rpc-device_id"] = device_id if device_id else generate_device_id()
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     if not cookies.stoken_v2:
         return GetCookieStatus(missing_stoken_v2=True), None
     try:
@@ -1074,7 +1081,7 @@ async def get_cookie_token_by_stoken(cookies: BBSCookies, device_id: Optional[st
             return GetCookieStatus(network_error=True), None
 
 
-async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
+async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: str = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过 stoken_v1 获取 stoken_v2 以及 mid
@@ -1088,7 +1095,7 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is False
     """
     headers = HEADERS_PASSPORT_API.copy()
-    headers["x-rpc-device_id"] = device_id if device_id else generate_device_id()
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     headers.setdefault("x-rpc-aigis", "")
     headers.setdefault("x-rpc-app_id", "bll8iq97cem8")
 
@@ -1128,7 +1135,7 @@ async def get_stoken_v2_by_v1(cookies: BBSCookies, device_id: Optional[str] = No
             return GetCookieStatus(network_error=True), None
 
 
-async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = None, retry: bool = True) -> Tuple[
+async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: str = None, retry: bool = True) -> Tuple[
     GetCookieStatus, Optional[BBSCookies]]:
     """
     通过 stoken_v2 和 mid 获取 ltoken
@@ -1142,7 +1149,7 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: Optional[str] = N
     >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is False
     """
     headers = HEADERS_PASSPORT_API.copy()
-    headers["x-rpc-device_id"] = device_id if device_id else generate_device_id()
+    headers["x-rpc-device_id"] = device_id or generate_device_id()
     if not cookies.stoken_v2:
         return GetCookieStatus(missing_stoken_v2=True), None
     if not cookies.mid:
