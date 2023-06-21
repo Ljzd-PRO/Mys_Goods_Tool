@@ -13,8 +13,7 @@ from textual.widgets import (
 )
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
-    check_registrable
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
@@ -145,7 +144,8 @@ class PhoneForm(LoginForm):
             success=ControllableButton("完成", variant="success", id="create_captcha_success"),
             error=ControllableButton("返回", variant="error", id="create_captcha_error")
         )
-        [i.hide() for i in self.button[1:]]
+        for button in self.button[1:]:
+            button.hide()
 
     def compose(self) -> ComposeResult:
         yield Static("手机号", classes="label")
@@ -280,17 +280,7 @@ class PhoneForm(LoginForm):
         self.button.send.disable()
         self.loading.show()
 
-        if PhoneForm.client:
-            await PhoneForm.client.aclose()
-        check_registrable_status, registrable, PhoneForm.device_id, PhoneForm.client = await check_registrable(
-            int(self.input.value))
-        if registrable:
-            self.close_create_captcha_send()
-            self.button.error.show()
-            self.app.notice("[red]该手机号尚未注册！[/]")
-            return
-        create_mmt_status, self.mmt_data, PhoneForm.device_id, PhoneForm.client = await create_mmt(PhoneForm.client,
-                                                                                                   device_id=PhoneForm.device_id)
+        create_mmt_status, self.mmt_data, PhoneForm.device_id, PhoneForm.client = await create_mmt()
         if not create_mmt_status:
             self.close_create_captcha_send()
             self.button.error.show()
@@ -398,7 +388,10 @@ class CaptchaForm(LoginForm):
 
         # 1. 通过短信验证码获取 login_ticket / 使用已有 login_ticket
         if captcha:
-            login_status, cookies = await get_login_ticket_by_captcha(phone_number, captcha, PhoneForm.client)
+            login_status, cookies = await get_login_ticket_by_captcha(phone_number,
+                                                                      captcha,
+                                                                      PhoneForm.client,
+                                                                      PhoneForm.device_id)
             if login_status:
                 logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
                 account = conf.accounts.get(cookies.bbs_uid)
