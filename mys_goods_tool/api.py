@@ -751,15 +751,16 @@ async def create_mobile_captcha(phone_number: int,
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4 and isinstance(geetest_result, GeetestResultV4):
-        params = {
+        geetest_v4_data = geetest_result.dict(skip_defaults=True)
+        content = {
             "action_type": "login",
             "mmt_key": mmt_data.mmt_key,
-            "geetest_v4_data": geetest_result.dict(skip_defaults=True),
-            "mobile": phone_number,
-            "t": round(NtpTime.time() * 1000)
+            "geetest_v4_data": str(geetest_v4_data).replace("'", '"'),
+            "mobile": str(phone_number),
+            "t": str(round(NtpTime.time() * 1000))
         }
     else:
-        params = {
+        content = {
             "action_type": "login",
             "mmt_key": mmt_data.mmt_key,
             "geetest_challenge": mmt_data.challenge,
@@ -768,25 +769,19 @@ async def create_mobile_captcha(phone_number: int,
             "mobile": phone_number,
             "t": round(NtpTime.time() * 1000)
         }
-    encoded_params = urlencode(params)
 
     async def request():
         """
         发送请求的闭包函数
         """
         return await client.post(URL_CREATE_MOBILE_CAPTCHA,
-                                 content=encoded_params,
+                                 data=content,
                                  headers=headers,
                                  timeout=conf.preference.timeout)
 
     try:
         async for attempt in get_async_retry(retry):
             with attempt:
-                # FIXME 2023/4/13: 似乎会导致卡在连接状态，暂时弃用
-                #   res = await client.options(URL_CREATE_MOBILE_CAPTCHA,
-                #                            headers=headers,
-                #                            timeout=conf.preference.timeout)
-                #   cookies.update(res.cookies)
                 if client and not client.is_closed:
                     res = await request()
                 else:
