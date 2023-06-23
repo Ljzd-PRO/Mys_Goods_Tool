@@ -1,7 +1,7 @@
 import pytest
 
 from mys_goods_tool.api import get_stoken_v2_by_v1, get_cookie_token_by_stoken
-from test.config import test_config, ACCOUNT
+from .config import test_config, ACCOUNT
 
 
 @pytest.mark.asyncio
