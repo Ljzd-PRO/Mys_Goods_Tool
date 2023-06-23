@@ -751,12 +751,14 @@ async def create_mobile_captcha(phone_number: int,
     headers = HEADERS_WEBAPI.copy()
     headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4 and isinstance(geetest_result, GeetestResultV4):
+        geetest_v4_data = geetest_result.dict(skip_defaults=True)
+        geetest_v4_data['gen_time'] = str(geetest_v4_data['gen_time'])
         params = {
             "action_type": "login",
             "mmt_key": mmt_data.mmt_key,
-            "geetest_v4_data": str(geetest_result.dict(skip_defaults=True)).replace("'", '"'),
-            "mobile": phone_number,
-            "t": round(NtpTime.time() * 1000)
+            "geetest_v4_data": str(geetest_v4_data).replace("'", '"'),
+            "mobile": str(phone_number),
+            "t": str(round(NtpTime.time() * 1000))
         }
     else:
         params = {
@@ -774,8 +776,14 @@ async def create_mobile_captcha(phone_number: int,
         """
         发送请求的闭包函数
         """
+        '''
         return await client.post(URL_CREATE_MOBILE_CAPTCHA,
                                  content=encoded_params,
+                                 headers=headers,
+                                 timeout=conf.preference.timeout)
+        '''
+        return await client.post(URL_CREATE_MOBILE_CAPTCHA,
+                                 data=params,
                                  headers=headers,
                                  timeout=conf.preference.timeout)
 
@@ -793,6 +801,7 @@ async def create_mobile_captcha(phone_number: int,
                     async with httpx.AsyncClient() as client:
                         res = await request()
                 api_result = ApiResultHandler(res.json())
+                logger.info(api_result)
                 if api_result.success:
                     return CreateMobileCaptchaStatus(success=True), client
                 elif api_result.wrong_captcha:
