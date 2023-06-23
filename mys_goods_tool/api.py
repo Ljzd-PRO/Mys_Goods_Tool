@@ -801,7 +801,6 @@ async def create_mobile_captcha(phone_number: int,
                     async with httpx.AsyncClient() as client:
                         res = await request()
                 api_result = ApiResultHandler(res.json())
-                logger.info(api_result)
                 if api_result.success:
                     return CreateMobileCaptchaStatus(success=True), client
                 elif api_result.wrong_captcha:
