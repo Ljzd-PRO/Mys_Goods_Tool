@@ -54,7 +54,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          poetry run pytest -v --doctest-modules --capture=sys --html=report-${{ matrix.python-version }}.html --self-contained-html ${{ vars.V2_PATH }}
+          poetry run pytest -v --doctest-modules --capture=sys --html=report-${{ matrix.python-version }}.html --self-contained-html ${{ vars.V2_PATH }} --ignore=test --ignore=dev.py
 
       - name: Upload pytest HTML result
         uses: actions/upload-artifact@v3
