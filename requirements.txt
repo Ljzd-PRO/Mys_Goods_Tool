@@ -2,14 +2,14 @@
 
 ## main.dependencies
 tenacity~=8.2.2
-requests~=2.30.0
+requests==2.31.0
 ping3~=4.0.4
 ntplib~=0.4.0
-pydantic~=1.10.6
+pydantic==1.10.9
 loguru~=0.7.0
-httpx~=0.24.0
-rich~=13.3.5
-textual~=0.24.1
+httpx==0.24.1
+rich==13.4.2
+textual<=0.27.0
 socksio~=1.0.0
 apscheduler~=3.10.1
 uvloop~=0.17.0
