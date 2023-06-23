@@ -1,12 +1,12 @@
-import os
 from json import JSONDecodeError
-from pathlib import Path
-from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
-    Mapping
 
+import os
 from httpx import Cookies
 from loguru import logger
+from pathlib import Path
 from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
+from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
+    Mapping
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord, BaseModelWithUpdate
 
@@ -16,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.5-dev"
+VERSION = "2.0.5"
 """程序当前版本"""
 
 if TYPE_CHECKING:

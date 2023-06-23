@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sys
-from io import StringIO
 
+from io import StringIO
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
@@ -31,9 +31,8 @@ WELCOME_MD = """
 # Mys_Goods_Tool - 米游社商品兑换工具
 
 ## 更新说明
-- 修复启动后由于商品数据相关问题而导致的崩溃
-- 修复 Linux 实际不会应用 uvloop 的问题
-- 人机验证更新至 GT4（但实际上暂时不可用 [#105](https://github.com/Ljzd-PRO/Mys_Goods_Tool/issues/105#issuecomment-1552727784)）
+
+- 修复短信验证码发送失败的问题 #105 #94 #104 - #126 by @Night-stars-1
 
 ## 功能和特性
 
@@ -42,9 +41,6 @@ WELCOME_MD = """
 - 内置人机验证页面，无需前往官网验证
 - 多账号支持
 - 支持米游社所有分区的商品兑换
-
-### TODO
-- 更新至极验第四代适应性验证
 
 ## 其他
 - [**🔗完整说明文档**](https://github.com/Ljzd-PRO/Mys_Goods_Tool/wiki)
