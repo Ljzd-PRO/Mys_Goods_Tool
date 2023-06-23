@@ -754,7 +754,7 @@ async def create_mobile_captcha(phone_number: int,
         params = {
             "action_type": "login",
             "mmt_key": mmt_data.mmt_key,
-            "geetest_v4_data": geetest_result.dict(skip_defaults=True),
+            "geetest_v4_data": str(geetest_result.dict(skip_defaults=True)).replace("'", '"'),
             "mobile": phone_number,
             "t": round(NtpTime.time() * 1000)
         }
