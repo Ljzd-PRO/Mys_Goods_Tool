@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mys-goods-tool"
-version = "2.0.5-dev"
+version = "2.0.5"
 description = "米游社商品兑换工具|短信验证登录|终端TUI界面"
 authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
 readme = "README.md"
@@ -23,14 +23,14 @@ packages = [{ include = "mys_goods_tool" }]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 tenacity = "^8.2.2"
-requests = "^2.30.0"
+requests = "^2.31.0"
 ping3 = "^4.0.4"
 ntplib = "^0.4.0"
-pydantic = "^1.10.6"
+pydantic = "^1.10.9"
 loguru = "^0.7.0"
-httpx = "^0.24.0"
-rich = "^13.3.5"
-textual = "^0.24.1"
+httpx = "^0.24.1"
+rich = "^13.4.2"
+textual = "^0.28.1"
 socksio = "^1.0.0"
 apscheduler = "^3.10.1"
 
