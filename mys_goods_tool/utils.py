@@ -1,21 +1,20 @@
+import time
+from multiprocessing import Pool, pool
+
 import hashlib
+import httpx
 import json
+import ntplib
 import os
 import random
 import string
-import time
-import traceback
+import tenacity
 import uuid
-from multiprocessing import Pool, pool
+from loguru import logger
+from pydantic import ValidationError
 from socket import socket, AF_INET, SOCK_STREAM
 from typing import Literal, Union, Dict, List, Any, Callable, Iterable, Optional
 from urllib.parse import urlencode
-
-import httpx
-import ntplib
-import tenacity
-from loguru import logger
-from pydantic import ValidationError
 
 from mys_goods_tool.user_data import config as conf
 
@@ -81,8 +80,7 @@ class NtpTime:
                         cls.time_offset = ntplib.NTPClient().request(
                             conf.preference.ntp_server).tx_time - time.time()
             except tenacity.RetryError:
-                logger.error("校对互联网时间失败，改为使用本地时间")
-                logger.debug(traceback.format_exc())
+                logger.exception("校对互联网时间失败，改为使用本地时间")
                 return False
             logger.info("互联网时间校对完成")
             return True
@@ -144,7 +142,8 @@ def generate_ds(data: Union[str, dict, list, None] = None, params: Union[str, di
     :param platform: 可选，平台，ios或android
     :param salt: 可选，自定义salt
     """
-    if data is None and params is None or salt != conf.salt_config.SALT_PROD:
+    if data is None and params is None or \
+            salt is not None and salt != conf.salt_config.SALT_PROD:
         if platform == "ios":
             salt = salt or conf.salt_config.SALT_IOS
         else:
@@ -196,8 +195,7 @@ async def get_file(url: str, retry: bool = True):
                     res = await client.get(url, timeout=conf.preference.timeout, follow_redirects=True)
                 return res.content
     except tenacity.RetryError:
-        logger.error(f"下载文件 - {url} 失败")
-        logger.debug(f"{traceback.format_exc()}")
+        logger.exception(f"下载文件 - {url} 失败")
 
 
 PORT_RANGE = (1024, 49151)
@@ -278,8 +276,7 @@ class Subscribe:
             try:
                 conf.device_config.parse_obj(Subscribe.conf_list[self.index]["config"])
             except ValidationError:
-                logger.error(f"获取在线配置资源 - 加载配置失败")
-                logger.debug(traceback.format_exc())
+                logger.exception(f"获取在线配置资源 - 加载配置失败")
                 return False
 
             self.index += 1
