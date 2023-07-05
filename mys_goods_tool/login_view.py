@@ -246,7 +246,8 @@ class PhoneForm(LoginForm):
             renderable=f"\n- 请前往链接进行验证：\n"
                        f"[@click=app.open_link('{link}')]{link}[/]\n"
                        f"\n- 如果页面加载慢或者出错，尝试：\n"
-                       f"[@click=app.open_link('{link_localized}')]{link_localized}[/]",
+                       f"[@click=app.open_link('{link_localized}')]{link_localized}[/]\n"
+                       f"\n如果你在使用SSH或WSL，无法跳转链接，可前往日志文件复制验证链接",
             text_align="left")
         logger.info(f"请前往链接进行人机验证：{link}")
         logger.info(f"如果页面加载慢或者出错，尝试：{link_localized}")
