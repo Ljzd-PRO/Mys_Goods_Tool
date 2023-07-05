@@ -1,10 +1,9 @@
-from typing import List, Optional, Tuple, Dict, Any, Union
-from urllib.parse import urlencode
-
 import httpx
 import tenacity
 from pydantic import ValidationError, BaseModel
 from requests.utils import dict_from_cookiejar
+from typing import List, Optional, Tuple, Dict, Any, Union, Type
+from urllib.parse import urlencode
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
@@ -233,15 +232,20 @@ IncorrectReturn = (KeyError, TypeError, AttributeError, IndexError, ValidationEr
 """米游社API返回数据无效会触发的异常组合"""
 
 
-def is_incorrect_return(exception: Exception) -> bool:
-    """判断是否是米游社API返回数据无效的异常"""
+def is_incorrect_return(exception: Exception, *addition_exceptions: Type[Exception]) -> bool:
+    """
+    判断是否是米游社API返回数据无效的异常
+    :param exception: 异常对象
+    :param addition_exceptions: 额外的异常类型，用于触发判断
+    """
     """
         return exception in IncorrectReturn or
             exception.__cause__ in IncorrectReturn or
             isinstance(exception, IncorrectReturn) or
             isinstance(exception.__cause__, IncorrectReturn)
     """
-    return isinstance(exception, IncorrectReturn) or isinstance(exception.__cause__, IncorrectReturn)
+    exceptions = IncorrectReturn + addition_exceptions
+    return isinstance(exception, exceptions) or isinstance(exception.__cause__, exceptions)
 
 
 class ApiResultHandler(BaseModel):
@@ -345,19 +349,12 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
     """
     headers = HEADERS_GAME_LIST.copy()
     try:
-        subscribe = Subscribe()
         async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds()
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_LIST, headers=headers, timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"获取游戏信息(GameInfo): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
-                    headers["User-Agent"] = conf.device_config.USER_AGENT_MOBILE
-                    headers["DS"] = generate_ds()
                 return BaseApiStatus(success=True), list(
                     map(GameInfo.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
@@ -381,7 +378,8 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
         async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
+                    res = await client.get(URL_MYB, headers=HEADERS_MYB,
+                                           cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
                                            timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
@@ -418,13 +416,12 @@ async def device_login(account: UserAccount, retry: bool = True):
     headers = HEADERS_DEVICE.copy()
     headers["x-rpc-device_id"] = account.device_id_android
     try:
-        subscribe = Subscribe()
         async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data,
-                                            cookies=account.cookies.dict(),
+                                            cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
                                             timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
@@ -432,11 +429,6 @@ async def device_login(account: UserAccount, retry: bool = True):
                         f"设备登录(device_login) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"设备登录(device_login): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
-                    headers["DS"] = generate_ds(data)
                 if res.json()["message"] != "OK":
                     raise ValueError
                 else:
@@ -474,18 +466,19 @@ async def device_save(account: UserAccount, retry: bool = True):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies.dict(),
-                                            timeout=conf.preference.timeout)
+                    res = await client.post(
+                        URL_DEVICE_SAVE,
+                        headers=headers,
+                        json=data,
+                        cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
+                        timeout=conf.preference.timeout
+                    )
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
                     logger.info(
                         f"设备保存(device_save) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"设备保存(device_save): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
                 if res.json()["message"] != "OK":
                     raise ValueError
                 else:
@@ -611,9 +604,12 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
         async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_ADDRESS.format(
-                        round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies.dict(),
-                        timeout=conf.preference.timeout)
+                    res = await client.get(
+                        URL_ADDRESS.format(round(NtpTime.time() * 1000)),
+                        headers=headers,
+                        cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
+                        timeout=conf.preference.timeout
+                    )
                     api_result = ApiResultHandler(res.json())
                     if api_result.login_expired:
                         logger.info(
@@ -1204,7 +1200,8 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
     try:
         async with httpx.AsyncClient() as client:
             res = await client.post(
-                URL_EXCHANGE, headers=headers, json=content, cookies=plan.account.cookies.dict(),
+                URL_EXCHANGE, headers=headers, json=content,
+                cookies=plan.account.cookies.dict(v2_stoken=True, cookie_type=True),
                 timeout=conf.preference.timeout)
         api_result = ApiResultHandler(res.json())
         if api_result.login_expired:
@@ -1259,7 +1256,8 @@ def good_exchange_sync(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Exc
     try:
         with httpx.Client() as client:
             res = client.post(
-                URL_EXCHANGE, headers=headers, json=content, cookies=plan.account.cookies.dict(),
+                URL_EXCHANGE, headers=headers, json=content,
+                cookies=plan.account.cookies.dict(v2_stoken=True, cookie_type=True),
                 timeout=conf.preference.timeout)
         api_result = ApiResultHandler(res.json())
         if api_result.login_expired:
