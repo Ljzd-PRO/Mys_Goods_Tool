@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import queue
-from typing import NamedTuple, Tuple, Optional, Set
-from urllib.parse import urlencode
-
-import httpx
 from rich.markdown import Markdown
 from textual.app import ComposeResult
 from textual.widgets import (
     Input
 )
+from typing import NamedTuple, Tuple, Optional, Set
+from urllib.parse import urlencode
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
     get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
@@ -109,8 +107,6 @@ class PhoneForm(LoginForm):
     """手机号输入框"""
     device_id: Optional[str] = None
     """人机验证过程的设备ID"""
-    client: Optional[httpx.AsyncClient] = None
-    """人机验证过程的连接对象"""
 
     ButtonTuple = NamedTuple("ButtonTuple",
                              send=ControllableButton,
@@ -188,11 +184,12 @@ class PhoneForm(LoginForm):
                 logger.info(f"已收到Geetest验证结果数据，将发送验证码至 {self.input.value}")
                 CaptchaLoginInformation.radio_tuple.geetest_finished.turn_on()
                 self.loading.show()
-                create_captcha_status, PhoneForm.client = await create_mobile_captcha(int(self.input.value),
-                                                                                      self.mmt_data,
-                                                                                      geetest_result,
-                                                                                      PhoneForm.client,
-                                                                                      device_id=PhoneForm.device_id)
+                create_captcha_status, _ = await create_mobile_captcha(
+                    int(self.input.value),
+                    self.mmt_data,
+                    geetest_result,
+                    device_id=PhoneForm.device_id
+                )
                 if create_captcha_status:
                     self.loading.hide()
                     logger.info(f"短信验证码已发送至 {self.input.value}")
@@ -280,7 +277,7 @@ class PhoneForm(LoginForm):
         self.button.send.disable()
         self.loading.show()
 
-        create_mmt_status, self.mmt_data, PhoneForm.device_id, PhoneForm.client = await create_mmt()
+        create_mmt_status, self.mmt_data, PhoneForm.device_id, _ = await create_mmt()
         if not create_mmt_status:
             self.close_create_captcha_send()
             self.button.error.show()
@@ -390,7 +387,6 @@ class CaptchaForm(LoginForm):
         if captcha:
             login_status, cookies = await get_login_ticket_by_captcha(phone_number,
                                                                       captcha,
-                                                                      PhoneForm.client,
                                                                       PhoneForm.device_id)
             if login_status:
                 logger.info(f"用户 {phone_number} 成功获取 login_ticket: {cookies.login_ticket}")
