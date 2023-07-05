@@ -398,12 +398,13 @@ class TuiApp(App):
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         if sys.platform not in ('win32', 'cygwin', 'cli'):
-            if "uvloop" in sys.modules.copy():
+            try:
                 import uvloop
+            except ModuleNotFoundError:
+                logger.info("在非 Windows 环境下，你可以安装 uvloop 以提高性能")
+            else:
                 import asyncio
                 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-            else:
-                logger.info("在非 Windows 环境下，你可以安装 uvloop 以提高性能")
         self.query_one("Welcome Button", Button).focus()
 
     def action_screenshot(self, filename: str | None = None, path: str = str(ROOT_PATH)) -> None:
