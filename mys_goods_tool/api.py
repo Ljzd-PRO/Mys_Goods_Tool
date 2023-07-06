@@ -194,11 +194,13 @@ HEADERS_EXCHANGE = {
     "Connection":
         "keep-alive",
     "Content-Type":
-        "application/json;charset=utf-8",
+        "application/json",
     "Host":
         "api-takumi.miyoushe.com",
     "Origin":
-        "https://webstatic.mihoyo.com",
+        "https://webstatic.miyoushe.com",
+    "Referer":
+        "https://webstatic.miyoushe.com/",
     "User-Agent":
         conf.device_config.USER_AGENT_MOBILE,
     "x-rpc-app_version":
