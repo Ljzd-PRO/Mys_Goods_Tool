@@ -1,16 +1,14 @@
-import random
 import sys
-import threading
 import time
-from datetime import datetime
-from typing import Optional, Union, Tuple, Dict, List
-from urllib.parse import urlparse
 
 import ping3
+import random
+import threading
 from apscheduler.events import JobExecutionEvent, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
+from datetime import datetime
 from rich.console import RenderableType
 from textual import events
 from textual.app import ComposeResult
@@ -18,11 +16,13 @@ from textual.containers import Container, Horizontal
 from textual.events import Event
 from textual.reactive import reactive
 from textual.widgets import Static, ListView, ListItem
+from typing import Optional, Union, Tuple, Dict, List
+from urllib.parse import urlparse
 
 from mys_goods_tool.api import URL_EXCHANGE, good_exchange_sync
 from mys_goods_tool.custom_widget import ControllableButton, UnClickableItem
 from mys_goods_tool.data_model import ExchangeStatus
-from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
+from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult, VERSION, DeviceConfig
 from mys_goods_tool.utils import logger, LOG_FORMAT
 
 
@@ -110,6 +110,10 @@ def exchange_mode_simple():
     if not conf.exchange_plans:
         logger.info("无兑换计划需要执行")
         return
+
+    if conf.device_config != DeviceConfig() and conf.version != VERSION:
+        logger.warning("检测到设备信息 device_config 使用了非默认值，且生成该配置的程序版本号与当前程序不一致，"
+                       "如果你想保持默认值，请编辑用户数据文件并删除 device_config 项以进行更新")
 
     scheduler = set_scheduler(BlockingScheduler())
     finished: Dict[ExchangePlan, List[bool]] = dict(map(lambda x: (x, []), conf.exchange_plans))
