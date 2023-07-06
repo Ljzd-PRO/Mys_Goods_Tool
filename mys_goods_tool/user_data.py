@@ -1,12 +1,12 @@
-from json import JSONDecodeError
-
 import os
-from httpx import Cookies
-from loguru import logger
+from json import JSONDecodeError
 from pathlib import Path
-from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
     Mapping
+
+from httpx import Cookies
+from loguru import logger
+from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord, BaseModelWithUpdate
 
@@ -316,6 +316,8 @@ class Preference(BaseSettings):
     """是否保存日志"""
     log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
     """日志保存路径"""
+    override_device_and_salt: bool = False
+    """是否读取用户数据文件中的 device_config 设备配置 和 salt_config 配置而不是默认配置（一般情况不建议开启）"""
 
     @validator("log_path")
     def _(cls, v: Optional[Path]):
@@ -490,19 +492,32 @@ def write_config_file(conf: UserData = UserData()):
     return True
 
 
-def load_config():
+def load_config() -> Tuple[UserData, bool]:
     """
     加载用户数据文件
+
+    :return: (<用户数据对象>, <device_config 或 salt_config 是否非默认值且未开启覆写>)
     """
     if os.path.exists(CONFIG_PATH) and os.path.isfile(CONFIG_PATH):
         try:
-            return UserData.parse_file(CONFIG_PATH)
+            user_data = UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
             logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确")
             exit(1)
         except:
             logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入")
             exit(1)
+        else:
+            if not user_data.preference.override_device_and_salt:
+                default_device_config = DeviceConfig()
+                default_salt_config = SaltConfig()
+                if user_data.device_config != default_device_config or user_data.salt_config != default_salt_config:
+                    user_data.device_config = default_device_config
+                    user_data.salt_config = default_salt_config
+                    return user_data, True
+            else:
+                logger.info("已开启覆写 device_config 和 salt_config，将读取用户数据文件中的配置以覆写默认配置")
+            return user_data, False
     else:
         user_data = UserData()
         try:
@@ -513,8 +528,11 @@ def load_config():
         # logger.info(f"用户数据文件 {CONFIG_PATH} 不存在，已创建默认用户数据文件。")
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
 
-        return user_data
+        return user_data, False
 
 
-config = load_config()
+_load_config_return = load_config()
+config = _load_config_return[0]
 """程序配置对象"""
+different_device_and_salt = _load_config_return[1]
+"""device_config 或 salt_config 是否非默认值且未开启覆写"""

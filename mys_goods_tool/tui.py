@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sys
-
 from io import StringIO
+
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
@@ -24,7 +24,7 @@ from mys_goods_tool.custom_widget import RadioStatus, StaticStatus
 from mys_goods_tool.exchange_mode import ExchangeModeView, EnterExchangeMode, ExitExchangeMode
 from mys_goods_tool.exchange_plan_view import ExchangePlanView
 from mys_goods_tool.login_view import LoginView
-from mys_goods_tool.user_data import ROOT_PATH, VERSION, config as conf, DeviceConfig
+from mys_goods_tool.user_data import ROOT_PATH, VERSION, different_device_and_salt
 from mys_goods_tool.utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -406,9 +406,10 @@ class TuiApp(App):
                 import asyncio
                 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         self.query_one("Welcome Button", Button).focus()
-        if conf.device_config != DeviceConfig() and conf.version != VERSION:
-            logger.warning("检测到设备信息 device_config 使用了非默认值，且生成该配置的程序版本号与当前程序不一致，"
-                           "如果你想保持默认值，请编辑用户数据文件并删除 device_config 项以进行更新")
+        if different_device_and_salt:
+            logger.warning("检测到设备信息配置 device_config 或 salt_config 使用了非默认值，"
+                           "如果你修改过这些配置，需要设置 preference.override_device_and_salt 为 True 以覆盖默认值并生效。"
+                           "如果继续，将可能保存默认值到配置文件。")
 
     def action_screenshot(self, filename: str | None = None, path: str = str(ROOT_PATH)) -> None:
         """Save an SVG "screenshot". This action will save an SVG file containing the current contents of the screen.
