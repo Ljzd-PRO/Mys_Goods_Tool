@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import queue
+from typing import NamedTuple, Tuple, Optional, Set
+from urllib.parse import urlencode
+
 from rich.markdown import Markdown
 from textual.app import ComposeResult
 from textual.widgets import (
     Input
 )
-from typing import NamedTuple, Tuple, Optional, Set
-from urllib.parse import urlencode
 
 from mys_goods_tool.api import create_mobile_captcha, create_mmt, get_login_ticket_by_captcha, \
-    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken
+    get_multi_token_by_login_ticket, get_cookie_token_by_stoken, get_stoken_v2_by_v1, get_ltoken_by_stoken, \
+    get_device_fp
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import RadioStatus, StaticStatus, ControllableButton, LoadingDisplay
 from mys_goods_tool.data_model import GeetestResult, MmtData, GetCookieStatus
@@ -400,6 +402,9 @@ class CaptchaForm(LoginForm):
                     account = conf.accounts[cookies.bbs_uid]
                 else:
                     account.cookies.update(cookies)
+                fp_status, account.device_fp = await get_device_fp(account.device_id_ios)
+                if fp_status:
+                    logger.info(f"成功获取 device_fp: {account.device_fp}")
                 conf.save()
                 CaptchaLoginInformation.radio_tuple.login_ticket_by_captcha.turn_on()
         else:
