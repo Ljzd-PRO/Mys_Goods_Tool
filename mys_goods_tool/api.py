@@ -1,3 +1,4 @@
+import time
 from typing import List, Optional, Tuple, Dict, Any, Union, Type
 from urllib.parse import urlencode
 
@@ -8,10 +9,10 @@ from requests.utils import dict_from_cookiejar
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
-    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, GeetestResultV4
+    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, GeetestResultV4, GetFpStatus
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan, ExchangeResult
 from mys_goods_tool.utils import generate_device_id, logger, generate_ds, Subscribe, \
-    NtpTime, get_async_retry
+    NtpTime, get_async_retry, generate_seed_id
 
 URL_LOGIN_TICKET_BY_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
 URL_LOGIN_TICKET_BY_PASSWORD = "https://webapi.account.mihoyo.com/Api/login_by_password"
@@ -35,6 +36,7 @@ URL_REGISTRABLE = "https://webapi.account.mihoyo.com/Api/is_mobile_registrable?m
 URL_CREATE_MMT = "https://webapi.account.mihoyo.com/Api/create_mmt?scene_type=1&now={now}&reason=user.mihoyo.com%2523%252Flogin%252Fcaptcha&action_type=login_by_mobile_captcha&t={t}"
 URL_CREATE_MOBILE_CAPTCHA = "https://webapi.account.mihoyo.com/Api/create_mobile_captcha"
 URL_GET_USER_INFO = "https://bbs-api.miyoushe.com/user/api/getUserFullInfo?uid={uid}"
+URL_GET_DEVICE_FP = "https://public-data-api.mihoyo.com/device-fp/api/getFp"
 
 HEADERS_WEBAPI = {
     "Host": "webapi.account.mihoyo.com",
@@ -699,6 +701,7 @@ async def create_mmt(client: Optional[httpx.AsyncClient] = None,
     headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4:
         headers.setdefault("x-rpc-source", "accountWebsite")
+
     async def request():
         """
         发送请求的闭包函数
@@ -1179,6 +1182,72 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: str = None, retry
         else:
             logger.exception(f"通过 stoken 获取 ltoken: 网络请求失败")
             return GetCookieStatus(network_error=True), None
+
+
+async def get_device_fp(device_id: str, retry: bool = True) -> Tuple[GetFpStatus, Optional[str]]:
+    """
+    获取 x-rpc-device_fp
+
+    :param device_id: x-rpc-device_id 的值
+    :param retry: 是否允许重试
+
+    >>> import asyncio
+    >>> coroutine = get_device_fp()
+    >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is True
+    """
+    content = {
+        "seed_id": generate_seed_id(),
+        "device_id": device_id.lower(),
+        "platform": "5",
+        "seed_time": str(int(time.time() * 1000)),
+        "ext_fields": {
+            "userAgent": conf.device_config.USER_AGENT_MOBILE,
+            "browserScreenSize": 243750,
+            "maxTouchPoints": 5,
+            "isTouchSupported": True,
+            "browserLanguage": "zh-CN",
+            "browserPlat": "iPhone",
+            "browserTimeZone": "Asia/Shanghai",
+            "webGlRender": "Apple GPU",
+            "webGlVendor": "Apple Inc.",
+            "numOfPlugins": 0,
+            "listOfPlugins": "unknown",
+            "screenRatio": 3,
+            "deviceMemory": "unknown",
+            "hardwareConcurrency": "4",
+            "cpuClass": "unknown",
+            "ifNotTrack": "unknown",
+            "ifAdBlock": 0,
+            "hasLiedResolution": 1,
+            "hasLiedOs": 0,
+            "hasLiedBrowser": 0
+        },
+        "app_name": "account_cn"
+    }
+    try:
+        async for attempt in get_async_retry(retry):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.post(
+                        URL_GET_DEVICE_FP,
+                        json=content,
+                        timeout=conf.preference.timeout
+                    )
+                api_result = ApiResultHandler(res.json())
+                if api_result.success:
+                    return GetFpStatus(success=True), api_result.data["device_fp"]
+                elif api_result.data["code"] == 403 or api_result.data["msg"] == "传入的参数有误":
+                    logger.error("传入的参数有误")
+                    return GetFpStatus(invalid_arguments=True), None
+
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.exception(f"通过 stoken 获取 ltoken: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            return GetFpStatus(incorrect_return=True), None
+        else:
+            logger.exception(f"通过 stoken 获取 ltoken: 网络请求失败")
+            return GetFpStatus(network_error=True), None
 
 
 async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:

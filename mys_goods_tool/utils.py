@@ -1,20 +1,20 @@
-import time
-from multiprocessing import Pool, pool
-
 import hashlib
-import httpx
 import json
-import ntplib
 import os
 import random
 import string
-import tenacity
+import time
 import uuid
-from loguru import logger
-from pydantic import ValidationError
+from multiprocessing import Pool, pool
 from socket import socket, AF_INET, SOCK_STREAM
 from typing import Literal, Union, Dict, List, Any, Callable, Iterable, Optional
 from urllib.parse import urlencode
+
+import httpx
+import ntplib
+import tenacity
+from loguru import logger
+from pydantic import ValidationError
 
 from mys_goods_tool.user_data import config as conf
 
@@ -178,6 +178,14 @@ def generate_ds(data: Union[str, dict, list, None] = None, params: Union[str, di
         c = hashlib.md5(
             f"salt={salt}&t={t}&r={r}&b={data}&q={params}".encode()).hexdigest()
         return f"{t},{r},{c}"
+
+
+async def generate_seed_id() -> str:
+    """
+    生成随机的 seed_id（即长度为8的十六进制数）
+    """
+    max_num = int("FF" * 8, 16)
+    return hex(random.randint(0, max_num))[2:]
 
 
 async def get_file(url: str, retry: bool = True):
