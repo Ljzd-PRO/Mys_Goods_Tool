@@ -180,7 +180,7 @@ def generate_ds(data: Union[str, dict, list, None] = None, params: Union[str, di
         return f"{t},{r},{c}"
 
 
-async def generate_seed_id(length: int = 8) -> str:
+def generate_seed_id(length: int = 8) -> str:
     """
     生成随机的 seed_id（即长度为8的十六进制数）
 
