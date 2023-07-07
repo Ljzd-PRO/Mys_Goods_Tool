@@ -1,9 +1,10 @@
+from typing import List, Optional, Tuple, Dict, Any, Union, Type
+from urllib.parse import urlencode
+
 import httpx
 import tenacity
 from pydantic import ValidationError, BaseModel
 from requests.utils import dict_from_cookiejar
-from typing import List, Optional, Tuple, Dict, Any, Union, Type
-from urllib.parse import urlencode
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
@@ -209,6 +210,9 @@ HEADERS_EXCHANGE = {
         "appstore",
     "x-rpc-client_type":
         "1",
+    "x-rpc-verify_key":
+        "bll8iq97cem8",
+    "x-rpc-device_fp": None,
     "x-rpc-device_id": None,
     "x-rpc-device_model":
         conf.device_config.X_RPC_DEVICE_MODEL_MOBILE,
