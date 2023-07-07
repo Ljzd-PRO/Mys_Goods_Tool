@@ -223,6 +223,8 @@ class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
     """iOS设备用 deviceID"""
     device_id_android: str
     """安卓设备用 deviceID"""
+    device_fp: Optional[str]
+    """iOS设备用 deviceFp"""
 
     def __init__(self, **data: Any):
         if not data.get("device_id_ios") or not data.get("device_id_android"):
