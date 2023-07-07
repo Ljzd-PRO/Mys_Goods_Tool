@@ -917,7 +917,9 @@ class FinishContent(ExchangePlanContent):
                     conf.exchange_plans.add(plan)
                     if not plan.account.device_fp:
                         logger.info(f"账号 {plan.account.bbs_uid} 未设置 device_fp，正在获取...")
-                        _, plan.account.device_fp = await get_device_fp(plan.account.device_id_ios)
+                        fp_status, plan.account.device_fp = await get_device_fp(plan.account.device_id_ios)
+                        if fp_status:
+                            logger.info(f"成功获取 device_fp: {plan.account.device_fp}")
                     if conf.save():
                         self.app.notice(f"[bold green]已保存兑换计划[/]")
                     else:
