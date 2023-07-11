@@ -14,12 +14,14 @@
   <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?event=pull_request&label=Versions%20Test&style=for-the-badge">
 </div>
 
-**目前暂时无法兑换成功，即使测试兑换时没有问题。请等待修复**  
-相关issues: #132 #129 #125 #121 #116 #114
-
 ### 更新说明
 
-- 修复短信验证码发送失败的问题 #105 #94 #104 - #126 by @Night-stars-1
+v2.1.0-beta.1
+
+- 兑换请求Headers增加与修改了 `Referer`, `x-rpc-device_fp`, `x-rpc-verify_key`, `Origin` 等字段，可能修复兑换失败的问题
+- 修复登陆时因为连接断开（client has been closed）而导致登陆失败的问题
+- 防止因配置文件中默认存在 `device_config`, `salt_config` 而导致更新后默认配置被原配置覆盖的问题
+- 若需要修改 `device_config` 配置，修改后还设置用户数据文件中 `preference.override_device_and_salt` 为 `true` 以覆盖默认值
 
 ## 功能和特性
 
