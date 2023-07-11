@@ -22,6 +22,7 @@ v2.1.0-beta.1
 - 修复登陆时因为连接断开（client has been closed）而导致登陆失败的问题
 - 防止因配置文件中默认存在 `device_config`, `salt_config` 而导致更新后默认配置被原配置覆盖的问题
 - 若需要修改 `device_config` 配置，修改后还设置用户数据文件中 `preference.override_device_and_salt` 为 `true` 以覆盖默认值
+- 修复Unix下即使安装了 uvloop 也找不到，无法应用的问题
 
 ## 功能和特性
 
