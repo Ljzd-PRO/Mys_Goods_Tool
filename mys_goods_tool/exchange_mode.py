@@ -95,11 +95,19 @@ def exchange_begin(plan: ExchangePlan):
 
     :param plan: 兑换计划
     """
+    duration = 0
     random_x, random_y = conf.preference.exchange_latency
-    latency = random.uniform(random_x, random_y)
-    time.sleep(latency)
-    result = good_exchange_sync(plan)
-    return result
+    exchange_status, exchange_result = ExchangeStatus(), None
+
+    # 在兑换开始后的一段时间内，不断尝试兑换，直到成功（因为太早兑换可能被认定不在兑换时间）
+    while duration < conf.preference.exchange_duration:
+        latency = random.uniform(random_x, random_y)
+        time.sleep(latency)
+        exchange_status, exchange_result = good_exchange_sync(plan)
+        if exchange_status and exchange_result.result:
+            break
+        duration += latency
+    return exchange_status, exchange_result
 
 
 def exchange_mode_simple():
