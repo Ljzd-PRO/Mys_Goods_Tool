@@ -1265,6 +1265,7 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
         content.setdefault("region", plan.game_record.region)
         # 例: hk4e_cn
         content.setdefault("game_biz", plan.good.game_biz)
+    start_time = 0
     try:
         start_time = time.time()
         async with httpx.AsyncClient() as client:
@@ -1323,6 +1324,7 @@ def good_exchange_sync(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Exc
         content.setdefault("region", plan.game_record.region)
         # 例: hk4e_cn
         content.setdefault("game_biz", plan.good.game_biz)
+    start_time = 0
     try:
         start_time = time.time()
         with httpx.Client() as client:
