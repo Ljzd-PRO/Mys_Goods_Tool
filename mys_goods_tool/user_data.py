@@ -300,10 +300,13 @@ class Preference(BaseSettings):
     """最大网络请求重试次数"""
     retry_interval: float = 2
     """网络请求重试间隔（单位：秒）（除兑换请求外）"""
+
+    # TODO: 目前并没有实现使用同步后的时间进行兑换
     enable_ntp_sync: Optional[bool] = True
     """是否开启NTP时间同步（将调整实际发出兑换请求的时间，而不是修改系统时间）"""
     ntp_server: Optional[str] = "ntp.aliyun.com"
     """NTP服务器地址"""
+
     timezone: Optional[str] = "Asia/Shanghai"
     """兑换时所用的时区"""
     geetest_statics_path: Optional[Path]
