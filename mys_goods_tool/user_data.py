@@ -423,16 +423,16 @@ class UserData(BaseModel):
     """
     version: str = VERSION
     """创建用户数据文件的程序版本号"""
-    exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
-    """兑换计划列表"""
     preference: Preference = Preference()
     """偏好设置"""
+    exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
+    """兑换计划列表"""
+    accounts: Dict[str, UserAccount] = {}
+    """储存一些已绑定的账号数据"""
     salt_config: SaltConfig = SaltConfig()
     """生成Headers - DS所用salt值"""
     device_config: DeviceConfig = DeviceConfig()
     """设备信息"""
-    accounts: Dict[str, UserAccount] = {}
-    """储存一些已绑定的账号数据"""
 
     def __init__(self, **data: Any):
         super().__init__(**data)
