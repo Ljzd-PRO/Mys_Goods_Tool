@@ -16,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.1.0-beta.1"
+VERSION = "2.1.0-dev"
 """程序当前版本"""
 
 if TYPE_CHECKING:

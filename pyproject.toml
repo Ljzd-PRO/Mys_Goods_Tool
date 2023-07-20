@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mys-goods-tool"
-version = "2.1.0-beta.1"
+version = "2.1.0-dev"
 description = "米游社商品兑换工具|短信验证登录|终端TUI界面"
 authors = ["Ljzd-PRO <ljzd@office.ljzd-pro.ml>"]
 readme = "README.md"
@@ -26,7 +26,7 @@ tenacity = "^8.2.2"
 requests = "^2.31.0"
 ping3 = "^4.0.4"
 ntplib = "^0.4.0"
-pydantic = "^1.10.9"
+pydantic = "^2.0.3"
 loguru = "^0.7.0"
 httpx = "^0.24.1"
 rich = "^13.4.2"
