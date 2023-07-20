@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sys
-
 from io import StringIO
+
 from rich.console import RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
@@ -24,7 +24,7 @@ from mys_goods_tool.custom_widget import RadioStatus, StaticStatus
 from mys_goods_tool.exchange_mode import ExchangeModeView, EnterExchangeMode, ExitExchangeMode
 from mys_goods_tool.exchange_plan_view import ExchangePlanView
 from mys_goods_tool.login_view import LoginView
-from mys_goods_tool.user_data import ROOT_PATH, VERSION
+from mys_goods_tool.user_data import ROOT_PATH, VERSION, different_device_and_salt
 from mys_goods_tool.utils import LOG_FORMAT, logger
 
 WELCOME_MD = """
@@ -32,7 +32,22 @@ WELCOME_MD = """
 
 ## 更新说明
 
-- 修复短信验证码发送失败的问题 #105 #94 #104 - #126 by @Night-stars-1
+v2.1.0
+
+- 在兑换开始后的一段时间内不断尝试兑换，直到成功
+  > 完整流程：兑换开始后，数个线程同时进行，每个线程在一段时间内重复发送兑换请求  
+  > 原因：[太早兑换可能被认定不在兑换时间](https://github.com/Ljzd-PRO/Mys_Goods_Tool/discussions/135#discussioncomment-6487717)
+- 兑换开始后将不会延迟兑换，用户数据文件中 `preference.exchange_latency` 将作为同一线程下每个兑换请求之间的时间间隔
+  > `preference.exchange_latency` 为列表类型，包含两个浮点数，分别为最小延迟和最大延迟，单位为秒，可参考默认值
+- 兑换请求日志内容增加了发送请求时的时间戳
+
+v2.1.0-beta.1
+
+- 兑换请求Headers增加与修改了 `Referer`, `x-rpc-device_fp`, `x-rpc-verify_key`, `Origin` 等字段，可能修复兑换失败的问题
+- 修复登陆时因为连接断开（client has been closed）而导致登陆失败的问题
+- 防止因配置文件中默认存在 `device_config`, `salt_config` 而导致更新后默认配置被原配置覆盖的问题
+- 若需要修改 `device_config` 配置，修改后还设置用户数据文件中 `preference.override_device_and_salt` 为 `true` 以覆盖默认值
+- 修复Unix下即使安装了 uvloop 也找不到，无法应用的问题
 
 ## 功能和特性
 
@@ -398,13 +413,18 @@ class TuiApp(App):
         TuiApp.text_log_writer = TuiApp.TextLogWriter()
         logger.add(self.text_log_writer, diagnose=False, level="DEBUG", format=LOG_FORMAT)
         if sys.platform not in ('win32', 'cygwin', 'cli'):
-            if "uvloop" in sys.modules.copy():
+            try:
                 import uvloop
+            except ModuleNotFoundError:
+                logger.info("在非 Windows 环境下，你可以安装 uvloop 以提高性能")
+            else:
                 import asyncio
                 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-            else:
-                logger.info("在非 Windows 环境下，你可以安装 uvloop 以提高性能")
         self.query_one("Welcome Button", Button).focus()
+        if different_device_and_salt:
+            logger.warning("检测到设备信息配置 device_config 或 salt_config 使用了非默认值，"
+                           "如果你修改过这些配置，需要设置 preference.override_device_and_salt 为 True 以覆盖默认值并生效。"
+                           "如果继续，将可能保存默认值到配置文件。")
 
     def action_screenshot(self, filename: str | None = None, path: str = str(ROOT_PATH)) -> None:
         """Save an SVG "screenshot". This action will save an SVG file containing the current contents of the screen.

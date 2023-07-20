@@ -22,7 +22,7 @@ from textual.widgets import Static, ListView, ListItem
 from mys_goods_tool.api import URL_EXCHANGE, good_exchange_sync
 from mys_goods_tool.custom_widget import ControllableButton, UnClickableItem
 from mys_goods_tool.data_model import ExchangeStatus
-from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult
+from mys_goods_tool.user_data import config as conf, ExchangePlan, Preference, ExchangeResult, different_device_and_salt
 from mys_goods_tool.utils import logger, LOG_FORMAT
 
 
@@ -95,11 +95,19 @@ def exchange_begin(plan: ExchangePlan):
 
     :param plan: 兑换计划
     """
+    duration = 0
     random_x, random_y = conf.preference.exchange_latency
-    latency = random.uniform(random_x, random_y)
-    time.sleep(latency)
-    result = good_exchange_sync(plan)
-    return result
+    exchange_status, exchange_result = ExchangeStatus(), None
+
+    # 在兑换开始后的一段时间内，不断尝试兑换，直到成功（因为太早兑换可能被认定不在兑换时间）
+    while duration < conf.preference.exchange_duration:
+        latency = random.uniform(random_x, random_y)
+        time.sleep(latency)
+        exchange_status, exchange_result = good_exchange_sync(plan)
+        if exchange_status and exchange_result.result:
+            break
+        duration += latency
+    return exchange_status, exchange_result
 
 
 def exchange_mode_simple():
@@ -110,6 +118,11 @@ def exchange_mode_simple():
     if not conf.exchange_plans:
         logger.info("无兑换计划需要执行")
         return
+
+    if different_device_and_salt:
+        logger.warning("检测到设备信息配置 device_config 或 salt_config 使用了非默认值，"
+                       "如果你修改过这些配置，需要设置 preference.override_device_and_salt 为 True 以覆盖默认值并生效。"
+                       "如果继续，将可能保存默认值到配置文件。")
 
     scheduler = set_scheduler(BlockingScheduler())
     finished: Dict[ExchangePlan, List[bool]] = dict(map(lambda x: (x, []), conf.exchange_plans))

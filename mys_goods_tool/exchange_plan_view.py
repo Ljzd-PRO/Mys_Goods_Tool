@@ -15,12 +15,13 @@ from textual.widgets import (
 from textual.widgets._option_list import Option, Separator
 
 from mys_goods_tool.api import get_good_list, get_address, get_game_record, good_exchange, \
-    get_good_detail, get_good_games
+    get_good_detail, get_good_games, get_device_fp
 from mys_goods_tool.custom_css import *
 from mys_goods_tool.custom_widget import StaticStatus, ControllableButton, LoadingDisplay, \
     DynamicTabbedContent, GameButton, PlanButton, UnClickableItem
 from mys_goods_tool.data_model import Good, Address, GameRecord
 from mys_goods_tool.user_data import config as conf, UserAccount, ExchangePlan
+from mys_goods_tool.utils import logger
 
 _T = TypeVar("_T")
 
@@ -914,6 +915,11 @@ class FinishContent(ExchangePlanContent):
                     self.app.notice(f"[bold yellow]该兑换计划已存在[/]")
                 else:
                     conf.exchange_plans.add(plan)
+                    if not plan.account.device_fp:
+                        logger.info(f"账号 {plan.account.bbs_uid} 未设置 device_fp，正在获取...")
+                        fp_status, plan.account.device_fp = await get_device_fp(plan.account.device_id_ios)
+                        if fp_status:
+                            logger.info(f"成功获取 device_fp: {plan.account.device_fp}")
                     if conf.save():
                         self.app.notice(f"[bold green]已保存兑换计划[/]")
                     else:

@@ -44,7 +44,7 @@ def main(textual_app: Optional[App] = None):
 
     if arg.conf is not None:
         mys_goods_tool.user_data.CONFIG_PATH = arg.conf
-        mys_goods_tool.user_data.config = load_config()
+        mys_goods_tool.user_data.config, mys_goods_tool.user_data.different_device_and_salt = load_config()
     if arg.mode == "guide":
         if textual_app is None:
             from mys_goods_tool.tui import TuiApp

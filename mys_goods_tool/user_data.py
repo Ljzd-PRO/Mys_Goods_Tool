@@ -1,12 +1,12 @@
-from json import JSONDecodeError
-
 import os
-from httpx import Cookies
-from loguru import logger
+from json import JSONDecodeError
 from pathlib import Path
-from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
 from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_CHECKING, AbstractSet, \
     Mapping
+
+from httpx import Cookies
+from loguru import logger
+from pydantic import BaseModel, ValidationError, BaseSettings, validator, Extra
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord, BaseModelWithUpdate
 
@@ -16,7 +16,7 @@ ROOT_PATH = Path("./")
 CONFIG_PATH = ROOT_PATH / "user_data.json"
 """用户数据文件默认路径"""
 
-VERSION = "2.0.5"
+VERSION = "2.1.0"
 """程序当前版本"""
 
 if TYPE_CHECKING:
@@ -205,7 +205,7 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
         return cookies_dict
 
 
-class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
+class UserAccount(BaseModelWithSetter):
     """
     米游社账户数据
 
@@ -223,6 +223,8 @@ class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
     """iOS设备用 deviceID"""
     device_id_android: str
     """安卓设备用 deviceID"""
+    device_fp: Optional[str]
+    """iOS设备用 deviceFp"""
 
     def __init__(self, **data: Any):
         if not data.get("device_id_ios") or not data.get("device_id_android"):
@@ -298,10 +300,13 @@ class Preference(BaseSettings):
     """最大网络请求重试次数"""
     retry_interval: float = 2
     """网络请求重试间隔（单位：秒）（除兑换请求外）"""
+
+    # TODO: 目前并没有实现使用同步后的时间进行兑换
     enable_ntp_sync: Optional[bool] = True
     """是否开启NTP时间同步（将调整实际发出兑换请求的时间，而不是修改系统时间）"""
     ntp_server: Optional[str] = "ntp.aliyun.com"
     """NTP服务器地址"""
+
     timezone: Optional[str] = "Asia/Shanghai"
     """兑换时所用的时区"""
     geetest_statics_path: Optional[Path]
@@ -310,12 +315,16 @@ class Preference(BaseSettings):
     """登录时使用的 GEETEST行为验证 WEB服务 本地监听地址"""
     exchange_thread_count: int = 2
     """兑换线程数"""
-    exchange_latency: Tuple[float, float] = (0, 0.2)
-    """兑换时间延迟随机范围（单位：秒）（防止因为发出请求的时间过于精准而被服务器认定为非人工操作）"""
+    exchange_latency: Tuple[float, float] = (0, 0.5)
+    """同一线程下，每个兑换请求之间的间隔时间"""
+    exchange_duration: float = 5
+    """兑换持续时间随机范围（单位：秒）"""
     enable_log_output: bool = True
     """是否保存日志"""
     log_path: Optional[Path] = ROOT_PATH / "logs" / "mys_goods_tool.log"
     """日志保存路径"""
+    override_device_and_salt: bool = False
+    """是否读取用户数据文件中的 device_config 设备配置 和 salt_config 配置而不是默认配置（一般情况不建议开启）"""
 
     @validator("log_path")
     def _(cls, v: Optional[Path]):
@@ -336,7 +345,7 @@ class Preference(BaseSettings):
 
 class SaltConfig(BaseSettings):
     """
-    生成Headers - DS所用salt值
+    生成Headers - DS所用salt值，非必要请勿修改
     """
     SALT_IOS: str = "ulInCDohgEs557j0VsPDYnQaaz6KJcv5"
     '''生成Headers iOS DS所需的salt'''
@@ -356,15 +365,15 @@ class SaltConfig(BaseSettings):
 class DeviceConfig(BaseSettings):
     """
     设备信息
-    DS算法与设备信息有关联，非必要请勿修改
+    Headers所用的各种数据，非必要请勿修改
     """
-    USER_AGENT_MOBILE: str = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.42.1"
+    USER_AGENT_MOBILE: str = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/2.54.1"
     '''移动端 User-Agent(Mozilla UA)'''
     USER_AGENT_PC: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
     '''桌面端 User-Agent(Mozilla UA)'''
     USER_AGENT_OTHER: str = "Hyperion/275 CFNetwork/1402.0.8 Darwin/22.2.0"
     '''获取用户 ActionTicket 时Headers所用的 User-Agent'''
-    USER_AGENT_ANDROID: str = "Mozilla/5.0 (Linux; Android 11; MI 8 SE Build/RQ3A.211001.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/104.0.5112.97 Mobile Safari/537.36 miHoYoBBS/2.36.1"
+    USER_AGENT_ANDROID: str = "Mozilla/5.0 (Linux; Android 11; MI 8 SE Build/RQ3A.211001.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/104.0.5112.97 Mobile Safari/537.36 miHoYoBBS/2.54.1"
     '''安卓端 User-Agent(Mozilla UA)'''
     USER_AGENT_ANDROID_OTHER: str = "okhttp/4.9.3"
     '''安卓端 User-Agent(专用于米游币任务等)'''
@@ -395,7 +404,7 @@ class DeviceConfig(BaseSettings):
     X_RPC_CHANNEL_ANDROID: str = "miyousheluodi"
     '''安卓端 x-rpc-channel'''
 
-    X_RPC_APP_VERSION: str = "2.52.1"
+    X_RPC_APP_VERSION: str = "2.54.1"
     '''Headers所用的 x-rpc-app_version'''
     X_RPC_PLATFORM: str = "ios"
     '''Headers所用的 x-rpc-platform'''
@@ -408,22 +417,22 @@ class DeviceConfig(BaseSettings):
         pass
 
 
-class UserData(BaseModel):
+class UserData(BaseModel, extra=Extra.ignore):
     """
     用户数据类
     """
     version: str = VERSION
     """创建用户数据文件的程序版本号"""
-    exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
-    """兑换计划列表"""
     preference: Preference = Preference()
     """偏好设置"""
+    exchange_plans: Union[Set[ExchangePlan], List[ExchangePlan]] = set()
+    """兑换计划列表"""
+    accounts: Dict[str, UserAccount] = {}
+    """储存一些已绑定的账号数据"""
     salt_config: SaltConfig = SaltConfig()
     """生成Headers - DS所用salt值"""
     device_config: DeviceConfig = DeviceConfig()
     """设备信息"""
-    accounts: Dict[str, UserAccount] = {}
-    """储存一些已绑定的账号数据"""
 
     def __init__(self, **data: Any):
         super().__init__(**data)
@@ -490,19 +499,32 @@ def write_config_file(conf: UserData = UserData()):
     return True
 
 
-def load_config():
+def load_config() -> Tuple[UserData, bool]:
     """
     加载用户数据文件
+
+    :return: (<用户数据对象>, <device_config 或 salt_config 是否非默认值且未开启覆写>)
     """
     if os.path.exists(CONFIG_PATH) and os.path.isfile(CONFIG_PATH):
         try:
-            return UserData.parse_file(CONFIG_PATH)
+            user_data = UserData.parse_file(CONFIG_PATH)
         except (ValidationError, JSONDecodeError):
             logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 格式是否正确")
             exit(1)
         except:
             logger.exception(f"读取用户数据文件失败，请检查用户数据文件 {CONFIG_PATH} 是否存在且程序有权限读取和写入")
             exit(1)
+        else:
+            if not user_data.preference.override_device_and_salt:
+                default_device_config = DeviceConfig()
+                default_salt_config = SaltConfig()
+                if user_data.device_config != default_device_config or user_data.salt_config != default_salt_config:
+                    user_data.device_config = default_device_config
+                    user_data.salt_config = default_salt_config
+                    return user_data, True
+            else:
+                logger.info("已开启覆写 device_config 和 salt_config，将读取用户数据文件中的配置以覆写默认配置")
+            return user_data, False
     else:
         user_data = UserData()
         try:
@@ -513,8 +535,11 @@ def load_config():
         # logger.info(f"用户数据文件 {CONFIG_PATH} 不存在，已创建默认用户数据文件。")
         # 由于会输出到标准输出流，影响TUI观感，因此暂时取消
 
-        return user_data
+        return user_data, False
 
 
-config = load_config()
+_load_config_return = load_config()
+config = _load_config_return[0]
 """程序配置对象"""
+different_device_and_salt = _load_config_return[1]
+"""device_config 或 salt_config 是否非默认值且未开启覆写"""

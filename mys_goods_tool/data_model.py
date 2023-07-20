@@ -383,6 +383,14 @@ class ExchangeStatus(BaseApiStatus):
     """账号不存在"""
 
 
+class GetFpStatus(BaseApiStatus):
+    """
+    兑换操作 返回结果
+    """
+    invalid_arguments = False
+    """参数错误"""
+
+
 GeetestResult = NamedTuple("GeetestResult", validate=str, seccode=str)
 """人机验证结果数据"""
 

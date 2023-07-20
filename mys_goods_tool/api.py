@@ -1,4 +1,5 @@
-from typing import List, Optional, Tuple, Dict, Any, Union
+import time
+from typing import List, Optional, Tuple, Dict, Any, Union, Type
 from urllib.parse import urlencode
 
 import httpx
@@ -8,10 +9,10 @@ from requests.utils import dict_from_cookiejar
 
 from mys_goods_tool.data_model import GameRecord, GameInfo, Good, Address, BaseApiStatus, MmtData, GeetestResult, \
     GetCookieStatus, \
-    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, GeetestResultV4
+    CreateMobileCaptchaStatus, GetGoodDetailStatus, ExchangeStatus, GeetestResultV4, GetFpStatus
 from mys_goods_tool.user_data import config as conf, UserAccount, BBSCookies, ExchangePlan, ExchangeResult
 from mys_goods_tool.utils import generate_device_id, logger, generate_ds, Subscribe, \
-    NtpTime, get_async_retry
+    NtpTime, get_async_retry, generate_seed_id, generate_fp_locally
 
 URL_LOGIN_TICKET_BY_CAPTCHA = "https://webapi.account.mihoyo.com/Api/login_by_mobilecaptcha"
 URL_LOGIN_TICKET_BY_PASSWORD = "https://webapi.account.mihoyo.com/Api/login_by_password"
@@ -35,6 +36,7 @@ URL_REGISTRABLE = "https://webapi.account.mihoyo.com/Api/is_mobile_registrable?m
 URL_CREATE_MMT = "https://webapi.account.mihoyo.com/Api/create_mmt?scene_type=1&now={now}&reason=user.mihoyo.com%2523%252Flogin%252Fcaptcha&action_type=login_by_mobile_captcha&t={t}"
 URL_CREATE_MOBILE_CAPTCHA = "https://webapi.account.mihoyo.com/Api/create_mobile_captcha"
 URL_GET_USER_INFO = "https://bbs-api.miyoushe.com/user/api/getUserFullInfo?uid={uid}"
+URL_GET_DEVICE_FP = "https://public-data-api.mihoyo.com/device-fp/api/getFp"
 
 HEADERS_WEBAPI = {
     "Host": "webapi.account.mihoyo.com",
@@ -195,11 +197,13 @@ HEADERS_EXCHANGE = {
     "Connection":
         "keep-alive",
     "Content-Type":
-        "application/json;charset=utf-8",
+        "application/json",
     "Host":
         "api-takumi.miyoushe.com",
     "Origin":
-        "https://webstatic.mihoyo.com",
+        "https://webstatic.miyoushe.com",
+    "Referer":
+        "https://webstatic.miyoushe.com/",
     "User-Agent":
         conf.device_config.USER_AGENT_MOBILE,
     "x-rpc-app_version":
@@ -208,6 +212,9 @@ HEADERS_EXCHANGE = {
         "appstore",
     "x-rpc-client_type":
         "1",
+    "x-rpc-verify_key":
+        "bll8iq97cem8",
+    "x-rpc-device_fp": None,
     "x-rpc-device_id": None,
     "x-rpc-device_model":
         conf.device_config.X_RPC_DEVICE_MODEL_MOBILE,
@@ -233,15 +240,20 @@ IncorrectReturn = (KeyError, TypeError, AttributeError, IndexError, ValidationEr
 """米游社API返回数据无效会触发的异常组合"""
 
 
-def is_incorrect_return(exception: Exception) -> bool:
-    """判断是否是米游社API返回数据无效的异常"""
+def is_incorrect_return(exception: Exception, *addition_exceptions: Type[Exception]) -> bool:
+    """
+    判断是否是米游社API返回数据无效的异常
+    :param exception: 异常对象
+    :param addition_exceptions: 额外的异常类型，用于触发判断
+    """
     """
         return exception in IncorrectReturn or
             exception.__cause__ in IncorrectReturn or
             isinstance(exception, IncorrectReturn) or
             isinstance(exception.__cause__, IncorrectReturn)
     """
-    return isinstance(exception, IncorrectReturn) or isinstance(exception.__cause__, IncorrectReturn)
+    exceptions = IncorrectReturn + addition_exceptions
+    return isinstance(exception, exceptions) or isinstance(exception.__cause__, exceptions)
 
 
 class ApiResultHandler(BaseModel):
@@ -345,19 +357,12 @@ async def get_game_list(retry: bool = True) -> Tuple[BaseApiStatus, Optional[Lis
     """
     headers = HEADERS_GAME_LIST.copy()
     try:
-        subscribe = Subscribe()
         async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds()
                 async with httpx.AsyncClient() as client:
                     res = await client.get(URL_GAME_LIST, headers=headers, timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"获取游戏信息(GameInfo): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
-                    headers["User-Agent"] = conf.device_config.USER_AGENT_MOBILE
-                    headers["DS"] = generate_ds()
                 return BaseApiStatus(success=True), list(
                     map(GameInfo.parse_obj, api_result.data["list"]))
     except tenacity.RetryError as e:
@@ -381,7 +386,8 @@ async def get_user_myb(account: UserAccount, retry: bool = True) -> Tuple[BaseAp
         async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_MYB, headers=HEADERS_MYB, cookies=account.cookies.dict(),
+                    res = await client.get(URL_MYB, headers=HEADERS_MYB,
+                                           cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
                                            timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
@@ -418,13 +424,12 @@ async def device_login(account: UserAccount, retry: bool = True):
     headers = HEADERS_DEVICE.copy()
     headers["x-rpc-device_id"] = account.device_id_android
     try:
-        subscribe = Subscribe()
         async for attempt in get_async_retry(retry):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
                     res = await client.post(URL_DEVICE_LOGIN, headers=headers, json=data,
-                                            cookies=account.cookies.dict(),
+                                            cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
                                             timeout=conf.preference.timeout)
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
@@ -432,11 +437,6 @@ async def device_login(account: UserAccount, retry: bool = True):
                         f"设备登录(device_login) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"设备登录(device_login): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
-                    headers["DS"] = generate_ds(data)
                 if res.json()["message"] != "OK":
                     raise ValueError
                 else:
@@ -474,18 +474,19 @@ async def device_save(account: UserAccount, retry: bool = True):
             with attempt:
                 headers["DS"] = generate_ds(data)
                 async with httpx.AsyncClient() as client:
-                    res = await client.post(URL_DEVICE_SAVE, headers=headers, json=data, cookies=account.cookies.dict(),
-                                            timeout=conf.preference.timeout)
+                    res = await client.post(
+                        URL_DEVICE_SAVE,
+                        headers=headers,
+                        json=data,
+                        cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
+                        timeout=conf.preference.timeout
+                    )
                 api_result = ApiResultHandler(res.json())
                 if api_result.login_expired:
                     logger.info(
                         f"设备保存(device_save) - 用户 {account.bbs_uid} 登录失效")
                     logger.debug(f"网络请求返回: {res.text}")
                     return BaseApiStatus(login_expired=True)
-                if api_result.invalid_ds:
-                    logger.info(
-                        f"设备保存(device_save): DS无效，正在在线获取salt以重新生成...")
-                    await subscribe.load()
                 if res.json()["message"] != "OK":
                     raise ValueError
                 else:
@@ -611,9 +612,12 @@ async def get_address(account: UserAccount, retry: bool = True) -> Tuple[BaseApi
         async for attempt in get_async_retry(retry):
             with attempt:
                 async with httpx.AsyncClient() as client:
-                    res = await client.get(URL_ADDRESS.format(
-                        round(NtpTime.time() * 1000)), headers=headers, cookies=account.cookies.dict(),
-                        timeout=conf.preference.timeout)
+                    res = await client.get(
+                        URL_ADDRESS.format(round(NtpTime.time() * 1000)),
+                        headers=headers,
+                        cookies=account.cookies.dict(v2_stoken=True, cookie_type=True),
+                        timeout=conf.preference.timeout
+                    )
                     api_result = ApiResultHandler(res.json())
                     if api_result.login_expired:
                         logger.info(
@@ -697,6 +701,7 @@ async def create_mmt(client: Optional[httpx.AsyncClient] = None,
     headers["x-rpc-device_id"] = device_id or generate_device_id()
     if use_v4:
         headers.setdefault("x-rpc-source", "accountWebsite")
+
     async def request():
         """
         发送请求的闭包函数
@@ -1179,6 +1184,64 @@ async def get_ltoken_by_stoken(cookies: BBSCookies, device_id: str = None, retry
             return GetCookieStatus(network_error=True), None
 
 
+async def get_device_fp(device_id: str, retry: bool = True) -> Tuple[GetFpStatus, Optional[str]]:
+    """
+    获取 x-rpc-device_fp
+
+    :param device_id: x-rpc-device_id 的值
+    :param retry: 是否允许重试
+
+    >>> import asyncio
+    >>> coroutine = get_device_fp(generate_device_id())
+    >>> assert asyncio.new_event_loop().run_until_complete(coroutine)[0].success is True
+    """
+    content = {
+        "seed_id": generate_seed_id(),
+        "device_id": device_id.lower(),
+        "platform": "5",
+        "seed_time": str(int(time.time() * 1000)),
+        "ext_fields": "{\"userAgent\":\"Mozilla\/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit\/605.1.15 "
+                      f"(KHTML, like Gecko) miHoYoBBS\/{conf.device_config.X_RPC_APP_VERSION}\",\"browserScreenSize"
+                      f"\":243750,\"maxTouchPoints\":5,"
+                      "\"isTouchSupported\":true,\"browserLanguage\":\"zh-CN\",\"browserPlat\":\"iPhone\","
+                      "\"browserTimeZone\":\"Asia\/Shanghai\",\"webGlRender\":\"Apple GPU\",\"webGlVendor\":\"Apple "
+                      "Inc.\",\"numOfPlugins\":0,\"listOfPlugins\":\"unknown\",\"screenRatio\":3,"
+                      "\"deviceMemory\":\"unknown\",\"hardwareConcurrency\":\"4\",\"cpuClass\":\"unknown\","
+                      "\"ifNotTrack\":\"unknown\",\"ifAdBlock\":0,\"hasLiedResolution\":1,\"hasLiedOs\":0,"
+                      "\"hasLiedBrowser\":0}",
+        "app_name": "account_cn",
+        "device_fp": generate_fp_locally()
+    }
+    try:
+        async for attempt in get_async_retry(retry):
+            with attempt:
+                async with httpx.AsyncClient() as client:
+                    res = await client.post(
+                        URL_GET_DEVICE_FP,
+                        json=content,
+                        timeout=conf.preference.timeout
+                    )
+                api_result = ApiResultHandler(res.json())
+                if api_result.data["code"] == 403 or api_result.data["msg"] == "传入的参数有误":
+                    logger.error("传入的参数有误")
+                    return GetFpStatus(invalid_arguments=True), None
+                elif api_result.success:
+                    device_fp = api_result.data["device_fp"]
+                    if not device_fp:
+                        logger.error("获取 x-rpc-device_fp: 服务器返回的 device_fp 为空")
+                        return GetFpStatus(incorrect_return=True), None
+                    return GetFpStatus(success=True), device_fp
+
+    except tenacity.RetryError as e:
+        if is_incorrect_return(e):
+            logger.exception(f"获取 x-rpc-device_fp: 服务器没有正确返回")
+            logger.debug(f"网络请求返回: {res.text}")
+            return GetFpStatus(incorrect_return=True), None
+        else:
+            logger.exception(f"获取 x-rpc-device_fp: 网络请求失败")
+            return GetFpStatus(network_error=True), None
+
+
 async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[ExchangeResult]]:
     """
     执行米游币商品兑换
@@ -1187,11 +1250,12 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
     """
     headers = HEADERS_EXCHANGE
     headers["x-rpc-device_id"] = plan.account.device_id_ios
+    headers["x-rpc-device_fp"] = plan.account.device_fp or generate_fp_locally()
     content = {
         "app_id": 1,
         "point_sn": "myb",
         "goods_id": plan.good.goods_id,
-        "exchange_num": 1,
+        "exchange_num": 1
     }
     if plan.address is not None:
         content.setdefault("address_id", plan.address.id)
@@ -1201,36 +1265,39 @@ async def good_exchange(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Ex
         content.setdefault("region", plan.game_record.region)
         # 例: hk4e_cn
         content.setdefault("game_biz", plan.good.game_biz)
+    start_time = 0
     try:
+        start_time = time.time()
         async with httpx.AsyncClient() as client:
             res = await client.post(
-                URL_EXCHANGE, headers=headers, json=content, cookies=plan.account.cookies.dict(),
+                URL_EXCHANGE, headers=headers, json=content,
+                cookies=plan.account.cookies.dict(cookie_type=True),
                 timeout=conf.preference.timeout)
         api_result = ApiResultHandler(res.json())
         if api_result.login_expired:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 登录失效")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 登录失效 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(login_expired=True), None
         if api_result.success:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认。")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json(), plan=plan)
         else:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认。")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json(), plan=plan)
     except Exception as e:
         if is_incorrect_return(e):
             logger.error(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 服务器没有正确返回")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 服务器没有正确返回 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(incorrect_return=True), None
         else:
             logger.exception(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 请求失败")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 请求失败 - 请求发送时间: {start_time}")
             return ExchangeStatus(network_error=True), None
 
 
@@ -1242,11 +1309,12 @@ def good_exchange_sync(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Exc
     """
     headers = HEADERS_EXCHANGE
     headers["x-rpc-device_id"] = plan.account.device_id_ios
+    headers["x-rpc-device_fp"] = plan.account.device_fp or generate_fp_locally()
     content = {
         "app_id": 1,
         "point_sn": "myb",
         "goods_id": plan.good.goods_id,
-        "exchange_num": 1,
+        "exchange_num": 1
     }
     if plan.address is not None:
         content.setdefault("address_id", plan.address.id)
@@ -1256,34 +1324,37 @@ def good_exchange_sync(plan: ExchangePlan) -> Tuple[ExchangeStatus, Optional[Exc
         content.setdefault("region", plan.game_record.region)
         # 例: hk4e_cn
         content.setdefault("game_biz", plan.good.game_biz)
+    start_time = 0
     try:
+        start_time = time.time()
         with httpx.Client() as client:
             res = client.post(
-                URL_EXCHANGE, headers=headers, json=content, cookies=plan.account.cookies.dict(),
+                URL_EXCHANGE, headers=headers, json=content,
+                cookies=plan.account.cookies.dict(cookie_type=True),
                 timeout=conf.preference.timeout)
         api_result = ApiResultHandler(res.json())
         if api_result.login_expired:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 登录失效")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 登录失效 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(login_expired=True), None
         if api_result.success:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认。")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换成功！可以自行确认 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(success=True), ExchangeResult(result=True, return_data=res.json(), plan=plan)
         else:
             logger.info(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认。")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 兑换失败，可以自行确认 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(success=True), ExchangeResult(result=False, return_data=res.json(), plan=plan)
     except Exception as e:
         if is_incorrect_return(e):
             logger.error(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 服务器没有正确返回")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 服务器没有正确返回 - 请求发送时间: {start_time}")
             logger.debug(f"网络请求返回: {res.text}")
             return ExchangeStatus(incorrect_return=True), None
         else:
             logger.exception(
-                f"米游币商品兑换 - 执行兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 请求失败")
+                f"米游币商品兑换: 用户 {plan.account.bbs_uid} 商品 {plan.good.goods_id} 请求失败 - 请求发送时间: {start_time}")
             return ExchangeStatus(network_error=True), None

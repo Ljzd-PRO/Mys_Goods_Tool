@@ -14,12 +14,25 @@
   <img alt="Python版本兼容性测试" src="https://img.shields.io/github/actions/workflow/status/Ljzd-PRO/Mys_Goods_Tool/python-package.yml?event=pull_request&label=Versions%20Test&style=for-the-badge">
 </div>
 
-**目前暂时无法兑换成功，即使测试兑换时没有问题。请等待修复**  
-相关issues: #132 #129 #125 #121 #116 #114
-
 ### 更新说明
 
-- 修复短信验证码发送失败的问题 #105 #94 #104 - #126 by @Night-stars-1
+v2.1.0
+
+- 在兑换开始后的一段时间内不断尝试兑换，直到成功
+  > 完整流程：兑换开始后，数个线程同时进行，每个线程在一段时间内重复发送兑换请求  
+  >
+  原因：[太早兑换可能被认定不在兑换时间](https://github.com/Ljzd-PRO/Mys_Goods_Tool/discussions/135#discussioncomment-6487717)
+- 兑换开始后将不会延迟兑换，用户数据文件中 `preference.exchange_latency` 将作为同一线程下每个兑换请求之间的时间间隔
+  > `preference.exchange_latency` 为列表类型，包含两个浮点数，分别为最小延迟和最大延迟，单位为秒，可参考默认值
+- 兑换请求日志内容增加了发送请求时的时间戳
+
+v2.1.0-beta.1
+
+- 兑换请求Headers增加与修改了 `Referer`, `x-rpc-device_fp`, `x-rpc-verify_key`, `Origin` 等字段，可能修复兑换失败的问题
+- 修复登陆时因为连接断开（client has been closed）而导致登陆失败的问题
+- 防止因配置文件中默认存在 `device_config`, `salt_config` 而导致更新后默认配置被原配置覆盖的问题
+- 若需要修改 `device_config` 配置，修改后还设置用户数据文件中 `preference.override_device_and_salt` 为 `true` 以覆盖默认值
+- 修复Unix下即使安装了 uvloop 也找不到，无法应用的问题
 
 ## 功能和特性
 
