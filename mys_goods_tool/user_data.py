@@ -6,7 +6,7 @@ from typing import List, Union, Optional, Tuple, Any, Dict, Set, Callable, TYPE_
 
 from httpx import Cookies
 from loguru import logger
-from pydantic import BaseModel, Extra, ValidationError, BaseSettings, validator
+from pydantic import BaseModel, ValidationError, BaseSettings, validator, Extra
 
 from mys_goods_tool.data_model import BaseModelWithSetter, Good, Address, GameRecord, BaseModelWithUpdate
 
@@ -205,7 +205,7 @@ class BBSCookies(BaseModelWithSetter, BaseModelWithUpdate):
         return cookies_dict
 
 
-class UserAccount(BaseModelWithSetter, extra=Extra.ignore):
+class UserAccount(BaseModelWithSetter):
     """
     米游社账户数据
 
@@ -417,7 +417,7 @@ class DeviceConfig(BaseSettings):
         pass
 
 
-class UserData(BaseModel):
+class UserData(BaseModel, extra=Extra.ignore):
     """
     用户数据类
     """
