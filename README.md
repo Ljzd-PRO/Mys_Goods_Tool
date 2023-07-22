@@ -22,14 +22,6 @@ v2.1.0
 - 兑换开始后将不会延迟兑换，用户数据文件中 `preference.exchange_latency` 将作为同一线程下每个兑换请求之间的时间间隔
 - 兑换请求日志内容增加了发送请求时的时间戳
 
-v2.1.0-beta.1
-
-- 兑换请求Headers增加与修改了 `Referer`, `x-rpc-device_fp`, `x-rpc-verify_key`, `Origin` 等字段，可能修复兑换失败的问题
-- 修复登陆时因为连接断开（client has been closed）而导致登陆失败的问题
-- 防止因配置文件中默认存在 `device_config`, `salt_config` 而导致更新后默认配置被原配置覆盖的问题
-- 若需要修改 `device_config` 配置，修改后还设置用户数据文件中 `preference.override_device_and_salt` 为 `true` 以覆盖默认值
-- 修复Unix下即使安装了 uvloop 也找不到，无法应用的问题
-
 ## 功能和特性
 
 - [x] 使用 [Textual](https://github.com/Textualize/textual) 终端图形界面库，支持 Windows / Linux / macOS 甚至可能是移动端SSH客户端
