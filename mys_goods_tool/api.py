@@ -197,7 +197,7 @@ HEADERS_EXCHANGE = {
     "Connection":
         "keep-alive",
     "Content-Type":
-        "application/json",
+        "application/json;charset=utf-8",
     "Host":
         "api-takumi.miyoushe.com",
     "Origin":
